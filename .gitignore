@@ -1,0 +1,46 @@
+# === Android ===
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+.gradle/
+local.properties
+keystore.properties
+*.keystore
+*.jks
+
+# === Kotlin ===
+*.hprof
+.kotlin/
+
+# === IDE ===
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# === Secrets ===
+.env
+secrets/
+*.pem
+*.key
+
+# === Build ===
+build/
+dist/
+*.log
+
+# === OS ===
+Thumbs.db
+
+# === Local-only files (never commit, never push) ===
+# The roadmap and the rule set are personal working documents.
+# They describe the strategy and the operational discipline.
+# They must never be committed and must never be pushed to a remote.
+ROADMAP.md
+RULE\ SET.md
