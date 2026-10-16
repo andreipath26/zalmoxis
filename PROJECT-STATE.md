@@ -1,0 +1,94 @@
+# PROJECT-STATE.md
+
+**Purpose:** Resume-from-cold file for ZALMOXIS. Updated at every pause (rule Z175).  
+**Read this first** if context is lost. It is the authoritative "where we are" document.  
+**Commit hash at time of this entry:** `050ad767a2e5f5b34cb4f4a184989f8140ca5738`
+
+---
+
+## 2026-10-16 — Session 1: Ground laid
+
+### Where the project lives
+
+    /home/andreipath/Desktop/ZALMOXIS/
+
+Plain local directory. No sync folder. No cloud drive.
+
+### Repository state at pause
+
+| Item | Value |
+|------|-------|
+| Branch | `main` |
+| Commits | 1 |
+| HEAD | `050ad767a2e5f5b34cb4f4a184989f8140ca5738` |
+| Tracked files | 33 |
+| Working tree | Clean |
+| Remotes | None |
+| Disk usage (working tree) | 280K |
+| Disk usage (.git) | 332K |
+
+### What exists on disk
+
+**Tracked (in the commit):**
+
+- `.gitignore` — 46 lines. Excludes Android/Kotlin/IDE/secrets/build/OS junk. Lines 45–46 exclude `ROADMAP.md` and `RULE SET.md`.
+- `README.md` — 70 lines. What ZALMOXIS is, what it is not, current status, foundational docs, license TBD.
+- `THREAT-MODEL.md` — 128 lines. Adversaries, attack surfaces, blast radius, lethal trifecta, explicit non-goals.
+- `RECOVERY-PLAN.md` — 211 lines. Five failure classes, seven recovery procedures, verification, unrecoverable cases.
+- `KILL-CRITERIA.md` — 113 lines. Pilot success criteria, kill criteria, stopping condition, meta-principle.
+- 28 × `.gitkeep` — directory tree preserved (android/, core/{memory,identity,ingestion,audit,permissions}/{src,tests,contracts,schema}, desktop/, docs/{architecture,research,decisions}, ota/, scripts/, server/, tests/).
+
+**Local-only (present, ignored, never committed, never pushed):**
+
+- `ROADMAP.md` — 53876 bytes. Full V10 roadmap.
+- `RULE SET.md` — 25194 bytes. Z1–Z175. Includes Z175 (this file's rule).
+- `PROJECT-STATE.md` — this file.
+
+### What is not yet written
+
+Phase 0 remaining deliverables:
+
+1. **Memory Contract** — the eight questions the user must be able to answer about their own memory.
+2. **Model Performance Gate** — benchmarks the target device must meet before Phase 1.
+3. **Customer Discovery Questions** — 5–10 interview questions for the pilot profile.
+
+### Defense stack for the two local-only files
+
+| Layer | State |
+|-------|-------|
+| `.gitignore` lines 45–46 | Present |
+| `.git/info/exclude` lines 3–4 | Present |
+| `.git/hooks/pre-commit` | Present, executable (488 bytes) |
+| `.git/hooks/pre-push` | Present, executable (458 bytes) |
+| No remote | Confirmed |
+
+`ROADMAP.md` and `RULE SET.md` are not in any commit. Verified at pause.
+
+### How to resume cold
+
+1. `cd /home/andreipath/Desktop/ZALMOXIS/`
+2. `git log --oneline` — should show exactly one commit: `050ad76 Initial ZALMOXIS skeleton...`
+3. `git status --short` — should be empty.
+4. `git remote -v` — should be empty. **If a remote appears, stop and investigate.**
+5. Read this file, then `RULE SET.md`, then `ROADMAP.md`.
+6. Next session starts with the Memory Contract.
+
+### Decisions made in this session, recorded
+
+- Folder renamed to `ZALMOXIS` (all caps, no spaces).
+- `ROADMAP.md` and `RULE SET.md` are local-only, permanently. Five-layer defense installed.
+- Phase 0 is scoped to: threat model, recovery plan, kill criteria, memory contract, model performance gate, customer discovery. First three done.
+- No remote. No push. No public release. License undecided.
+- Z175 added to the rule set: every "we pause" updates this file.
+
+### What to verify first if something looks wrong
+
+    cd ~/Desktop/ZALMOXIS
+    git log --all --pretty=format: --name-only | sort -u | grep -E "ROADMAP|RULE"
+    git check-ignore -v ROADMAP.md "RULE SET.md"
+    ls -la .git/hooks/pre-commit .git/hooks/pre-push
+
+If the first command prints anything, stop. Investigate before any git operation.
+
+---
+
