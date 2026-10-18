@@ -6,6 +6,42 @@
 
 ---
 
+## 2026-10-18 — Session 2: GitHub remote added
+
+### What changed
+
+A private GitHub remote was added. The repo is now backed up to GitHub.
+
+| Item | Value |
+|------|-------|
+| Remote URL | `https://github.com/andreipath26/zalmoxis` |
+| Visibility | **PRIVATE** |
+| Remote HEAD before this entry | `f4c2518` |
+| Remote files before this entry | 34 |
+| Forbidden files on remote | **None** — verified by `git ls-tree -r origin/main` |
+| Forbidden files in remote history | **None** — verified by `git log origin/main` |
+| Local-only files status | Unchanged. `ROADMAP.md` (53884 bytes) and `RULE SET.md` (25632 bytes) remain on disk, ignored, never committed, never pushed. |
+
+### The verification that was run
+
+`git ls-tree -r origin/main --name-only` — 34 files, no `ROADMAP.md`, no `RULE SET.md`.
+`git log origin/main --pretty=format: --name-only | sort -u` — no forbidden file anywhere in remote history.
+`gh repo view --json visibility` — `"isPrivate": true`.
+
+### What this means for resume-from-cold
+
+If the local machine is lost, the repo can be cloned from GitHub:
+
+    git clone https://github.com/andreipath26/zalmoxis.git
+
+The clone will contain the 34 tracked files. It will **not** contain `ROADMAP.md` or `RULE SET.md` — those were never pushed and exist only on the original machine. **If the local machine is lost, the roadmap and the rule set are lost with it.** This is the known limitation of the local-only decision. A manual backup of those two files to separate storage is the only protection against that scenario.
+
+### Standing constraint, restated
+
+`ROADMAP.md` and `RULE SET.md` must never be uploaded anywhere. The remote does not change this. The four mechanical layers (`gitignore`, `git/info/exclude`, `pre-commit`, `pre-push`) plus the verified absence from history protect this invariant on every future push.
+
+---
+
 ## 2026-10-16 — Session 1: Ground laid
 
 ### Where the project lives
