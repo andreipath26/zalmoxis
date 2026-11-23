@@ -80,6 +80,9 @@ async function mcp(req,env){
 }
 export default {
  async fetch(req,env){
+  // Explicit unsafe-prototype opt-in is never configured in production examples.
+  // The official MCP/OAuth Worker under bridge/mcp-server replaces this file.
+  if (env.PROTOTYPE_ENABLED !== "I-UNDERSTAND-UNSAFE") return err("Obsolete bridge prototype disabled.",503);
   const url=new URL(req.url);
   try{
    if(url.pathname==="/health"&&req.method==="GET")return json({service:"zalmoxis-bridge",status:"ready",version:1});
