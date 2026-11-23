@@ -115,6 +115,7 @@ private fun ZalmoxisHome() {
     var activePrompt by remember { mutableStateOf("") }
     var priorTurns by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
     var pendingDeleteModel by remember { mutableStateOf<LocalModel?>(null) }
+    var expandedModel by remember { mutableStateOf<String?>(null) }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
     var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
@@ -476,7 +477,7 @@ private fun ZalmoxisHome() {
                     )
                 }
                 HomeTab.DOWNLOADS -> {
-                    Text("DOWNLOADS", style = MaterialTheme.typography.titleMedium)
+                    Text("Models", style = MaterialTheme.typography.headlineMedium)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = { modelPicker.launch(arrayOf("*/*")) },
@@ -500,19 +501,41 @@ private fun ZalmoxisHome() {
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            if (model.provenanceValid) {
-                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                                    "SHA-256 ${model.sha256.take(16)}…\n" +
-                                    "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
-                                    "License: ${model.licenseStatus}"
-                            } else {
-                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                                    "Provenance record invalid · Reimport this model to use it."
-                            },
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text("⬡", style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(model.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "${formatBytes(model.sizeBytes)} · " +
+                                        if (model.provenanceValid) "Verified local digest" else "Needs reimport",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (model.provenanceValid)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.error,
+                                )
+                            }
+                            if (model.name == modelName) {
+                                Text("ACTIVE", color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        TextButton(onClick = {
+                            expandedModel = if (expandedModel == model.name) null else model.name
+                        }) { Text(if (expandedModel == model.name) "Hide details" else "Show details") }
+                        if (expandedModel == model.name) {
+                            Text(
+                                "SHA-256 ${model.sha256.take(16)}…\n" +
+                                    "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
+                                    "License: ${model.licenseStatus}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = { loadModel(model.file) },
@@ -529,7 +552,7 @@ private fun ZalmoxisHome() {
         }
 
 
-        Text("Download a model", style = MaterialTheme.typography.titleMedium)
+        Text("Available models", style = MaterialTheme.typography.titleMedium)
         Text(
             "Catalog downloads contact Hugging Face. Prompts and inference stay on this device. " +
                 "Review the license and device guidance; downloading does not verify runtime compatibility.",
