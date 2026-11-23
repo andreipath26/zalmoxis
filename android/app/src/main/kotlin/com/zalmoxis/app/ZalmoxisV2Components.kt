@@ -105,10 +105,10 @@ internal fun V2Navigation(
     onNavigate: (String) -> Unit,
 ) {
     val items = listOf(
-        Triple("Chat", "◉", "CHAT"),
-        Triple("Knowledge", "▤", "KNOWLEDGE"),
-        Triple("Models", "⬡", "DOWNLOADS"),
-        Triple("Workspace", "▦", "WORKSPACE"),
+        Triple("Chat", "Chat", "CHAT"),
+        Triple("Knowledge", "Knowledge", "KNOWLEDGE"),
+        Triple("Models", "Models", "DOWNLOADS"),
+        Triple("Workspace", "Workspace", "WORKSPACE"),
     )
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -131,7 +131,7 @@ internal fun V2Navigation(
                             .background(if (active) Color(0xFF25341B) else Color.Transparent, RoundedCornerShape(30.dp))
                             .padding(horizontal = 15.dp, vertical = 4.dp),
                     ) {
-                        Text(glyph, color = if (active) ZalmoxisV2.accent else ZalmoxisV2.muted, style = MaterialTheme.typography.titleLarge)
+                        V2Icon(glyph, modifier = Modifier.size(23.dp), tint = if (active) ZalmoxisV2.accent else ZalmoxisV2.muted)
                     }
                     Text(
                         title,
