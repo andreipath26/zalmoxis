@@ -60,7 +60,7 @@ internal object NativeResearch {
         require(query.length in 3..160) { "Enter a research topic between 3 and 160 characters." }
         require(query.none { it.isISOControl() }) { "The topic contains unsupported control characters." }
         val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-        val endpoint = "https://api.github.com/search/repositories?q=$encoded&per_page=8&sort=best-match"
+        val endpoint = "https://api.github.com/search/repositories?q=$encoded&per_page=8"
         val bytes = fetchBytes(endpoint, "application/vnd.github+json", 384 * 1024)
         val json = JSONObject(bytes.toString(Charsets.UTF_8))
         val items = json.optJSONArray("items") ?: return@withContext emptyList()
