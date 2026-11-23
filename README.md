@@ -46,7 +46,16 @@ Open **Settings → App updates → Check for updates**. Zalmoxis also checks fo
 
 ### One-time signing setup for maintainers
 
-Generate an Android application signing keystore **once**, keep it backed up securely, and configure these four GitHub Actions repository secrets (Settings → Secrets and variables → Actions):
+Generate an Android application signing keystore **once**, keep it backed up securely, and configure these four GitHub Actions repository secrets (Settings → Secrets and variables → Actions). On a trusted Linux/macOS computer with `gh`, `keytool`, and `openssl` installed, you can configure the secrets with:
+
+```bash
+gh auth login
+bash scripts/configure-android-update-signing.sh
+```
+
+The script creates the keystore outside the repository under `~/.config/zalmoxis/update-signing/` (or `$XDG_CONFIG_HOME`), uploads it and its passwords through the authenticated GitHub CLI, and **reuses the same key on subsequent runs**. Back up the local keystore and credentials securely; their loss prevents future compatible releases. Never copy these secrets into Git, issues, or chats.
+
+The four secrets are:
 
 - `ZALMOXIS_SIGNING_KEYSTORE_B64` — base64-encoded contents of the JKS/PKCS12 signing keystore (single line, no newlines)
 - `ZALMOXIS_SIGNING_STORE_PASSWORD` — keystore password
