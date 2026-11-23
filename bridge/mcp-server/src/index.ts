@@ -15,7 +15,7 @@ import {
   insufficientScope,
   type AuthorizationServerBinding,
 } from "@cloudflare/workers-oauth-provider";
-import { env } from "cloudflare:workers";
+import { env as cloudflareEnv } from "cloudflare:workers";
 import { z } from "zod";
 import { phoneFetch } from "./phone";
 
@@ -26,6 +26,8 @@ interface Env {
   AUTH_SERVER_URL: string;
   MCP_SERVER_URL: string;
 }
+
+const env = cloudflareEnv as unknown as Env;
 
 const text = (value: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(value) }],
