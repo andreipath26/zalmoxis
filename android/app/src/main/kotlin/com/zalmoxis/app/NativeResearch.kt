@@ -55,8 +55,12 @@ internal object NativeResearch {
     }
 
     private fun parseUrl(input: String): URI {
-        val uri = try { URI(input.trim()).normalize() } catch (_: Exception) {
+        val uri = try { URI(input.trim()) } catch (_: Exception) {
             throw IllegalArgumentException("Enter a complete HTTPS GitHub URL.")
+        }
+        // Reject dot segments before URI.normalize() could erase traversal evidence.
+        require(uri.path.orEmpty().split('/').none { it == "." || it == ".." }) {
+            "GitHub paths with dot or parent-directory segments are not allowed."
         }
         require(uri.scheme.equals("https", ignoreCase = true)) { "HTTPS is required." }
         require(uri.userInfo == null && uri.port == -1 && uri.rawFragment == null) {
