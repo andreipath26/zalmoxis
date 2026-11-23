@@ -647,7 +647,11 @@ private fun ZalmoxisHome(
                     )
                 }
                 HomeTab.AGENT_BRIDGE -> {
-                    AgentBridgeWorkspace(onBack = { selectedTab = HomeTab.WORKSPACE })
+                    AgentBridgeWorkspace(
+                        onBack = { selectedTab = HomeTab.WORKSPACE },
+                        localRuntime = session,
+                        inferenceBusy = busy,
+                    )
                 }
                 HomeTab.SETTINGS -> {
                     Text("Settings", style = MaterialTheme.typography.headlineMedium)
