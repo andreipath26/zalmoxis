@@ -216,3 +216,9 @@ Reviewed the report-export UI and gave the summary text a flexible width so the 
 ## 2026-11-23 — Invalid model receipt recovery
 
 A malformed local provenance receipt no longer aborts model-catalog display. The affected model remains visible, loading is disabled, and reimporting a replacement of the same name can repair the receipt. This preserves a user recovery path while keeping receipt verification fail-closed. Android source remains unbuilt and unvalidated.
+
+
+
+## 2026-11-23 — Pinned model catalog and verified download path
+
+Added public catalog entries for Qwen 2.5 1.5B Instruct and Gemma 4 E2B Instruct, pinned to immutable Hugging Face revisions and exact filenames, sizes, SHA-256 digests, and Apache-2.0 labels. The catalog UI displays download size, RAM guidance, modalities, source revision, license, progress, and cancellation. WorkManager supports range resume, retries, storage preflight, HTTPS Hugging Face/CDN redirects, and size/SHA-256 verification before atomic install with a provenance receipt. A successful download refreshes the local shelf but does not auto-load the model. Prompts, inference, and benchmark reports stay on device; downloads contact Hugging Face. Source has not been Android-built or validated with an on-device transfer. API 34+ User-Initiated Data Transfer is the recommended route for long explicit downloads; WorkManager remains the fallback and needs quota-aware handling on Android 16.

@@ -38,7 +38,7 @@ This map covers the rest of the Gallery surface found in its current Android sou
 | Agent skills, MCP, JavaScript, and Android intents | Future bounded workflows and integrations | Reuse typed schemas, status presentation, and consent UX as design references. Keep tools unregistered in the base conversation. Every future invocation must pass Zalmoxis's exact-parameter policy gate and audit path; never accept Gallery's automatic execution or “always allow” as the authority. |
 | Mobile Actions and FunctionGemma demos | Local function-call experiments | Useful as a controlled simulator for measuring proposal quality and malformed calls. It does not replace Android platform permission checks or Zalmoxis authorization. |
 | Prompt Lab | Prompt and model regression workflow | Build a local prompt-evaluation screen on top of the current benchmark/report format, with versioned prompt cases and explicit memory/privacy assertions. |
-| DataStore, WorkManager, and model-download workers | Persist settings and run user-visible transfers | Reuse patterns for durable settings and cancellable downloads when those features are integrated. Do not run inference or consequential actions as invisible background work. |
+| DataStore, WorkManager, and model-download workers | Persist settings and run user-visible transfers | Use pinned public catalog entries, expected size and SHA-256, license metadata, storage preflight, resumable Range transfer, visible progress/cancel/retry, and verified atomic install with provenance. Keep credentials out of durable work input; do not run inference or consequential actions as invisible background work. |
 | Firebase analytics and messaging | No current Zalmoxis requirement | These Gallery app integrations conflict with the current no-network baseline and are not in this app foundation. Any later telemetry or push behavior needs an explicit product and privacy decision. |
 | XR, video moments, and media cards | Possible multimodal workflows | Gallery proves these are buildable on-device experiences; map them to concrete Zalmoxis memory or ingestion tasks before adding their UI and dependencies. |
 
@@ -53,7 +53,29 @@ The Gallery repository is an experimental application, not a drop-in library mod
 
 ## Follow-on integration boundaries
 
-1. Model discovery/transfer needs source, integrity metadata, license, and deletion handling. The local shelf now covers import, selection, deletion, and reload. Repeat benchmark reports remain in app-private storage.
+1. The pinned public model catalog and verified WorkManager transfer path are implemented in source, including source/revision, integrity metadata, license, progress, cancellation, retry, and private shelf installation. Build and device transfer validation remain outstanding; API 34+ User-Initiated Data Transfer remains the recommended route for long explicit downloads.
 2. The runtime interface is in place. Implement and compare a KILN/llama.cpp adapter on target phones and supported model formats before claiming Android GGUF/KILN support.
 3. Keep all action proposals in a deterministic authorization pipeline; never register an automatically executed tool with model inference.
 4. Preserve Gallery's device/performance visibility and connect it to measured phone acceptance gates.
+
+## Pinned model-download integration (2026-11-23)
+
+The first catalog batch is limited to public LiteRT-LM artifacts with a pinned repository commit, exact filename, expected byte count, SHA-256, and Apache-2.0 label. Candidate entries:
+
+| Catalog entry | Source | Artifact | Size | RAM / modality | SHA-256 |
+|---|---|---|---:|---|---|
+| Qwen2.5 1.5B Instruct | [litert-community/Qwen2.5-1.5B-Instruct](https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/tree/5e6e7a58d03777898b31330a15d2e0a5a9107de3) at revision `5e6e7a58d03777898b31330a15d2e0a5a9107de3` | `Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm` | 1,597,922,856 bytes | 6 GB guidance / text | `c4a9b7289365ab80fe599b844b77ad253eb3c53fb0e5d963d699146a6f01255e` |
+| Gemma 4 E2B Instruct | [litert-community/gemma-4-E2B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/tree/6e5c4f1e395deb959c494953478fa5cec4b8008f) at revision `6e5c4f1e395deb959c494953478fa5cec4b8008f` | `gemma-4-E2B-it.litertlm` | 2,588,147,712 bytes | 8 GB guidance / text, image, audio | `181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c` |
+
+The listed sizes and digests pin the expected artifacts; they do not replace checking each upstream model card and license. Catalog downloads contact Hugging Face. Model prompts, inference, imported files, and benchmark reports remain on-device; no prompts or reports are uploaded by the downloader. The user must explicitly start or cancel a transfer, review its progress, and choose when to load an installed model. Download completion must not auto-run inference.
+
+The transfer worker must accept only a catalog identifier, construct URLs from allowlisted fields, follow HTTPS redirects only to Hugging Face hosts, preflight app-private storage, resume only after validating HTTP range metadata, and check exact size and SHA-256 before atomically installing the file with a provenance receipt. Partial files must not appear in the loadable model shelf. No bearer token belongs in persisted WorkManager input; this first catalog contains public entries only.
+
+The implemented cross-version transfer uses WorkManager and surfaces failures while preserving retry/cancel behavior. Current Android guidance flags that long-running WorkManager foreground work can consume JobScheduler quota on Android 16. For long user-initiated transfers, the recommended architecture is Android User-Initiated Data Transfer jobs on API 34+ with WorkManager fallback on API 26–33; this route still needs implementation and device validation. The cross-version WorkManager download path and minimal catalog UI are now present in source. It is not release-verified until the Android build and an on-device transfer both succeed.
+
+## Additional model-source references
+
+- Qwen model card: https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct
+- Gemma 4 model card: https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm
+- Android long-running WorkManager guidance: https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/long-running
+- Android User-Initiated Data Transfer guidance: https://developer.android.com/develop/background-work/background-tasks/uidt
