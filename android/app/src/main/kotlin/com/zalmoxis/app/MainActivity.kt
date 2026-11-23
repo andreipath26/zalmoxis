@@ -70,6 +70,7 @@ private fun ZalmoxisHome() {
     var speechActive by remember { mutableStateOf(false) }
     var speechOutput by remember { mutableStateOf<OfflineSpeechOutput?>(null) }
     var speechOutputReady by remember { mutableStateOf(false) }
+    var speechOutputInitializing by remember { mutableStateOf(false) }
     var response by remember { mutableStateOf("") }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
@@ -435,24 +436,29 @@ private fun ZalmoxisHome() {
                 Button(
                     onClick = {
                         val output = speechOutput
-                        if (output == null) {
+                        if (output == null || !speechOutputReady) {
+                            output?.close()
+                            speechOutputReady = false
+                            speechOutputInitializing = true
                             speechOutput = OfflineSpeechOutput(context) { ready, message ->
                                 speechOutputReady = ready
+                                speechOutputInitializing = false
                                 status = message
                             }
                             status = "Preparing installed offline speech voices…"
-                        } else if (speechOutputReady) {
+                        } else {
                             output.speak(response)
                             status = "Speaking with an installed voice that reports no network requirement."
                         }
                     },
-                    enabled = !busy && (speechOutput == null || speechOutputReady),
+                    enabled = !busy && !speechOutputInitializing,
                 ) {
                     Text(
                         when {
-                            speechOutput == null -> "Prepare offline speech"
+                            speechOutputInitializing -> "Preparing offline speech…"
                             speechOutputReady -> "Speak response offline"
-                            else -> "Preparing offline speech…"
+                            speechOutput == null -> "Prepare offline speech"
+                            else -> "Retry offline speech setup"
                         }
                     )
                 }

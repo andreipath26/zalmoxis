@@ -8,7 +8,7 @@
 **Repository:** private, at `github.com/andreipath26/zalmoxis`.
 **License:** undecided (working assumption: AGPL-3.0-or-later + commercial dual-license).
 **Phase:** 0 of 9 — Defining the Proof.
-**Implementation:** Initial Android Compose app and LiteRT-LM local inference adapter under `android/`.
+**Implementation:** Android Compose foundation under `android/`, with LiteRT-LM as the first local inference adapter and offline speech input/output scaffolding.
 
 ---
 
@@ -60,7 +60,7 @@ exists to make these hypotheses testable.
 - Not a wrapper around a hosted LLM. Memory, policy, and audit are not replaceable by an API call.
 - Not a skill app store. Skills are composed, not downloaded.
 - Not a general-purpose autonomous agent. Every irreversible action is gated.
-- Not a finished product. Nothing here runs yet.
+- Not a finished product. The Android foundation is source-only and has not been built or validated.
 
 ---
 
@@ -492,4 +492,4 @@ The full discipline is not public. The parts above are enough to understand how 
 
 ---
 
-Last updated: 2026-10-18. Phase 0. No code exists. The next deliverable is the Memory Contract.
+Last updated: 2026-11-23. Phase 0. See Section 10 for the current implementation state; the next Phase 0 deliverables remain the Memory Contract, Model Performance Gate, and Customer Discovery Questions.
