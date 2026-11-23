@@ -1530,3 +1530,62 @@ The official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 7. Observe CI build success, real phone installation, OAuth sign-in and at least ten real round trips each direction before labeling anything [BUILT] or [VALIDATED].
 
 **Current boundary:** A secure source-code architecture and user-controlled messaging UI exist; no live hosted MCP URL, provider credential, or mobile installation was established in this conversation. Do not present a connected or tested DeepSeek/ChatGPT conversation until the actual runtime evidence exists.
+
+
+---
+
+# ADDENDUM (2026-11-23): DUAL MCP DEPLOYMENT — ON-DEVICE AND INTERNET-HOSTED
+
+**User-approved requirement (mandatory, additive):** Zalmoxis must offer **both (1) an MCP server running locally inside the Android application and (2) an internet-hosted MCP option**. These are first-class supported connection modes, not mutually exclusive plans. The user must be able to choose one, the other, or both without being forced to create a Cloudflare account for local use. Retain earlier official SDK reuse, DeepSeek-first requirements, and the hosted OAuth/MCP infrastructure. No existing roadmap phases are removed or replaced.
+
+## Supported modes
+
+| Mode | MCP server runs | Endpoint and network | Primary use | Requirements / limits |
+| --- | --- | --- | --- | --- |
+| **Local device [REQUIRED]** | **Inside Zalmoxis Android** | Loopback `127.0.0.1` only by default; opt-in LAN binding with authentication | On-device tools, local/offline integration, compatible same-device or LAN agents | Works without an external host or model API key. Android process/foreground-service lifetime and device network must be managed |
+| **Direct remote to device [OPTIONAL, REQUIRED FEATURE]** | Inside Zalmoxis Android | User-activated **authenticated HTTPS tunnel** forwards to local server; outbound connection from phone | Remote ChatGPT/Claude/Mistral/DeepSeek Harness MCP clients while phone is connected | Tunnel provider/relay and identity credentials may be necessary; public remote MCP requires supported OAuth/authorization and protocol-compliant HTTPS transport. No unrestricted raw port exposure |
+| **Internet hosted [REQUIRED]** | Hosted official MCP server + message broker | Public HTTPS endpoint, OAuth, paired Android client | Durable messages and reconnect across mobile networks; access when phone is temporarily offline | Cloudflare Workers + OAuth Provider + D1 implementation already in source as one supported host; external account setup and deployment required |
+| **Hybrid [REQUIRED]** | Local MCP server and hosted broker together | Local tools stay on phone; hosted broker carries scoped encrypted messages / offline queue | Convenient on-phone inference + reliable remote inter-agent exchange | Must avoid duplicate execution and overlapping permissions; one central local approval policy |
+
+## Primary Android implementation
+
+- Use the [official MCP Kotlin SDK](https://github.com/modelcontextprotocol/kotlin-sdk) (Ktor/Streamable HTTP support) with a version compatible with Android minSdk 26, Kotlin/Compose build configuration and current HTTP server runtime. Do not implement another custom JSON-RPC/MCP protocol.
+- An Android **Agent Bridge → MCP Server** panel offers: `Start local server`, `Stop server`, status, loopback endpoint and port, permitted capabilities, connected clients, request/approval log, pairing/revoke, opt-in LAN access and opt-in remote tunnel.
+- **Local default:** loopback-only listening, least-privilege read-only tools, no Internet requirement and no internet-hosted relay dependency. Random/nonconflicting listening port or stable configurable port with conflict diagnostics. Neither `0.0.0.0` nor port forwarding is enabled silently.
+- **Server lifecycle:** explicit Android foreground service with visible notification and persistent on/off state where Android policy permits; stop action must close listener and revoke outstanding ephemeral capabilities. If Android terminates the app or battery-saving policies stop the service, UI must show server offline rather than claiming always-on.
+- **Initial capabilities:** `status`, `list_capabilities`, `submit_task`, `get_task_status`, `read_reply`, `propose_knowledge_import` (review-only). Later `search_local_knowledge` and `run_local_inference` require separate granular opt-in and limits, explicit user-visible data disclosure and a deterministic permission gate. No shell/filesystem/microphone/contacts/accessibility access by default.
+- **Security:** authentication required for LAN and remote access, even if device owner is the only user. Per-client authorization, nonce/replay protection, rate/size bounds, approval for side-effecting operations, input taint and prompt-injection barriers, origin validation, audit and expiry. Loopback controls still prevent arbitrary local apps from accessing privileged operations; do not confuse a localhost socket with authorization.
+- **Remote tunnel:** investigate reusable secure connectors (e.g. Cloudflare Tunnel or Tailscale Funnel) and compare official Android feasibility, unattended reliability, cost, URL stability and OAuth interoperability. Prefer a user-initiated outbound authenticated connector over inbound NAT/port-forward access. Protect public remote MCP via OAuth 2.1 and validated resource scopes; a random URL is **not** an auth mechanism.
+- **Offline operation:** local MCP works without hosted infrastructure, but only local-reachable clients can access it. Remote cloud-hosted AI conversations cannot reach a private loopback socket without a secure routing path. Local inference stays on device in every mode.
+
+## Hosted and hybrid implementation
+
+- Preserve the existing `bridge/auth-server`, `bridge/mcp-server`, `bridge/migrations`, Android `AgentBridgeClient` and paired message UI as the **hosted mode**. Existing source compilation checks do not establish a deployed, connected service.
+- Implement a **common backend-neutral `AgentBridgeTransport` contract** with `LocalMcpTransport` and `HostedMcpTransport`; the same structured message envelope, correlation IDs, task status, capability declarations, approval engine, history and revocation rules apply across modes. Never execute one task twice when local and hosted transports are active.
+- Add a mode selector: **Local**, **Hosted**, **Hybrid**, **Off**. Changing modes must clearly explain whether any message leaves the phone, which host is used, and which provider can reach the device.
+- Hosted broker supports offline queues and TTL; phone reconnect synchronizes acknowledged task states with idempotent IDs and deletion. **Encrypt sensitive payloads end to end before storing them remotely**; current D1 plaintext messages are not suitable for automatic private Knowledge sharing.
+- Multi-provider channels remain isolated (provider account/MCP client + user + phone). Support ChatGPT, DeepSeek Harness (official account-backed path, **mandatory**), Claude and Mistral without embedding model API keys, conditional on supported client account permissions. Account login/OAuth/hosting credentials are still allowed and must be stored securely.
+- Both local and hosted servers advertise protocol version and capability scope; clients distinguish **server online**, **device online**, **provider agent responding**, and **local model loaded**.
+
+## Implementation order / milestones
+
+1. **MCP-L1 — Feasibility and SDK selection:** inspect official Kotlin SDK version, Android compatibility, Ktor embedded server runtime, production licensing and minSdk; make dependency choice based on build and actual device measurements.
+2. **MCP-L2 — Embedded server:** implement service lifecycle, loopback Streamable HTTP MCP endpoint, typed tools and capability discovery; add **Start/Stop** UI and a visible notification; fail closed on errors.
+3. **MCP-L3 — Common permission engine:** authenticated clients, bounded requests, approval inbox, audit trail and no automatic Knowledge writes. Fuzz and isolation tests.
+4. **MCP-L4 — Opt-in remote access:** secure outbound tunnel and OAuth-protected remote connector; prove clients can connect over mobile data with secure pairing and revocation.
+5. **MCP-H1 — Hosted deployment:** deploy validated Cloudflare OAuth + MCP Workers and D1, provision secure credentials, connect Android and verify queued messaging.
+6. **MCP-H2 — Hybrid routing:** switch/select modes, idempotent deduplication, safe failover, encrypted messages and observable task lifecycle across reconnects.
+7. **MCP-P — Provider acceptance:** live DeepSeek Harness and ChatGPT/Claude/Mistral tests according to actual plan access, including both directions, no model API key, scope denial, account sign-out and offline transitions.
+8. **MCP-D — Deployment proof:** signed Android APK build, physical-device tests, at least ten valid bidirectional exchanges for each supported mode/provider, security review, reliability and battery measurements, user-facing instructions accessible from a phone.
+
+## Release acceptance
+
+- One tap starts an MCP server **inside Zalmoxis** without asking for Cloudflare or a commercial model API key.
+- Local endpoint stays bound to loopback unless the user explicitly opts into secure LAN/tunnel access.
+- An authenticated MCP client can discover permitted tools, request a task and obtain a reviewed response; unauthorized or injected requests do not execute.
+- Hosted endpoint separately supports remote account-authenticated tools and durable task delivery; revocation works.
+- Hybrid simultaneously supports on-device inference and hosted message delivery **without duplicate execution or leaking private data**.
+- UI clearly shows connection mode and real measured reachability; stop/disconnect reliably tears down access.
+- Never mark this addendum [IMPLEMENTED] or [VALIDATED] until the Android embedded MCP server exists, compiles, and passes actual local/remote device tests.
+
+**Current state at addition:** [PLANNED] for on-device MCP server, optional tunnel and hybrid routing; [IMPLEMENTED IN SOURCE / CI GREEN, NOT DEPLOYED] for hosted Worker infrastructure and Android HTTP client. This addendum corrects prior cloud-first assumptions: **internet hosting is optional for local functionality, and both paths must be supported.**
