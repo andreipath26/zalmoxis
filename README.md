@@ -1,178 +1,213 @@
+<div align="center">
+
 # ZALMOXIS
 
-**ZALMOXIS is a local-first AI assistant for Android.** It brings together on-device inference, a private model library, local source storage, and a redesigned Obsidian/Lime mobile interface with Chat, Voice, Knowledge, Models, and Workspace destinations; Settings remains accessible from the header.
+### Private AI, built for your Android device.
 
-The Android app is under active development. The repository contains the source and a GitHub Actions workflow for producing a debug APK. A successful debug build is not a signed release or a claim that every model works on every device.
+**A local-first Android AI assistant with on-device language models, personal knowledge, and user-controlled connections to other AI agents.**
 
-## Zalmoxis V2 — approved interface direction
+[Overview](#overview) · [Features](#features) · [Install](#get-the-app) · [Build](#build-from-source) · [MCP](#connect-other-ai-agents) · [Roadmap](ROADMAP.md)
+
+[![Android build](https://github.com/andreipath26/zalmoxis/actions/workflows/android-build.yml/badge.svg)](https://github.com/andreipath26/zalmoxis/actions/workflows/android-build.yml)
+[![Bridge SDK checks](https://github.com/andreipath26/zalmoxis/actions/workflows/bridge-check.yml/badge.svg)](https://github.com/andreipath26/zalmoxis/actions/workflows/bridge-check.yml)
+
+**Android 8.0+** · **Kotlin / Jetpack Compose** · **Local-first** · **Under active development**
+
+</div>
+
+---
+
+## Overview
+
+Zalmoxis is an Android assistant designed to make capable AI more useful **without making cloud inference the default**. Compatible models run on your phone. Personal source material stays in app-private storage. Interactions with outside services—such as model downloads, public GitHub research, or agent messaging—are explicit and visible.
+
+The project combines five main experiences: **Chat, Voice, Knowledge, Models, and Workspace**. It also explores a more flexible way to work with other AI systems: an MCP server hosted inside the Android app, plus an optional internet-hosted bridge.
+
+> [!IMPORTANT]
+> **Development status:** This is a working, actively developed source project—not a production-certified Android release. Successfully building an APK does not establish compatibility with every device or model, and MCP compilation does not mean a hosted service or external provider is already connected.
+
+## The Zalmoxis experience
 
 ![Zalmoxis V2: Chat, Voice, Knowledge, Models, Workspace](docs/assets/zalmoxis-v2-mockup.svg)
 
-> **Design reference, not a running-app screenshot.** This five-screen SVG storyboard follows the approved Obsidian/Lime concept. The original high-resolution generated concept remains the visual target; the checked-in SVG is a recreated, version-controlled reference rather than the original PNG. Real Android screenshots and device-level visual comparison are required before declaring an exact match.
+*Zalmoxis V2 design storyboard. This is a concept illustration, not screenshots captured from a running Android device.*
 
-The V2 UI implementation is being developed around these five experiences:
+## Features
 
-- **Chat:** assistant welcome screen, focused conversations, offline local inference, contextual quick actions, clear model readiness, and voice entry.
-- **Voice:** dedicated voice view with distinct listening and idle states; Android microphone permission and installed offline language remain mandatory.
-- **Knowledge:** local source shelf, source retrieval, and inspectable provenance. The design shows a richer library than the current simple text/Markdown search, so unsupported document formats are not represented as implemented.
-- **Models:** local model management, verified downloads, device guidance, and transparent installed/available status. Models pictured in the design are illustrative, not a compatibility guarantee.
-- **Workspace:** structured capabilities and future workflows. Unimplemented agent actions are marked **Planned** rather than exposed as functional controls.
+| Area | What is implemented in source | Important limitations |
+| --- | --- | --- |
+| **On-device chat** | LiteRT-LM integration for compatible models, streamed answers, and supported image-capable model flows | Model compatibility, performance and memory requirements depend on the phone and model |
+| **Model library** | Import and manage local model files; optional reviewed, digest-checked catalog downloads | Models are not bundled with every build; catalog examples do not guarantee that a model will run |
+| **Personal Knowledge** | App-private source storage; local text/Markdown search; source provenance, SHA-256 receipts and deletion flows | Not every document format can be extracted or indexed |
+| **Voice** | Android on-device speech recognition and offline-capable installed voice output | Availability depends on Android and language/voice packages installed on the device |
+| **Research** | User-initiated public GitHub discovery and review before saving sources or AI drafts to Knowledge | This is not general-purpose web browsing or autonomous web research |
+| **App updates** | GitHub release checking, APK integrity verification and Android installer handoff | Signed-update publishing requires persistent maintainer signing credentials; installation needs real-device validation |
+| **Agent Bridge** | Local MCP server, Android approval UI, optional hosted message transport implementation | External providers and hosted infrastructure still require deployment and interoperability testing |
 
-**Visual acceptance:** compare Android screenshots to the approved concept on a typical phone and small phone at default and large font size; verify content alignment, navigation, button sizes, contrast, keyboard/inset handling, loading/error states, and reduced-motion behavior. An approximation is not an exact match until the screenshots and real-device interaction tests establish it. The underlying app continues to use Kotlin, Compose, and local-first runtime boundaries.
+Zalmoxis does **not** claim to be a fully autonomous phone-controlling agent. Remote inputs do not receive blanket permission to read your files, operate Android, or write to Knowledge.
 
-## What is in the app
+## Get the app
 
-- **Chat:** run supported LiteRT-LM models on the device, stream responses, and attach an image when the selected model supports vision.
-- **Downloads:** import a model file or download a reviewed, digest-pinned model from the catalog. Model transfer is user initiated and reports verification status.
-- **Knowledge:** keep source files in app-private storage, search supported text and Markdown sources locally, inspect SHA-256 receipts, and delete a source with removal verification. Files without supported text extraction are stored but not indexed.
-- **Settings:** run a local inference benchmark, export its JSON report, and review privacy and permission details.
-- **On-device speech:** use the Android on-device recognizer for dictation. Response speech uses an installed voice only when it reports no network requirement.
+### Download a development APK
 
-Inference, prompt handling, source search, and benchmark reports are local. Downloading catalog models contacts Hugging Face. The Android manifest requests microphone access only for dictation and internet access for model downloads; microphone access is optional. The app has no account or analytics service, and model output cannot execute tools.
+The [Android build workflow](https://github.com/andreipath26/zalmoxis/actions/workflows/android-build.yml) creates a **debug APK** on successful builds.
 
-## Project status
+1. Open [GitHub Actions → Android build](https://github.com/andreipath26/zalmoxis/actions/workflows/android-build.yml).
+2. Select a recent **successful** run on `main`.
+3. Under **Artifacts**, download `zalmoxis-debug-apk` and extract the ZIP.
+4. Transfer the APK to your Android device, open it and follow Android's installation prompts.
 
-The Android implementation is source code in `android/`. The debug workflow lives at [android-build.yml](.github/workflows/android-build.yml). It assembles `app-debug.apk` and uploads it as the `zalmoxis-debug-apk` workflow artifact.
+A debug APK is intended for testing. It is not a Google Play release, may have limited support, and is not necessarily signed with the certificate used for installable updates. **Back up app-private data before replacing a build signed with a different certificate.**
 
-To get the APK, open the repository’s **Actions** tab, select a successful **Android build** run, and download its `zalmoxis-debug-apk` artifact. The artifact is a debug build. No release signing configuration or Play Store package is provided yet.
+A persistently signed `zalmoxis-update.apk` can be published as a GitHub pre-release **only when the required repository signing secrets are configured and the publication job succeeds**. Check [Releases](https://github.com/andreipath26/zalmoxis/releases) rather than assuming every successful debug build creates a signed release.
 
-The app is not yet a complete autonomous agent. Long-term memory reconciliation, policy-gated actions, audit-chain verification, broader document extraction, and the roadmap’s remaining phases are not represented as shipped features merely because they appear in project documents.
+### Build from source
 
-## Local MCP server inside Zalmoxis (no hosting required)
-
-**Implementation added in Android source; physical-device testing remains outstanding.** In **Workspace → Agent Bridge**, the local server panel offers **Start local server** / **Stop local server**, the endpoint `http://127.0.0.1:8765/mcp`, token display and an approval inbox. Starting it launches an opt-in Android foreground service with a visible notification; the official [Kotlin MCP SDK](https://github.com/modelcontextprotocol/kotlin-sdk) supplies the Streamable HTTP protocol, with Ktor CIO.
-
-The server **only listens on loopback**, never `0.0.0.0`. Other apps on the same device must supply `Authorization: Bearer <your-local-access-token>`. Do not share or publish this token. The first tools are `status`, `submit_task` (queues a message), and `read_reply` (retrieves a user-written answer). Nothing invokes the local model, imports Knowledge, changes device state, or executes commands without your explicit action. Pending tasks are held in memory while the app process lives and will be lost on process death in this first version.
-
-**Connection modes:** Off (neither active), Local (phone server running), Hosted (phone paired to the OAuth-hosted bridge), and Hybrid (both active). The hosted service is independent from the local server: you can start the local server without Cloudflare. When a provider is outside the phone or LAN, `127.0.0.1` is not reachable; use the hosted bridge or a future opt-in, authenticated HTTPS tunnel. Hybrid currently means both channels can run simultaneously, **not automatic task forwarding or failover**.
-
-Android may restrict or stop foreground services depending on device settings. The use of a `specialUse` foreground service also requires compliance review for Google Play distribution.
-
-## Real multi-agent bridge — SDK implementation status
-
-The bridge now has an **Android messaging client and UI** plus two source implementations of Cloudflare Workers:
-
-- [Bridge deployment and security guide](bridge/README.md)
-- [Official MCP SDK resource server](bridge/mcp-server/src/index.ts), with Cloudflare OAuth resource-server protection and scoped tools
-- [Cloudflare OAuth authorization server](bridge/auth-server/src/index.ts), with verified Access identity and explicit user consent
-- [Android phone transport](android/app/src/main/kotlin/com/zalmoxis/app/AgentBridgeClient.kt) and [Agent Bridge screen](android/app/src/main/kotlin/com/zalmoxis/app/AgentBridgeWorkspace.kt)
-- [DeepSeek Harness integration guide](bridge/deepseek/README.md)
-- [Security tests](bridge/mcp-server/tests/phone.test.mjs) and [CI source checks](.github/workflows/bridge-check.yml)
-
-Messages pass through a 24-hour D1 task queue, each OAuth client is isolated, the Android token is Keystore-encrypted, and incoming provider tasks cannot execute actions. An authorized provider can issue a one-time phone pairing code. Android supports opt-in polling while the bridge screen is open, text replies/rejections and server-confirmed revocation. Manual Sharesheet sharing remains the no-hosting fallback.
-
-**Not yet connected or deployed:** Cloudflare Access/Workers/KV/D1 must be provisioned using the owner's account; the OAuth app must be configured, phone APK built and installed, and provider connections (starting with DeepSeek Harness) actually paired. Source code and a public MCP URL are not interchangeable: do not expose the obsolete `bridge/src/index.js` prototype, which is disabled by default. The configured hosted bridge uses **no OpenAI or DeepSeek model API key**, but still needs real account login, Cloudflare hosting permissions and OAuth tokens. Real model-to-model autonomous replies are not guaranteed when a provider's consumer chat is idle.
-
-The current Android UI supports a **single active paired provider at a time**; multi-provider channel switching, background delivery, end-to-end payload encryption, device action approval integration, release APK validation and actual runtime round trips remain deployment/extension gates. The relay stores messages as plaintext in Cloudflare D1 until expiration, so do not send secrets or private Knowledge until at-rest and end-to-end privacy controls are completed.
-
-## Agent Bridge: no API key handoff and direct-connection roadmap
-
-**Available in source (not yet APK-tested):** Open **Workspace → Agent Bridge** to prepare a message and share it through Android's Sharesheet. Choose ChatGPT as the destination if Android offers it. From another app, use Android's **Share → Zalmoxis** to bring text back; Zalmoxis displays an explicit acceptance dialog and fills a chat draft only if you approve. The sender's identity cannot be authenticated from Android Sharesheet metadata. Messages are not executed as commands and are not imported into the Knowledge database. Sharing is **manual and user-mediated**, not a persistent agent-to-agent connection or a guarantee that ChatGPT automatically processes the shared message.
-
-**No OpenAI API key is required** for this feature. A future direct connection would use a secure remote MCP relay, per-device pairing, scoped authorization, expiry and revocation, and eligible ChatGPT plugin access. That may require a hosted service and its own credentials/OAuth but does not inherently require an OpenAI model API key. ChatGPT does not automatically wake up or respond to unsolicited messages from the phone; its MCP tools run in supported ChatGPT sessions when invoked.
-
-**Feature availability:** As described in [OpenAI's current custom MCP documentation](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt), custom MCP connection setup is web-only and full MCP write access is currently for Business and Enterprise/Edu workspaces. Connecting a relay from a consumer mobile account should not be represented as supported or deployed before the account's actual capabilities are confirmed.
-
-## Conversational research and Knowledge drafts
-
-The **Research** workspace no longer requires a pasted URL for its primary flow. Type a topic to search public GitHub repositories. Explicit Chat requests such as **“Research offline AI agents for Android”** open the scoped GitHub search. If the message includes **“and save findings to Knowledge”**, discovered sources are preselected for review—not imported automatically.
-
-Select sources, review the URLs and metadata, then confirm a single **Save selected sources** operation. With a compatible local model loaded, Zalmoxis can also draft a source-linked comparison using a user-editable research instruction; you can edit the draft and explicitly save it to Knowledge. Drafts are **unverified AI-generated material**, not confirmed memory or authoritative source content. Sources retain their GitHub URLs and SHA-256 digests.
-
-**Current limitation:** this is public GitHub repository discovery and public raw text retrieval, **not unrestricted general web search or autonomous browser control**. Ordinary prompts remain local. GitHub search is explicitly user-initiated and subject to unauthenticated API rate limits. Further providers and tool authorization must satisfy the roadmap's security and permission gates. Compiling, running and verifying this new research workflow on Android remain outstanding.
-
-## Update Zalmoxis from GitHub on your phone
-
-Open **Settings → App updates → Check for updates**. Zalmoxis also checks for new signed releases when opened and displays a notice when one exists. Choose **Download verified update**, then **Install update**. Android asks you to authorize the installation; the app never silently installs anything. The update checker requests the public GitHub Releases API only (no sign-in or GitHub token). It downloads only from the Zalmoxis GitHub release channel and checks the SHA-256 digest, package name, increasing version code, and signing certificate before offering the installer.
-
-**Why GitHub releases instead of a raw Actions artifact?** The normal `zalmoxis-debug-apk` workflow artifact is a ZIP archive and may expire or require GitHub authentication. Every successful, **main-branch** workflow can publish a **signed Android pre-release asset** named `zalmoxis-update.apk` when the four persistent signing secrets below are configured. This is the same workflow that uploads the regular debug artifact. Pull-request builds cannot publish installable phone updates. If the signing secrets are absent, CI still attempts the debug build but intentionally skips publishing an update.
-
-### One-time signing setup for maintainers
-
-Generate an Android application signing keystore **once**, keep it backed up securely, and configure these four GitHub Actions repository secrets (Settings → Secrets and variables → Actions). On a trusted Linux/macOS computer with `gh`, `keytool`, and `openssl` installed, you can configure the secrets with:
+**Prerequisites:** JDK 17, Android SDK Platform **37.1**, Android SDK Build Tools **36.0.0**, and the Android/Gradle dependencies configured by the project.
 
 ```bash
-gh auth login
-bash scripts/configure-android-update-signing.sh
-```
-
-The script creates the keystore outside the repository under `~/.config/zalmoxis/update-signing/` (or `$XDG_CONFIG_HOME`), uploads it and its passwords through the authenticated GitHub CLI, and **reuses the same key on subsequent runs**. Back up the local keystore and credentials securely; their loss prevents future compatible releases. Never copy these secrets into Git, issues, or chats.
-
-The four secrets are:
-
-- `ZALMOXIS_SIGNING_KEYSTORE_B64` — base64-encoded contents of the JKS/PKCS12 signing keystore (single line, no newlines)
-- `ZALMOXIS_SIGNING_STORE_PASSWORD` — keystore password
-- `ZALMOXIS_SIGNING_KEY_ALIAS` — signing key alias
-- `ZALMOXIS_SIGNING_KEY_PASSWORD` — signing key password
-
-Never commit the keystore or passwords into Git. GitHub Actions assembles a signed release APK with an automatically increasing `versionCode` based on the workflow run number and publishes `android-build-<run_number>` as a pre-release. The GitHub release asset's SHA-256 digest is checked before installation. A workflow artifact alone is not an update publication.
-
-**Important existing-install migration:** Android updates require the **same signing certificate** as the installed copy. An existing APK signed with another debug key cannot be updated in place by the new release key. A one-time reinstall may be necessary and may erase app-private data; export or back up anything important **before** removing the old app. Thereafter, keep using the **same** release keystore for every build. Losing or replacing it blocks updates over previously installed versions.
-
-The updater is currently an implementation in source, **not a verified running feature**. It must pass a real APK build and two consecutive signed-update installation tests (including denial/cancellation, no-network and tampered-APK cases) before being marked ready for deployment. Google Play distribution would require separate policy and installer-compliance review.
-
-## Build from source
-
-Requirements:
-
-- JDK 17
-- Android SDK platform 37.1
-- Android SDK Build Tools 36.0.0
-
-From the repository root:
-
-```bash
-cd android
+git clone https://github.com/andreipath26/zalmoxis.git
+cd zalmoxis/android
 ./gradlew :app:assembleDebug --no-daemon
 ```
 
-The APK is written to:
+Output: `android/app/build/outputs/apk/debug/app-debug.apk` (relative to the repository root).
 
-```text
-android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-To install a locally built debug APK on a connected device with Android Debug Bridge:
+Install on a connected test device with Android Debug Bridge:
 
 ```bash
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Android stack
+The `adb` command above is run from the `android/` directory. Use the device manufacturer's installation and developer-mode guidance where applicable.
 
-| Area | Current implementation |
-|---|---|
-| UI | Kotlin, Jetpack Compose, Material 3 |
-| Local inference | LiteRT-LM Android runtime behind a local inference interface |
-| Model storage | App-private storage with local provenance and SHA-256 verification |
-| Model catalog | Reviewed entries pinned to repository revisions and file digests |
-| Downloads | User-initiated Android transfer workflow with resumable state |
-| Knowledge shelf | App-private source vault and local text/Markdown search |
-| Speech input | Android on-device speech recognition |
-| Speech output | Installed offline-capable Android voice, when available |
-| Build | Gradle wrapper, Android Gradle Plugin, GitHub Actions |
+## Connect other AI agents
 
-Model compatibility, available memory, supported modalities, and performance depend on the device and the individual model. The catalog’s memory guidance is not a benchmark guarantee.
+Zalmoxis supports **two independently operated MCP connection paths**. They serve different purposes, and neither is a substitute for authorization.
 
-## Repository map
+### 1. Local MCP server — on your phone
 
-- `android/` — Android app and GitHub Actions build setup
-- [ROADMAP.md](ROADMAP.md) — project roadmap and current implementation plan
-- [PROJECT-STATE.md](PROJECT-STATE.md) — recorded project state
-- [RULE SET.md](RULE%20SET.md) — project rules and governance
-- [THREAT-MODEL.md](THREAT-MODEL.md) — security and privacy threat model
-- [RECOVERY-PLAN.md](RECOVERY-PLAN.md) — recovery and continuity plan
-- [KILL-CRITERIA.md](KILL-CRITERIA.md) — criteria for stopping or changing the project
+Inside the Android app, open **Workspace → Agent Bridge → Start local server**.
 
-## Privacy and trust boundaries
+| Setting | Value |
+| --- | --- |
+| Transport | MCP Streamable HTTP, via the [official Kotlin MCP SDK](https://github.com/modelcontextprotocol/kotlin-sdk) and Ktor |
+| Local endpoint | `http://127.0.0.1:8765/mcp` |
+| Network binding | `127.0.0.1` (phone loopback only) |
+| Authentication | Locally generated bearer token; reveal or copy it from the Agent Bridge screen |
+| Initial tools | `status`, `submit_task`, `read_reply` |
+| Execution model | Incoming tasks wait for explicit user review and response |
 
-- Imported model files and Knowledge sources are kept in the app’s private storage.
-- Model downloads use network access and are limited to catalog entries with pinned revisions and expected digests.
-- Prompts and inference are processed locally by the selected on-device runtime.
-- Speech dictation checks for an on-device recognizer; it does not fall back to a network recognizer.
-- Android system permissions and device capabilities still apply. The app cannot bypass the operating system’s security controls.
-- Deleting app data removes the app’s local files. Knowledge-source deletion also reports whether app-level removal was verified; this is not a certificate about external backups made by the user or device.
+The local server runs as a user-started Android foreground service with a visible notification. The Android UI also provides reply drafting using the on-device model, subject to user review. **The local server does not require a Cloudflare account or a model API key.**
 
-## License
+**Important:** `127.0.0.1` is reachable from the phone itself, not from ChatGPT or another service somewhere on the internet. A localhost MCP server does not, by itself, create a remote connection. Do not publish the bearer token in screenshots, issues, logs, or messages.
 
-No repository-level `LICENSE` file is currently present. Until the project publishes a license, do not assume the repository is available for reuse or redistribution. Model and dependency licenses remain separate and apply to their respective files and packages.
+### 2. Internet-hosted MCP bridge — optional
+
+The repository also contains the hosted implementation:
+
+- [MCP resource server](bridge/mcp-server/) using the MCP TypeScript SDK, Cloudflare Agents and OAuth resource authorization.
+- [OAuth authorization service](bridge/auth-server/) using Cloudflare Access identity and user consent.
+- [Cloudflare D1 schema](bridge/migrations/) for paired message queues.
+- [Android hosted bridge client](android/app/src/main/kotlin/com/zalmoxis/app/AgentBridgeClient.kt) with secure device-token storage.
+- [Deployment and security guide](bridge/README.md) and [DeepSeek Harness notes](bridge/deepseek/README.md).
+
+The intended hosted workflow is: deploy the OAuth/MCP Workers, authorize a compatible MCP client, generate a short-lived pairing code, then pair the phone in **Workspace → Agent Bridge**. Agent requests are queued for user approval, and replies can be collected through the provider's MCP connection.
+
+**Hosted availability is not guaranteed by the source repository.** Cloudflare resources, domain/Access configuration, account authorization and live connection tests must be completed by the deployer. No hosted instance is advertised as already operational.
+
+### 3. Using both
+
+The Agent Bridge interface can show **Off**, **Local**, **Hosted**, or **Hybrid**, depending on which services are active. Today, **Hybrid means the local server and hosted client can operate at the same time**; it does not yet provide automatic task forwarding, seamless failover, or unified encrypted routing. A direct secure tunnel from the phone to the internet is planned, not shipped.
+
+### No model API key ≠ no account requirements
+
+On-device inference does not require a commercial inference API key. The bridge is designed to work with compatible account-authenticated MCP clients, including DeepSeek Harness integrations, without embedding their model API keys in Zalmoxis. External clients may nevertheless require **their own account, product-plan capability, OAuth consent or hosting credentials**, and integration support depends on the provider. Do not assume that a consumer chat session can be contacted or awakened automatically.
+
+## Privacy and security
+
+**Local by default** describes the inference and personal storage design; it does not mean every feature is offline:
+
+- Model downloads contact the model host (including Hugging Face for catalog assets).
+- Research searches public GitHub endpoints **only when initiated**.
+- Hosted Agent Bridge messages leave the device over HTTPS when that mode is used.
+- **The current hosted D1 queue stores message bodies as plaintext until expiry. Do not send sensitive personal data or private Knowledge through it.** End-to-end encryption is a roadmap requirement, not a current guarantee.
+- The local MCP server listens on loopback and still requires a bearer token; other phone apps can potentially reach localhost.
+- The app does not silently grant third-party agent messages access to Android controls or the Knowledge database.
+- On-device model availability, Android permissions and background service behavior depend on the handset and OS configuration.
+
+For threat assumptions and planned mitigations, see the [threat model](THREAT-MODEL.md).
+
+## Architecture
+
+```text
+                          ZALMOXIS Android
+ ┌────────────────────────────────────────────────────────────┐
+ │  Chat · Voice · Models · Knowledge · Workspace              │
+ │                                                            │
+ │  On-device model runtime      App-private Knowledge store  │
+ │              │                            │                │
+ │              └──────── User review / approval ────────────┤
+ │                                            │               │
+ │  Local MCP server (127.0.0.1) ◄────────────┤               │
+ │  Hosted bridge client ─────────────────────┘               │
+ └────────────────────────────────────────────────────────────┘
+                          │ optional HTTPS
+                          ▼
+            Hosted MCP + OAuth + message queue
+                          │
+                          ▼
+              Compatible external MCP clients
+```
+
+| Component | Technology |
+| --- | --- |
+| Android app | Kotlin, Jetpack Compose, Material 3 |
+| Local model runtime | Google AI Edge LiteRT-LM |
+| Local MCP server | Official Kotlin MCP SDK, Ktor CIO, Android foreground service |
+| Hosted bridge | TypeScript MCP SDK, Cloudflare Workers/Agents, OAuth, D1 |
+| Build and CI | Gradle, GitHub Actions |
+| Local source management | App-private file storage, SHA-256 verification |
+
+## Project status and direction
+
+This repository tracks implementation and validation separately. **A feature present in source is not automatically considered deployed, tested on real devices, or safe for unrestricted external access.**
+
+**Implemented in source:** Android chat/model/Knowledge experiences, embedded local MCP server with reviewable task inbox, hosted OAuth/MCP bridge modules, and CI checks.
+
+**Still being validated or developed:** live external-provider round trips, hosted deployment, direct phone tunnelling, durable local queue, encryption of hosted message payloads, unified hybrid routing, broad model/device compatibility and signed-update installation testing.
+
+For the full development plan and acceptance criteria, read the [master roadmap](ROADMAP.md) and [project state](PROJECT-STATE.md).
+
+## Repository guide
+
+| Path | Purpose |
+| --- | --- |
+| [`android/`](android/) | Android application and local MCP server |
+| [`bridge/`](bridge/) | Hosted MCP bridge, OAuth services, schema and deployment documentation |
+| [`docs/assets/`](docs/assets/) | UI design illustrations and project assets |
+| [`ROADMAP.md`](ROADMAP.md) | Milestones, future work and release gates |
+| [`PROJECT-STATE.md`](PROJECT-STATE.md) | Recorded project state |
+| [`THREAT-MODEL.md`](THREAT-MODEL.md) | Security and trust boundaries |
+| [`RECOVERY-PLAN.md`](RECOVERY-PLAN.md) | Recovery and continuity plan |
+| [`KILL-CRITERIA.md`](KILL-CRITERIA.md) | Criteria for reconsidering or stopping an approach |
+
+## Contributing and feedback
+
+Zalmoxis is in active development. Bug reports and technical feedback are welcome through [GitHub Issues](https://github.com/andreipath26/zalmoxis/issues). Useful reports include the Android version, device model, affected screen or feature, reproduction steps and a sanitized log. **Never include local MCP bearer tokens, account credentials or personal Knowledge contents.**
+
+Before contributing code, review the roadmap and project security boundaries. New integrations should preserve local-first defaults, explicit user consent and separation between untrusted model output and privileged device actions.
+
+## Licensing
+
+**No repository-wide license has been published at this time.** Public source visibility does not itself grant permission to copy, modify or redistribute this repository. Dependencies and model weights may have separate licenses.
+
+---
+
+<div align="center">
+
+**Zalmoxis is being built to make personal AI useful without giving up control of the device or your data.**
+
+[View the roadmap](ROADMAP.md) · [Report an issue](https://github.com/andreipath26/zalmoxis/issues) · [See build results](https://github.com/andreipath26/zalmoxis/actions)
+
+</div>
