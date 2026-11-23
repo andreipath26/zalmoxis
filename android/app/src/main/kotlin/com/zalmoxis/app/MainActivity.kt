@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
@@ -61,6 +64,31 @@ private fun ZalmoxisHome() {
 
     DisposableEffect(session) { onDispose { session.close() } }
 
+    LaunchedEffect(session) {
+        val savedName = context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+            .getString("last_model_name", null)
+        if (savedName != null) {
+            busy = true
+            status = "Restoring the last local model…"
+            try {
+                val localFile = withContext(Dispatchers.IO) {
+                    File(context.filesDir, "models/$savedName").takeIf { it.isFile }
+                }
+                if (localFile == null) {
+                    status = "The saved model file is no longer available. Choose it again."
+                } else {
+                    session.load(context, localFile)
+                    modelName = localFile.name
+                    status = "Ready. Inference stays on this device."
+                }
+            } catch (error: Exception) {
+                status = error.message ?: "Could not restore the local model."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
     val modelPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -69,9 +97,11 @@ private fun ZalmoxisHome() {
                 busy = true
                 status = "Copying model into private app storage…"
                 try {
-                    val localFile = importModel(context, uri)
+                    val localFile = withContext(Dispatchers.IO) { importModel(context, uri) }
                     status = "Loading model on CPU…"
                     session.load(context, localFile)
+                    context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+                        .edit().putString("last_model_name", localFile.name).apply()
                     modelName = localFile.name
                     response = ""
                     status = "Ready. Inference stays on this device."
