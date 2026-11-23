@@ -6,6 +6,8 @@
 
 - LiteRT-LM Android runtime, pinned to com.google.ai.edge.litertlm:litertlm-android:0.18.1. Kotlin 2.3.20 is selected because LiteRT-LM 0.18.x publishes Kotlin 2.4 metadata and its current getting-started guide requires Kotlin 2.3 or newer.
 - Gallery's local model flow: explicit local file selection, import into app-private storage, background initialization, and streaming text display.
+- Gallery's model-manager pattern: a private model shelf with selection, deletion, and restoration of the last-used model.
+- Gallery's inference observability pattern: show first-text latency, total generation time, and stream-event counts. Stream events are not presented as a benchmark token count.
 - Gallery's device-first inference shape: the initial runtime uses CPU as a universal fallback. The adapter can grow backend selection and measurement after checking supported hardware/model combinations.
 
 ## Security boundary
@@ -23,7 +25,7 @@ The app also omits Gallery's Firebase analytics/messaging, Hugging Face OAuth se
 
 ## Follow-on integration boundaries
 
-1. Model discovery/transfer needs source, integrity metadata, license, and deletion handling.
+1. Model discovery/transfer needs source, integrity metadata, license, and deletion handling. The local shelf now covers import, selection, deletion, and reload.
 2. Add a runtime interface before adopting a second engine; compare LiteRT-LM with KILN/llama.cpp on target phones and supported model formats.
 3. Keep all action proposals in a deterministic authorization pipeline; never register an automatically executed tool with model inference.
 4. Preserve Gallery's device/performance visibility and connect it to measured phone acceptance gates.

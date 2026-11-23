@@ -313,7 +313,7 @@ Private GitHub repository at github.com/andreipath26/zalmoxis. The tracked tree 
 
 ### 10.4 Initial Android implementation
 
-The Android app imports a local .litertlm model into app-private storage and streams text inference through LiteRT-LM on CPU. It has no network permission, account integration, analytics, MCP client, or model-provided tools. The source is present but has not been built or validated. See android/README.md.
+The Android app imports local .litertlm models into app-private storage, lists/selects/deletes them, restores the last-used model, and streams text inference through LiteRT-LM on CPU. It shows first-text latency, total time, and stream-event counts. It has no network permission, account integration, analytics, MCP client, or model-provided tools. The source is present but has not been built or validated. See android/README.md.
 
 ### 10.5 What is not built
 
@@ -376,7 +376,7 @@ A long-term strategic option, not a near-term revenue path. Not a roadmap depend
 The Android application source is under android/. With JDK 17 and Android SDK 36 installed, run:
 
     cd android
-    gradle :app:assembleDebug
+    ./gradlew :app:assembleDebug
 
 The Android SDK was not available in the implementation workspace, so this build has not yet been verified. No tests or deployment claim are recorded.
 

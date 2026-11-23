@@ -146,3 +146,8 @@ Commits: roadmap `0a3bfe9`; tracking rule `e7a075f`.
 A reviewable Android foundation was added on branch codex/gallery-android-foundation. The initial app uses Jetpack Compose and the LiteRT-LM Android runtime (0.18.1), imports a local .litertlm file into app-private storage, and streams CPU inference. No network permission, telemetry SDK, MCP, model-driven tools, or AccessibilityService is wired into inference. The source has not been built because the implementation environment did not include Android SDK 36; do not mark this as validated or deployment-ready.
 
 See android/README.md and docs/decisions/GOOGLE-AI-EDGE-GALLERY-ADOPTION.md for the adopted Gallery patterns and boundaries. The tracked ROADMAP.md remains the project roadmap; this implementation does not change or truncate it.
+
+
+## 2026-11-23 — Gallery-based model shelf batch
+
+The Android foundation now includes a private local model catalog: import, list, select, delete, and restore the last-used .litertlm model. Model copying runs on an IO dispatcher and replaces an existing model through a temporary-file/backup sequence. The chat view records first-text latency, total elapsed time, and stream-event count; it does not label stream events as token throughput. A Gradle 8.13 wrapper is included. Android SDK 36 is unavailable in this workspace, so the app remains unbuilt and unvalidated.

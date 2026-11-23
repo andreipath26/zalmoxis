@@ -1,9 +1,7 @@
 package com.zalmoxis.app
 
 import android.content.Context
-import android.net.Uri
 import android.os.Bundle
-import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -38,7 +36,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,36 +53,55 @@ private fun ZalmoxisHome() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val session = remember { LocalInferenceSession() }
+    var models by remember { mutableStateOf(emptyList<LocalModel>()) }
     var modelName by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf("Choose a compatible .litertlm file stored on this device.") }
     var prompt by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
+    var metrics by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
 
     DisposableEffect(session) { onDispose { session.close() } }
 
+    fun loadModel(file: File) {
+        scope.launch {
+            busy = true
+            status = "Loading model on CPU…"
+            try {
+                session.load(context, file)
+                modelName = file.name
+                context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+                    .edit().putString("last_model_name", file.name).apply()
+                response = ""
+                metrics = ""
+                status = "Ready. Inference stays on this device."
+            } catch (error: Exception) {
+                status = error.message ?: "Could not load this model."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
     LaunchedEffect(session) {
+        models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
         val savedName = context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
             .getString("last_model_name", null)
-        if (savedName != null) {
+        val savedFile = savedName?.let { name -> models.firstOrNull { it.name == name }?.file }
+        if (savedFile != null) {
             busy = true
             status = "Restoring the last local model…"
             try {
-                val localFile = withContext(Dispatchers.IO) {
-                    File(context.filesDir, "models/$savedName").takeIf { it.isFile }
-                }
-                if (localFile == null) {
-                    status = "The saved model file is no longer available. Choose it again."
-                } else {
-                    session.load(context, localFile)
-                    modelName = localFile.name
-                    status = "Ready. Inference stays on this device."
-                }
+                session.load(context, savedFile)
+                modelName = savedFile.name
+                status = "Ready. Inference stays on this device."
             } catch (error: Exception) {
                 status = error.message ?: "Could not restore the local model."
             } finally {
                 busy = false
             }
+        } else if (savedName != null) {
+            status = "The saved model file is no longer available. Choose or import a model."
         }
     }
 
@@ -95,20 +111,13 @@ private fun ZalmoxisHome() {
         if (uri != null) {
             scope.launch {
                 busy = true
-                status = "Copying model into private app storage…"
+                status = "Importing model into private app storage…"
                 try {
-                    val localFile = withContext(Dispatchers.IO) { importModel(context, uri) }
-                    status = "Loading model on CPU…"
-                    session.load(context, localFile)
-                    context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
-                        .edit().putString("last_model_name", localFile.name).apply()
-                    modelName = localFile.name
-                    response = ""
-                    status = "Ready. Inference stays on this device."
+                    val file = withContext(Dispatchers.IO) { LocalModelCatalog.import(context, uri) }
+                    models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
+                    loadModel(file)
                 } catch (error: Exception) {
-                    status = error.message ?: "Could not load this model."
-                    modelName = null
-                } finally {
+                    status = error.message ?: "Could not import this model."
                     busy = false
                 }
             }
@@ -122,13 +131,60 @@ private fun ZalmoxisHome() {
         Text("ZALMOXIS", style = MaterialTheme.typography.headlineMedium)
         Text("Local model workspace", style = MaterialTheme.typography.titleMedium)
         Text(status, style = MaterialTheme.typography.bodyMedium)
+
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = { modelPicker.launch(arrayOf("*/*")) },
                 enabled = !busy,
-            ) { Text(if (modelName == null) "Choose model" else "Change model") }
-            modelName?.let { Text(it, modifier = Modifier.padding(top = 12.dp)) }
+            ) { Text("Import model") }
+            modelName?.let { Text("Active: $it", modifier = Modifier.padding(top = 12.dp)) }
         }
+
+        if (models.isNotEmpty()) {
+            Text("Models on this device", style = MaterialTheme.typography.titleMedium)
+            models.forEach { model ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        "${model.name} · ${formatBytes(model.sizeBytes)}",
+                        modifier = Modifier.weight(1f).padding(top = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Button(
+                        onClick = { loadModel(model.file) },
+                        enabled = !busy && model.name != modelName,
+                    ) { Text(if (model.name == modelName) "Loaded" else "Load") }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                busy = true
+                                try {
+                                    if (model.name == modelName) {
+                                        session.close()
+                                        modelName = null
+                                        context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+                                            .edit().remove("last_model_name").apply()
+                                    }
+                                    val deleted = withContext(Dispatchers.IO) {
+                                        LocalModelCatalog.delete(model)
+                                    }
+                                    models = withContext(Dispatchers.IO) {
+                                        LocalModelCatalog.list(context)
+                                    }
+                                    status = if (deleted) "Model deleted from app storage." else "Could not delete model."
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        },
+                        enabled = !busy,
+                    ) { Text("Delete") }
+                }
+            }
+        }
+
         OutlinedTextField(
             value = prompt,
             onValueChange = { prompt = it },
@@ -137,16 +193,29 @@ private fun ZalmoxisHome() {
             enabled = modelName != null && !busy,
             minLines = 2,
         )
+
         Button(
             onClick = {
                 val submitted = prompt.trim()
                 if (submitted.isNotEmpty()) {
                     prompt = ""
                     response = ""
+                    metrics = ""
                     busy = true
                     scope.launch {
+                        val startedAt = System.nanoTime()
+                        var firstOutputMs: Long? = null
+                        var outputChunks = 0
                         try {
-                            session.stream(submitted).collect { piece -> response += piece }
+                            session.stream(submitted).collect { piece ->
+                                if (firstOutputMs == null) {
+                                    firstOutputMs = (System.nanoTime() - startedAt) / 1_000_000L
+                                }
+                                outputChunks += 1
+                                response += piece
+                            }
+                            val totalMs = (System.nanoTime() - startedAt) / 1_000_000L
+                            metrics = "First text: ${firstOutputMs ?: 0} ms · Total: ${totalMs} ms · Stream events: $outputChunks"
                             status = "Response complete. No tools were available to the model."
                         } catch (error: Exception) {
                             status = error.message ?: "Inference failed."
@@ -158,10 +227,13 @@ private fun ZalmoxisHome() {
             },
             enabled = modelName != null && prompt.isNotBlank() && !busy,
         ) { Text(if (busy) "Working…" else "Send") }
+
+        if (metrics.isNotBlank()) Text(metrics, style = MaterialTheme.typography.bodySmall)
         if (response.isNotBlank()) {
             Text("Response", style = MaterialTheme.typography.titleMedium)
             Text(response, style = MaterialTheme.typography.bodyLarge)
         }
+
         Spacer(Modifier.height(8.dp))
         Text(
             "Models are copied into Zalmoxis private storage. No account, analytics, network permission, " +
@@ -171,32 +243,8 @@ private fun ZalmoxisHome() {
     }
 }
 
-private fun importModel(context: Context, uri: Uri): File {
-    val modelsDir = File(context.filesDir, "models").apply { mkdirs() }
-    val displayName = queryDisplayName(context, uri) ?: "local-model.litertlm"
-    require(displayName.endsWith(".litertlm", ignoreCase = true)) {
-        "This first runtime accepts .litertlm files."
-    }
-    val safeName = displayName.substringAfterLast('/').substringAfterLast('\\')
-    val destination = File(modelsDir, safeName)
-    val temporary = File(modelsDir, "${safeName}.partial")
-    context.contentResolver.openInputStream(uri).use { input ->
-        requireNotNull(input) { "Could not open the selected model file." }
-        FileOutputStream(temporary).use { output -> input.copyTo(output) }
-    }
-    require(temporary.length() > 0L) { "The selected file is empty." }
-    if (destination.exists()) destination.delete()
-    check(temporary.renameTo(destination)) { "Could not finish importing the model." }
-    return destination
-}
-
-private fun queryDisplayName(context: Context, uri: Uri): String? {
-    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-        ?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (index >= 0) return cursor.getString(index)
-            }
-        }
-    return null
+private fun formatBytes(size: Long): String = when {
+    size >= (1L shl 30) -> String.format("%.1f GiB", size / (1L shl 30).toDouble())
+    size >= (1L shl 20) -> String.format("%.0f MiB", size / (1L shl 20).toDouble())
+    else -> String.format("%.0f KiB", size / 1024.0)
 }
