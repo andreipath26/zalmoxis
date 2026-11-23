@@ -21,7 +21,8 @@ permissions:
 jobs:
   assemble:
     name: Assemble debug APK
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: android
@@ -34,7 +35,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
+
+      - name: Cache Gradle dependencies and build state
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/codex/gallery-android-foundation' }}
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -42,12 +48,10 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK 37.1
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-37.1" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-37.1" "build-tools;36.0.0"
 
       - name: Assemble
-        run: ./gradlew :app:assembleDebug --no-daemon
+        run: ./gradlew :app:assembleDebug --console=plain --build-cache --info
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
