@@ -135,10 +135,18 @@ internal object NativeResearch {
             val bytes = fetchBytes(canonical, "text/plain", MAX_RAW_BYTES + 1)
             val truncated = bytes.size > MAX_RAW_BYTES
             val actual = if (truncated) bytes.copyOf(MAX_RAW_BYTES) else bytes
-            require(actual.all { it == 9.toByte() || it == 10.toByte() || it == 13.toByte() || it >= 32 }) {
+            require(actual.none { it == 0.toByte() }) {
                 "The response appears to be binary. Only readable UTF-8 text is supported."
             }
-            val text = actual.toString(Charsets.UTF_8)
+            val text = try {
+                Charsets.UTF_8.newDecoder()
+                    .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                    .decode(java.nio.ByteBuffer.wrap(actual))
+                    .toString()
+            } catch (_: Exception) {
+                throw IllegalArgumentException("The file is not valid UTF-8 text.")
+            }
             val title = uri.path.substringAfterLast('/').take(120)
             return result(id, canonical, canonical, title, text, truncated)
         }
