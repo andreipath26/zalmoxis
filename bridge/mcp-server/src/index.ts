@@ -85,6 +85,27 @@ function createServer() {
       instruction: "Enter this code under Zalmoxis → Workspace → Agent Bridge; do not publish it." });
   });
 
+  server.registerTool("revoke_bridge", {
+    description: "Revoke this OAuth client's Zalmoxis phone pairing and delete its queued messages. This cannot be undone.",
+    inputSchema: { confirm: z.literal(true) },
+  }, async ({ confirm }, context) => {
+    if (!confirm || !context.http?.authInfo?.scopes?.includes("mcp:write")) {
+      return fail("Explicit confirmation and OAuth mcp:write scope required.");
+    }
+    const owner = currentOwner();
+    const clientId = context.http?.authInfo?.clientId;
+    if (!owner || !clientId) return fail("Identity or OAuth client missing.");
+    const matches = await env.DB.prepare(
+      "SELECT id FROM bridges WHERE owner_id=? AND client_id=? AND revoked=0"
+    ).bind(owner,clientId).all<{id:string}>();
+    for (const row of matches.results) {
+      await env.DB.prepare("DELETE FROM messages WHERE bridge_id=?").bind(row.id).run();
+      await env.DB.prepare("UPDATE bridges SET revoked=1 WHERE id=?").bind(row.id).run();
+    }
+    return text({ revoked: matches.results.length, messages_deleted: true,
+      note: "Any previously paired phone must re-pair before using this channel." });
+  });
+
   server.registerTool("bridge_status", {
     description: "Read the user's Zalmoxis phone bridge pairing status. No actions are executed.",
     inputSchema: {},
