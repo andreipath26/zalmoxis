@@ -20,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -231,7 +232,7 @@ internal fun V2VoicePanel(isListening: Boolean, feedback: String, onToggle: () -
             onClick = onToggle,
             colors = ButtonDefaults.buttonColors(containerColor = ZalmoxisV2.accent, contentColor = ZalmoxisV2.background),
         ) { Text(if (isListening) "■  Stop listening" else "●  Start voice input") }
-        Button(onClick = onBack, colors = ButtonDefaults.textButtonColors(contentColor = ZalmoxisV2.muted)) {
+        TextButton(onClick = onBack) {
             Text("Return to chat")
         }
     }
@@ -251,7 +252,7 @@ internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit) {
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, ZalmoxisV2.stroke),
             ) {
-                Row(modifier = Modifier.padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(label)
                     Text("Planned", color = ZalmoxisV2.muted, style = MaterialTheme.typography.labelSmall)
                 }
