@@ -37,4 +37,9 @@ jobs:
         if: matrix.workspace == 'mcp-server'
         run: npm test
       - name: Bundle Worker without deploying
-        run: npx wrangler deploy --dry-run --config wrangler.example.jsonc --outdir /tmp/zalmoxis-bridge-check
+        shell: bash
+        run: |
+          node -e 'const fs=require("fs"); const name=process.env.MCP_WORKSPACE || "bridge"; const flags=name==="auth-server"?["nodejs_compat","global_fetch_strictly_public"]:["nodejs_compat"]; fs.writeFileSync("wrangler.ci.jsonc",JSON.stringify({name:"zalmoxis-ci-"+name,main:"src/index.ts",compatibility_date:"2026-11-23",compatibility_flags:flags},null,2));'
+          npx wrangler deploy --dry-run --config wrangler.ci.jsonc --outdir /tmp/zalmoxis-bridge-check
+        env:
+          MCP_WORKSPACE: ${{ matrix.workspace }}
