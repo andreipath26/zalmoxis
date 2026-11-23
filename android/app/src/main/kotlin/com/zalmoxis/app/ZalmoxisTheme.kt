@@ -13,8 +13,8 @@ import androidx.compose.ui.unit.dp
  * charcoal structure, restrained lime actions/focus, and high-contrast warm text.
  */
 internal val ZalmoxisDarkColors = darkColorScheme(
-    primary = Color(0xFFC4EF66),
-    onPrimary = Color(0xFF1B2410),
+    primary = Color(0xFFC2FA59),
+    onPrimary = Color(0xFF0B0E0D),
     primaryContainer = Color(0xFF303A23),
     onPrimaryContainer = Color(0xFFE7F3C7),
     secondary = Color(0xFFA7B58C),
@@ -23,12 +23,12 @@ internal val ZalmoxisDarkColors = darkColorScheme(
     onSecondaryContainer = Color(0xFFDCE7CA),
     tertiary = Color(0xFFC4EF66),
     onTertiary = Color(0xFF1B2410),
-    background = Color(0xFF101110),
+    background = Color(0xFF0B0E0D),
     onBackground = Color(0xFFF1F2EF),
-    surface = Color(0xFF191B19),
+    surface = Color(0xFF191E1C),
     onSurface = Color(0xFFF1F2EF),
-    surfaceVariant = Color(0xFF202320),
-    onSurfaceVariant = Color(0xFF9BA29B),
+    surfaceVariant = Color(0xFF242B27),
+    onSurfaceVariant = Color(0xFFA8B4AE),
     inverseSurface = Color(0xFFF1F2EF),
     inverseOnSurface = Color(0xFF101110),
     inversePrimary = Color(0xFF536D2D),
@@ -37,16 +37,16 @@ internal val ZalmoxisDarkColors = darkColorScheme(
     errorContainer = Color(0xFF93000A),
     onErrorContainer = Color(0xFFFFDAD4),
     outline = Color(0xFF717972),
-    outlineVariant = Color(0xFF2C302D),
+    outlineVariant = Color(0xFF34403A),
     scrim = Color(0x99000000),
 )
 
 private val ZalmoxisShapes = Shapes(
     extraSmall = RoundedCornerShape(6.dp),
     small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(10.dp),
-    large = RoundedCornerShape(14.dp),
-    extraLarge = RoundedCornerShape(18.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(26.dp),
 )
 
 @Composable
