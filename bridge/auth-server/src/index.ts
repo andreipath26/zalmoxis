@@ -24,8 +24,8 @@ interface Env {
 }
 const SCOPES = ["mcp:read", "mcp:write"];
 const oauthServer = new OAuthAuthorizationServer<Env>({
-  issuer: env.ISSUER,
-  resources: [env.MCP_SERVER_URL],
+  issuer: (env as Env).ISSUER,
+  resources: [(env as Env).MCP_SERVER_URL],
   scopesSupported: SCOPES,
   clientIdMetadataDocumentEnabled: true,
   clientRegistrationEndpoint: "/oauth/register",
