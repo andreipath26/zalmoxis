@@ -521,6 +521,29 @@ Core [RESEARCHED/DESIGNED]
 
 Dream Cycle (Agent Brain). Conservative, inspectable memory consolidation first. Defer open-ended self-improvement. Knowledge Pages (Hindsight). Memory Tree (openhuman). Hermes Skill Extraction. Derived Personas (Viv Vision). Sub-Agent Divergence (Victor Mancha). Affective Continuity. Temporal Graph Reasoning. Inspectable Memory. FSRS-Weighted Retention. Generative UI Artifacts (Avibe). jñāpakaṁ Continuity. RGMem Trait Consolidation.
 
+#### AI Memory reference: akitaonrails/ai-memory (reviewed 2026-11-23)
+
+Repository reviewed: https://github.com/akitaonrails/ai-memory (MIT-licensed Rust workspace, release v3.5.1 at review). This is a reference implementation for coding-agent continuity, not an Android library or a direct Zamolxis dependency.
+
+Its canonical knowledge store is an editable, Git-versioned Markdown wiki. SQLite is a derived, rebuildable index that supports FTS5, entity and link retrieval, sessions, observations, handoffs, audit records, and optional embeddings. Search can combine lexical, entity, graph-neighbor, and vector results. Its retention design decays cold episodic records while protecting pages that are revisited, and it preserves superseded history rather than silently overwriting prior knowledge.
+
+The default workflow does not require an LLM. Optional consolidation, dream-cycle, and reranking operations can use configured providers. The local embedding path uses Candle with all-MiniLM-L6-v2 on CPU; it downloads an approximately 87 MB model from Hugging Face on first use and verifies its SHA-256. The local embedding path keeps text processing on-device, but the initial model fetch still requires network access.
+
+**Patterns to evaluate for Zamolxis**
+
+- Keep canonical memories user-inspectable and exportable in a simple format; compare Markdown-backed records with the Phase 0 structured storage contract before choosing a canonical source of truth.
+- Treat search indexes and embeddings as derived, rebuildable data. Never let a stale index become the only copy of a memory.
+- Combine local lexical search with entity, relationship, and temporal-neighbor retrieval. Add embeddings only after device benchmarks show acceptable retrieval quality, latency, storage, and battery use.
+- Preserve provenance, timestamps, supersession history, correction, restore, and deletion receipts. Make retention decay visible and user-controlled; pin or protect information the user confirms as important.
+- Keep the zero-LLM memory path useful. Any LLM-based consolidation or reranking must be opt-in, on-device by default, inspectable, reversible, and prevented from changing permissions or memory ownership.
+- Preserve source trust labels and quarantine untrusted imported content before it can influence durable memories.
+
+**Adaptation boundary**
+
+The repository’s Rust server and CLI, MCP integration, editor hooks, multi-agent handoff lifecycle, team console, and cloud-provider reranking target coding-agent workflows and do not transfer directly to the Android product. Reuse the design lessons only after checking Android storage, app lifecycle, background-work, and offline constraints. The project is MIT licensed; if any code is later copied, preserve its license and notices and review each dependency’s separate license. No code or model is adopted by this roadmap entry.
+
+Status: [RESEARCHED] reference; adaptation decisions remain [DESIGNED] until Phase 0/5 benchmarks and privacy review pass.
+
 #### Cross-Session Continuity
 
 The lifecycle model for how the agent's identity, skills and policy change over time while maintaining continuity. jñāpakaṁ generation workflow handles identity. Hermes handles skills. Memory evolution handles policy.
@@ -693,6 +716,7 @@ Externally: Assist, Act, Delegate. Do not make the customer learn the internal n
 | Semantic memory | Mem0 + H-MEM | 0, 5 | [RESEARCHED] |
 | Emotional retrieval | CAMA | 0 | DEFERRED |
 | Memory evolution | RGMem | 0, 5 | [RESEARCHED] |
+| Memory design reference | akitaonrails/ai-memory (Markdown source, rebuildable SQLite/FTS5 index, hybrid retrieval) | 0, 5 | [RESEARCHED] |
 | Bi-temporal storage | AletheiaDB | 0 | [RESEARCHED] |
 | Multimodal memory | EmbeddingGemma 2 | 0, 5 | [RESEARCHED] |
 | Active Memory | Interference-aware retrieval | 0 | [DESIGNED] |
