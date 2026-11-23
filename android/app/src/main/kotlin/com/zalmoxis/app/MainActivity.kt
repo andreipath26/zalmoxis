@@ -93,6 +93,7 @@ private enum class HomeTab(val title: String) {
     KNOWLEDGE("Knowledge"),
     DOWNLOADS("Models"),
     WORKSPACE("Workspace"),
+    RESEARCH("Research"),
     SETTINGS("Settings"),
 }
 
@@ -352,7 +353,7 @@ private fun ZalmoxisHome() {
             HomeTab.CHAT, HomeTab.VOICE -> chatScrollState
             HomeTab.KNOWLEDGE -> knowledgeScrollState
             HomeTab.DOWNLOADS -> downloadsScrollState
-            HomeTab.WORKSPACE, HomeTab.SETTINGS -> settingsScrollState
+            HomeTab.WORKSPACE, HomeTab.RESEARCH, HomeTab.SETTINGS -> settingsScrollState
         }
         Column(
             modifier = Modifier
@@ -593,6 +594,13 @@ private fun ZalmoxisHome() {
                     V2Workspace(
                         onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
                         onModels = { selectedTab = HomeTab.DOWNLOADS },
+                        onResearch = { selectedTab = HomeTab.RESEARCH },
+                    )
+                }
+                HomeTab.RESEARCH -> {
+                    ResearchWorkspace(
+                        onBack = { selectedTab = HomeTab.WORKSPACE },
+                        onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
                     )
                 }
                 HomeTab.SETTINGS -> {
@@ -790,7 +798,11 @@ private fun ZalmoxisHome() {
             }
         }
         V2Navigation(
-            selected = if (selectedTab == HomeTab.VOICE || selectedTab == HomeTab.SETTINGS) "CHAT" else selectedTab.name,
+            selected = when (selectedTab) {
+                HomeTab.VOICE, HomeTab.SETTINGS -> "CHAT"
+                HomeTab.RESEARCH -> "WORKSPACE"
+                else -> selectedTab.name
+            },
             onNavigate = { key ->
                 selectedTab = HomeTab.valueOf(key)
             },
