@@ -122,10 +122,16 @@ private fun ZalmoxisHome() {
     var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
     var busy by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.CHAT) }
+    var availableAppUpdate by remember { mutableStateOf<AppUpdate?>(null) }
     val chatScrollState = rememberScrollState()
     val knowledgeScrollState = rememberScrollState()
     val downloadsScrollState = rememberScrollState()
     val settingsScrollState = rememberScrollState()
+
+    LaunchedEffect(Unit) {
+        runCatching { GitHubAppUpdates.check(context) }
+            .onSuccess { availableAppUpdate = it }
+    }
 
     val currentSession by rememberUpdatedState(session)
     val currentSpeechInput by rememberUpdatedState(speechInput)
@@ -320,6 +326,17 @@ private fun ZalmoxisHome() {
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
         V2Header(onSettings = { selectedTab = HomeTab.SETTINGS })
+        if (availableAppUpdate != null && selectedTab != HomeTab.SETTINGS) {
+            androidx.compose.material3.TextButton(
+                onClick = { selectedTab = HomeTab.SETTINGS },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    "New signed Zalmoxis build available — review update",
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
         if (busy || status != "Choose a compatible .litertlm file stored on this device.") {
             Text(
                 status,
