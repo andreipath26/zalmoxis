@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -163,7 +164,10 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
         matches = LocalKnowledgeVault.search(context, query)
     }
     LaunchedEffect(Unit) { refresh() }
-    LaunchedEffect(query, items) { matches = LocalKnowledgeVault.search(context, query) }
+    LaunchedEffect(query, items) {
+        delay(250)
+        matches = LocalKnowledgeVault.search(context, query)
+    }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) {
@@ -172,13 +176,17 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
             scope.launch {
                 try {
                     var count = 0
+                    var failures = 0
                     uris.forEach { uri ->
                         runCatching { LocalKnowledgeVault.import(context, uri) }
                             .onSuccess { count += 1 }
-                            .onFailure { onStatus(it.message ?: "A selected source could not be imported.") }
+                            .onFailure { failures += 1 }
                     }
                     refresh()
-                    onStatus("$count source(s) saved locally. Only supported text files are searchable.")
+                    onStatus(
+                        "$count source(s) saved locally; $failures failed. " +
+                            "Only supported text files are searchable."
+                    )
                 } catch (error: Exception) {
                     onStatus(error.message ?: "Could not import selected sources.")
                 } finally { onBusyChange(false) }
