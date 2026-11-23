@@ -468,6 +468,7 @@ private fun ZalmoxisHome() {
                                 speechOutputReady = ready
                                 speechOutputInitializing = false
                                 status = message
+                                if (ready) speechOutput?.speak(response)
                             }
                             status = "Preparing installed offline speech voices…"
                         } else {
