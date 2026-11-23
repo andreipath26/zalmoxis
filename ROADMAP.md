@@ -1340,3 +1340,25 @@ The comparison is a technology map, not an exhaustive security or licensing audi
 **Acceptance checklist:** no unapproved network activity; every result has a source and digest; no arbitrary third-party redirects; no cookie/header leakage; no unauthorized model-tool bridge; bounded downloads and extraction; Knowledge save is explicit and deletion works; UI handles offline/errors and keyboard; tests and a real signed APK run successfully before marking `[BUILT]` or `[VALIDATED]`.
 
 **Evidence note:** research/design review complete for this addendum; code and actual Android acceptance remain separately tracked. Research links: https://github.com/Panniantong/Agent-Reach, https://github.com/unclecode/crawl4ai, https://github.com/jina-ai/reader, https://github.com/assafelovic/gpt-researcher, https://github.com/microsoft/playwright-mcp, https://github.com/browser-use/browser-use, https://github.com/searxng/searxng, https://github.com/firecrawl/firecrawl.
+
+
+### 2026-11-23 clarification — conversational research is the primary UX
+
+**User directive:** Do not require people to paste source URLs. A user should be able to instruct the local assistant in ordinary language to perform research, compare what it discovers, and propose what belongs in their local Knowledge database. The direct URL fetcher remains an optional expert tool, never the primary flow.
+
+**Permission semantics:** Sending an explicit “Research X” instruction authorizes a *bounded* public-source search in the named/visible provider scope for that request. This must not imply permission for arbitrary web browsing, account access, authenticated sessions, future recurring searches, paid APIs, or background monitoring. An instruction to save findings authorizes presenting a batch import proposal; the user can review the selected sources and confirm import once, rather than approving every URL independently. Trusted memory promotion remains separately review-gated.
+
+**Target conversational pipeline:**
+1. Interpret the user's research task, preferred sources, research questions, and save targets; show network/provider scope and permission.
+2. Search multiple approved providers by topic and discover candidate sources automatically.
+3. Fetch selected sources under size, redirect, rate-limit, privacy and SSRF constraints.
+4. Ask the local model to produce a draft with source markers and explicit uncertainty; never allow source text to control tool execution.
+5. Show editable proposed findings and source-linked citations; allow bulk review.
+6. Save original source records and separately labeled *unverified AI drafts* in the local Knowledge vault; confirmed memory is never silently modified.
+7. Respect “only these sources”, “do not save”, “save summaries”, “compare licenses”, and deletion instructions. Future recurrent search requires separately authorized scheduling.
+
+**Current code slice [IMPLEMENTED IN SOURCE, NOT YET BUILT/VALIDATED]:** GitHub topic search using the public Search API (bounded to eight public results); optional direct URL fetch; a Chat directive router for explicit “Research …”, “Search the web for …” and “Research … and save findings to Knowledge” commands; source selection with one batch-save confirmation; local model synthesis when a compatible model is loaded; editable unverified Markdown draft import with source links. Search only targets GitHub at this stage; “search the web” is **not** a promise of general cross-site search. The app displays this boundary. This is deterministic, scoped orchestration, not general-purpose autonomous browsing. GitHub API rate limits and lack of authentication apply.
+
+**Next batches [DESIGNED]:** provider interface for broad web search (user-configured SearXNG/Brave or another privacy-reviewed service), independent extraction adapters, multi-step local research planning, title/content citation validation, per-source selection policies, deduplication, search caching, source quote alignment, safe handling of conflicting sources, persistent permission grants with expiry, research progress/cancellation, full integration tests, and real APK/device tests.
+
+**Required checks before shipping:** user can request search without a URL; no implicit network on ordinary chat; no unapproved search on navigation or recomposition; rate-limited provider errors are visible; bulk save is reviewable and never overwrites existing data; drafts remain labeled unverified; fetched text cannot execute tools; all source URLs and hashes survive save/export/delete; offline knowledge operations continue working.
