@@ -4,11 +4,11 @@
 > while making its permissions, decisions, data access, and failures
 > inspectable by the person who owns it.**
 
-**Status:** `[DESIGNED]`. No implementation exists. This repository is in Phase 0.
+**Status:** Phase 0; implementation has started. The Android local-inference foundation exists but has not been built or validated.
 **Repository:** private, at `github.com/andreipath26/zalmoxis`.
 **License:** undecided (working assumption: AGPL-3.0-or-later + commercial dual-license).
 **Phase:** 0 of 9 — Defining the Proof.
-**Code written:** 0 lines.
+**Implementation:** Initial Android Compose app and LiteRT-LM local inference adapter under `android/`.
 
 ---
 
@@ -290,7 +290,7 @@ This section is the honest inventory. It is short.
 
 ### 10.1 The repository
 
-Initialized on 2026-10-16, branch main. Three commits at the time of writing. Private GitHub remote at github.com/andreipath26/zalmoxis. 34 tracked files, 28 of which are .gitkeep files preserving an empty directory tree.
+Private GitHub repository at github.com/andreipath26/zalmoxis. The tracked tree contains the foundational documents and an initial Android application foundation. Many future-phase directories remain .gitkeep placeholders.
 
 ### 10.2 The foundational documents
 
@@ -302,38 +302,28 @@ Initialized on 2026-10-16, branch main. Three commits at the time of writing. Pr
 | KILL-CRITERIA.md | Written: pilot success criteria, kill criteria, stopping condition |
 | PROJECT-STATE.md | Written: resume-from-cold state file |
 
-### 10.3 The local-only documents
+### 10.3 Project documents
 
-Two documents exist on disk but are not in the repository, not on GitHub, and never will be:
+| Document | Status |
+|----------|--------|
+| ROADMAP.md | Tracked full V10 roadmap |
+| RULE SET.md | Remains excluded from the repository |
+| docs/decisions/GOOGLE-AI-EDGE-GALLERY-ADOPTION.md | Gallery and LiteRT-LM adoption boundary |
+| android/README.md | Android build and implementation notes |
 
-| Document | Contents | Status |
-|----------|----------|--------|
-| ROADMAP.md | The full V10 roadmap: 9 phases, the technology stack, the architecture map, the competitive analysis | Local-only |
-| RULE SET.md | 175 operating rules (Z1 to Z175) governing how the project is built | Local-only |
+### 10.4 Initial Android implementation
 
-They are protected by five layers: .gitignore, .git/info/exclude, a pre-commit hook, a pre-push hook, and a verification step in every git command block. If this machine is lost, these two files are lost with it. That is the known cost of keeping them local-only.
-
-### 10.4 The defense stack
-
-| Layer | What it stops | Where it lives |
-|-------|---------------|----------------|
-| .gitignore lines 45 to 46 | Accidental git add . | Versioned, travels with clones |
-| .git/info/exclude lines 3 to 4 | Accidental add even if .gitignore is edited | Local only |
-| pre-commit hook | git add -f force-staging | Local only |
-| pre-push hook | Any commit anywhere in history containing the file | Local only |
-| No commit ever contained the file | Verified by full history scan | Structural |
+The Android app imports a local .litertlm model into app-private storage and streams text inference through LiteRT-LM on CPU. It has no network permission, account integration, analytics, MCP client, or model-provided tools. The source is present but has not been built or validated. See android/README.md.
 
 ### 10.5 What is not built
 
-No inference runtime. No memory schema. No Android app. No policy engine. No audit trail implementation. No voice pipeline. No OTA pipeline. No tests. No benchmarks. No code.
-
-Zero lines of application code exist.
+The memory schema and storage, identity layer, deterministic policy engine, audit trail, document ingestion, voice pipeline, OTA pipeline, tests, and benchmarks remain unimplemented.
 
 ---
 
 ## 11. What will be built
 
-The full phase plan is in the roadmap, local-only. This is the summary.
+The full phase plan is in the tracked `ROADMAP.md`. This is the summary.
 
 ### Phase 0: Defining the proof (current)
 
@@ -383,9 +373,12 @@ A long-term strategic option, not a near-term revenue path. Not a roadmap depend
 
 ## 12. How to run it locally
 
-Currently: nothing to run. No source code exists.
+The Android application source is under android/. With JDK 17 and Android SDK 36 installed, run:
 
-When implementation begins, the expected commands are setup, build, and test scripts under scripts/. These scripts do not exist yet. They will be created in the phase where they are first needed. The repository currently contains documentation, a directory skeleton, and git hooks. That is the complete contents.
+    cd android
+    gradle :app:assembleDebug
+
+The Android SDK was not available in the implementation workspace, so this build has not yet been verified. No tests or deployment claim are recorded.
 
 ---
 
@@ -404,7 +397,7 @@ When implementation begins, the expected commands are setup, build, and test scr
       core/ingestion/            document ingestion and classification
       core/audit/                audit trail
       core/permissions/          policy engine and scoped delegation
-      android/                   Android app (Kotlin)
+      android/                   Compose app and LiteRT-LM Android foundation
       desktop/                   reserved for future desktop client
       server/                    reserved for future headless server
       ota/                       over-the-air update infrastructure
@@ -424,10 +417,10 @@ Directories without files today are placeholders preserved by .gitkeep. They wil
 | RECOVERY-PLAN.md | Failure classes, detection, recovery, verification | Yes |
 | KILL-CRITERIA.md | Pilot success criteria and stopping condition | Yes |
 | PROJECT-STATE.md | Resume-from-cold state file | Yes |
-| ROADMAP.md | Full V10 roadmap | No, local only |
+| ROADMAP.md | Full V10 roadmap | Yes |
 | RULE SET.md | 175 operating rules | No, local only |
 
-The two local-only files are excluded from the repository by .gitignore, .git/info/exclude, and two git hooks. They have never been committed and cannot be pushed.
+RULE SET.md remains excluded from the repository. ROADMAP.md is tracked. The October 2026 statements elsewhere in the repository describe the earlier state and have been superseded.
 
 ---
 
