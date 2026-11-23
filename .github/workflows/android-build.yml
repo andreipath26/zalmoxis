@@ -17,13 +17,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   assemble:
     name: Assemble debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      signed_update_ready: ${{ steps.signing.outputs.ready }}
     defaults:
       run:
         working-directory: android
@@ -93,24 +95,52 @@ jobs:
           ZALMOXIS_KEY_PASSWORD: ${{ secrets.ZALMOXIS_SIGNING_KEY_PASSWORD }}
         run: ./gradlew :app:assembleRelease --console=plain --build-cache
 
-      - name: Publish signed APK as a GitHub pre-release
+      - name: Verify and upload persistently signed APK
         if: steps.signing.outputs.ready == 'true'
         working-directory: ${{ github.workspace }}
-        env:
-          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           apk="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
           test -s "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk"
-          mkdir -p "$RUNNER_TEMP/update"
-          cp "$apk" "$RUNNER_TEMP/update/zalmoxis-update.apk"
-          sha256sum "$RUNNER_TEMP/update/zalmoxis-update.apk"
-          gh release create "android-build-$GITHUB_RUN_NUMBER" \
-            "$RUNNER_TEMP/update/zalmoxis-update.apk" \
+          cp "$apk" "$RUNNER_TEMP/zalmoxis-update.apk"
+
+      - name: Upload signed update for release job
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zalmoxis-signed-update
+          path: ${{ runner.temp }}/zalmoxis-update.apk
+          if-no-files-found: error
+          retention-days: 2
+
+  publish_update:
+    name: Publish signed Android update
+    needs: assemble
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.assemble.outputs.signed_update_ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download signed APK from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: zalmoxis-signed-update
+          path: signed-update
+
+      - name: Publish GitHub pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          apk="signed-update/zalmoxis-update.apk"
+          test -s "$apk"
+          sha256sum "$apk"
+          gh release create "android-build-$GITHUB_RUN_NUMBER" "$apk" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Zalmoxis Android build $GITHUB_RUN_NUMBER" \
-            --notes "Signed Android update generated from successful main-branch build. Installation requires explicit Android user approval. Update compatibility depends on the original app signing certificate." \
+            --notes "Signed Android update from successful main build. Installation requires explicit Android user approval and matching signing identity." \
             --prerelease
