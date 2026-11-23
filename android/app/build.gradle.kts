@@ -2,6 +2,14 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+val updateKeystorePath = System.getenv("ZALMOXIS_KEYSTORE_PATH")
+val updateStorePassword = System.getenv("ZALMOXIS_KEYSTORE_PASSWORD")
+val updateKeyAlias = System.getenv("ZALMOXIS_KEY_ALIAS")
+val updateKeyPassword = System.getenv("ZALMOXIS_KEY_PASSWORD")
+val canSignUpdates = listOf(
+    updateKeystorePath, updateStorePassword, updateKeyAlias, updateKeyPassword,
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.zalmoxis.app"
     compileSdk {
@@ -13,8 +21,24 @@ android {
         applicationId = "com.zalmoxis.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 100_000 + it } ?: 1
         versionName = "0.1.0"
+    }
+    if (canSignUpdates) {
+        signingConfigs {
+            create("updates") {
+                storeFile = file(requireNotNull(updateKeystorePath))
+                storePassword = updateStorePassword
+                keyAlias = updateKeyAlias
+                keyPassword = updateKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (canSignUpdates) signingConfig = signingConfigs.getByName("updates")
+        }
     }
     buildFeatures { compose = true }
     compileOptions {
