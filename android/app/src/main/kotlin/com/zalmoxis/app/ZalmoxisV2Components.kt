@@ -73,20 +73,20 @@ internal fun ZalmoxisMark(modifier: Modifier = Modifier) {
         for (arm in 0..2) {
             val angle = (arm * 120.0 - 90.0) * Math.PI / 180.0
             val start = Offset(
-                cx + (radius * 0.30f * cos(angle)).toFloat(),
-                cy + (radius * 0.30f * sin(angle)).toFloat(),
+                cx + radius * 0.30f * cos(angle).toFloat(),
+                cy + radius * 0.30f * sin(angle).toFloat(),
             )
             val outer = Offset(
-                cx + (radius * cos(angle)).toFloat(),
-                cy + (radius * sin(angle)).toFloat(),
+                cx + radius * cos(angle).toFloat(),
+                cy + radius * sin(angle).toFloat(),
             )
             val left = Offset(
-                cx + (radius * 0.73f * cos(angle + 0.95)).toFloat(),
-                cy + (radius * 0.73f * sin(angle + 0.95)).toFloat(),
+                cx + radius * 0.73f * cos(angle + 0.95).toFloat(),
+                cy + radius * 0.73f * sin(angle + 0.95).toFloat(),
             )
             val right = Offset(
-                cx + (radius * 0.73f * cos(angle - 0.95)).toFloat(),
-                cy + (radius * 0.73f * sin(angle - 0.95)).toFloat(),
+                cx + radius * 0.73f * cos(angle - 0.95).toFloat(),
+                cy + radius * 0.73f * sin(angle - 0.95).toFloat(),
             )
             val path = androidx.compose.ui.graphics.Path().apply {
                 moveTo(start.x, start.y)
@@ -177,7 +177,7 @@ internal fun V2Welcome(onKnowledge: () -> Unit, onModels: () -> Unit, onVoice: (
                     for (x in 0..size.width.toInt() step 4) {
                         val f = x / size.width
                         val envelope = sin(Math.PI * f).toFloat()
-                        val y = center + amplitude * envelope * sin(2 * Math.PI * (f * 1.65 + i * .13)).toFloat()
+                        val y = center + amplitude * envelope * sin(2.0 * Math.PI * (f.toDouble() * 1.65 + i * .13)).toFloat()
                         if (x == 0) path.moveTo(x.toFloat(), y) else path.lineTo(x.toFloat(), y)
                     }
                     drawPath(path, ZalmoxisV2.accent.copy(alpha = .7f - i * .16f), style = Stroke(1.5.dp.toPx()))
