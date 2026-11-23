@@ -38,7 +38,7 @@ this foundation. The app calls the standalone LiteRT-LM Kotlin API, which is
 also the engine used by Gallery for local inference:
 https://github.com/google-ai-edge/LiteRT-LM
 
-Gallery-specific agent tools and network features are not wired into Zalmoxis. Model download source is present, but Android build and on-device transfer validation remain outstanding. For long explicit downloads, add Android 14+ User-Initiated Data Transfer support; retain WorkManager fallback for API 26–33 and account for Android 16 JobScheduler quota limits.
+Gallery-specific agent tools and network features are not wired into Zalmoxis. The download coordinator uses Android 14+ User-Initiated Data Transfer and WorkManager on API 26–33. Android build and on-device transfer validation remain outstanding.
 The Zalmoxis permission engine must remain deterministic and outside the model.
 Any future tool call must be represented as a proposal, evaluated against exact
 parameters and an expiring grant, and recorded before execution.
