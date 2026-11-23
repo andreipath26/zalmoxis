@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
     <uses-feature
         android:name="android.hardware.microphone"
@@ -27,6 +28,16 @@
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
+        <!-- Explicit user-started local MCP server. Foreground service keeps
+             a visible notification; never listens beyond phone loopback. -->
+        <service
+            android:name=".LocalMcpServerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-controlled on-device local MCP agent server" />
+        </service>
         <service
             android:name=".ModelDownloadJobService"
             android:exported="false"
