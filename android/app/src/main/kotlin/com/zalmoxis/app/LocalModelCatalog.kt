@@ -143,6 +143,79 @@ object LocalModelCatalog {
         return true
     }
 
+
+    /**
+     * Installs an allowlisted catalog download only after rechecking its pinned size and digest.
+     * The partial file is created under filesDir, so the final rename stays on one filesystem.
+     */
+    fun installDownloaded(context: Context, entry: ModelCatalogEntry, partial: File): File =
+        synchronized(this) {
+            require(entry.fileName.endsWith(MODEL_EXTENSION, ignoreCase = true))
+            require('/' !in entry.fileName && '\\' !in entry.fileName)
+            require(partial.isFile && matchesPinnedDigest(partial, entry.sizeBytes, entry.sha256)) {
+                "The downloaded model failed its pinned size or SHA-256 check."
+            }
+
+            val directory = File(context.filesDir, "models").apply { mkdirs() }
+            val destination = File(directory, entry.fileName)
+            val receipt = receiptFile(destination)
+            val backup = File(directory, ".download-backup-${UUID.randomUUID()}.partial")
+            val receiptBackup = File(directory, ".download-receipt-backup-${UUID.randomUUID()}.partial")
+            val receiptTemporary = File(directory, ".download-receipt-${UUID.randomUUID()}.partial")
+            val receiptContent = JSONObject()
+                .put("schema_version", 1)
+                .put("file_name", entry.fileName)
+                .put("file_size_bytes", entry.sizeBytes)
+                .put("sha256", entry.sha256.lowercase())
+                .put("source_description", "Hugging Face: ${entry.repoId} @ ${entry.revision}")
+                .put("license_status", "${entry.licenseName} (${entry.licenseUrl})")
+                .put("license_name", entry.licenseName)
+                .put("license_url", entry.licenseUrl)
+                .put("source_repository", entry.repoId)
+                .put("source_revision", entry.revision)
+                .put("imported_at_epoch_ms", System.currentTimeMillis())
+                .put("publisher_authenticity_verified", false)
+
+            var hadDestination = false
+            var hadReceipt = false
+            try {
+                if (destination.exists()) {
+                    check(destination.renameTo(backup)) { "Could not safely replace the existing model." }
+                    hadDestination = true
+                }
+                if (receipt.exists()) {
+                    check(receipt.renameTo(receiptBackup)) {
+                        "Could not safely replace the model provenance record."
+                    }
+                    hadReceipt = true
+                }
+                check(partial.renameTo(destination)) { "Could not finish installing the model." }
+                writeJsonAtomically(receipt, receiptTemporary, receiptContent)
+                backup.delete()
+                receiptBackup.delete()
+                destination
+            } catch (error: Exception) {
+                destination.delete()
+                receipt.delete()
+                if (hadDestination && backup.exists()) backup.renameTo(destination)
+                if (hadReceipt && receiptBackup.exists()) receiptBackup.renameTo(receipt)
+                throw error
+            } finally {
+                receiptTemporary.delete()
+                if (backup.exists() && !destination.exists()) backup.renameTo(destination)
+                if (receiptBackup.exists() && !receipt.exists()) receiptBackup.renameTo(receipt)
+                backup.delete()
+                receiptBackup.delete()
+            }
+        }
+
+    fun matchesPinnedDigest(file: File, expectedBytes: Long, expectedSha256: String): Boolean {
+        if (!file.isFile || file.length() != expectedBytes ||
+            !expectedSha256.matches(Regex("[a-fA-F0-9]{64}"))
+        ) return false
+        return runCatching { sha256(file).equals(expectedSha256, ignoreCase = true) }.getOrDefault(false)
+    }
+
     private fun createLegacyReceipt(file: File): LocalModel =
         LocalModel(
             name = file.name,
