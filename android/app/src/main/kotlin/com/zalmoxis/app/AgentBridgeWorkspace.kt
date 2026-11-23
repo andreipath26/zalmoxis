@@ -93,8 +93,10 @@ internal fun AgentBridgeWorkspace(
             }
         }
 
+        LocalMcpPanel(hostedConnected = connection != null)
+
         if (connection == null) {
-            Text("Pair your phone", style = MaterialTheme.typography.titleMedium)
+            Text("Pair your phone for internet-hosted mode", style = MaterialTheme.typography.titleMedium)
             Text("Get a one-time code from the authorized provider's create_pairing_code MCP tool. " +
                 "The relay must be deployed and accessible from this phone.",
                 style = MaterialTheme.typography.bodySmall)
