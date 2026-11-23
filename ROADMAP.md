@@ -1504,3 +1504,29 @@ The official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 6. Automated MCP conformance, OAuth/authorization, tenant isolation, mobile offline/reconnect, malicious message and two-way delivery tests; 10+ successful live round trips for each supported provider before deployment.
 
 **Detailed decision and tradeoffs:** `docs/decisions/MCP-BRIDGE-REUSE-ASSESSMENT.md`. **Evidence level:** Upstream research and architecture accepted; secure production MCP migration, live relay deployment, DeepSeek sign-in, Android APK build and real conversations are NOT complete.
+
+
+---
+
+# IMPLEMENTATION RECORD (2026-11-23): OFFICIAL SDK AGENT BRIDGE, ANDROID TRANSPORT AND DEEPSEEK HARNESS
+
+**Evidence status: [IMPLEMENTED IN SOURCE — NOT YET BUILT/CONNECTED/DEPLOYED].** This is an additive progress entry, not a claim that existing security or phase gates have passed.
+
+## Completed source components
+- **Standards-based MCP resource server:** `bridge/mcp-server/src/index.ts` uses official MCP TypeScript SDK v2, Cloudflare Agents handler and OAuth resource middleware. Tools: `create_pairing_code`, `bridge_status`, `send_task`, `list_phone_requests`, `list_replies`, `reply_to_phone`, `revoke_bridge`. Read/write scope authorization is separated. OAuth user and MCP client identity bind the task queue; one provider cannot read another's messages. No model API key.
+- **OAuth service:** `bridge/auth-server/src/index.ts` uses Cloudflare Workers OAuth Provider v1, validates Cloudflare Access JWT signature/issuer/audience, requires explicit consent click and passes verified user ID through official OAuth grants. It has separate Worker/KV configuration and must be deployed with correctly configured Access restrictions.
+- **Android phone side:** `AgentBridgeClient.kt` supports HTTPS pairing, Android-Keystore AES-GCM credential storage, send/receive, reply/reject, and server-confirmed revocation. `AgentBridgeWorkspace.kt` exposes pairing, scoped inbox/outbox, explicit human replies, 15-second foreground-view polling, and Sharesheet fallback.
+- **Durable relay:** `bridge/mcp-server/src/phone.ts` uses the D1 schema in `bridge/migrations/0001_init.sql`, `0002_oauth_pairing.sql`, `0003_client_isolation.sql`, with one-time 16-hex-character codes valid 15 minutes, per-IP attempt throttle, separate device bearer, 24-hour queue TTL, scheduled cleanup, revoke and delete.
+- **DeepSeek first:** `bridge/deepseek/README.md` configures the official DeepSeek Harness MCP Manager, account-backed route, OAuth login and phone pairing with NO DeepSeek model API key. Not yet tested against a live DeepSeek Harness session.
+- **Maintenance:** `.github/workflows/bridge-check.yml` installs SDK dependencies, type-checks both Workers, runs Node phone-API tests and bundles each Worker without deploying. A [CI run passing] result has not yet been observed. The obsolete custom bridge endpoint in `bridge/src/index.js` now fails closed unless intentionally enabled with an unsafe development flag.
+
+## Explicit open gates
+1. Configure Cloudflare identity/Access restrictions, deploy OAuth and MCP Workers, create KV+D1, and apply all three migrations using a trusted owner account.
+2. Validate OAuth metadata, PKCE, consent, scopes, owner/client isolation, pairing brute force denial, remote revocation and signed Android APK.
+3. Demonstrate real two-way DeepSeek Harness tasks using its account-auth model route, with no DeepSeek API key, then ChatGPT/Claude/Mistral using compatible custom connectors.
+4. Add **multiple simultaneously paired Android providers** and provider selection/isolated UI (current Android implementation pairs only one active channel).
+5. Add push/background delivery with explicit opt-in and battery constraints, approved task execution integration, durable offline outbox and idempotent retry. Current UI polls only while its screen is open.
+6. End-to-end encrypt message payloads if private content is expected; D1 currently holds task/reply bodies as plaintext with TTL. A hosted signed relay is not equivalent to E2E encryption.
+7. Observe CI build success, real phone installation, OAuth sign-in and at least ten real round trips each direction before labeling anything [BUILT] or [VALIDATED].
+
+**Current boundary:** A secure source-code architecture and user-controlled messaging UI exist; no live hosted MCP URL, provider credential, or mobile installation was established in this conversation. Do not present a connected or tested DeepSeek/ChatGPT conversation until the actual runtime evidence exists.
