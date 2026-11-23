@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -46,6 +48,8 @@ internal fun ResearchWorkspace(
     var loading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
+    var selectedUrls by remember { mutableStateOf(emptySet<String>()) }
+    var confirmingBulkSave by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Choose a topic or direct public GitHub source.") }
 
     suspend fun fetch(sourceUrl: String) {
@@ -68,6 +72,7 @@ internal fun ResearchWorkspace(
         current = null
         saved = false
         hits = emptyList()
+        selectedUrls = emptySet()
         status = "Searching public GitHub repositories for: $query"
         try {
             hits = NativeResearch.searchRepositories(query)
@@ -144,13 +149,30 @@ internal fun ResearchWorkspace(
                         Text("${hit.stars} stars · Updated ${hit.updatedAt} · ${hit.url}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Button(
-                            enabled = !loading && !saving,
-                            onClick = { scope.launch { fetch(hit.url) } },
-                        ) { Text("Read source") }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Checkbox(
+                                checked = hit.url in selectedUrls,
+                                onCheckedChange = { selected ->
+                                    selectedUrls = if (selected) selectedUrls + hit.url
+                                                   else selectedUrls - hit.url
+                                },
+                                enabled = !loading && !saving,
+                            )
+                            TextButton(
+                                enabled = !loading && !saving,
+                                onClick = { scope.launch { fetch(hit.url) } },
+                            ) { Text("Read source") }
+                        }
                     }
                 }
             }
+        }
+
+        if (selectedUrls.isNotEmpty()) {
+            Button(
+                enabled = !loading && !saving,
+                onClick = { confirmingBulkSave = true },
+            ) { Text("Review & save ${selectedUrls.size} selected sources") }
         }
 
         Text("Or open a specific source", style = MaterialTheme.typography.titleSmall)
@@ -248,6 +270,50 @@ internal fun ResearchWorkspace(
                 "providers, bounded execution, and review controls.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+
+    if (confirmingBulkSave) {
+        val selectedHits = hits.filter { it.url in selectedUrls }
+        AlertDialog(
+            onDismissRequest = { confirmingBulkSave = false },
+            title = { Text("Save selected GitHub sources?") },
+            text = {
+                Text(
+                    "Fetch and save ${selectedHits.size} public repository metadata records to your " +
+                        "local Knowledge library. This creates source records, not confirmed AI memories.\n\n" +
+                        selectedHits.joinToString("\n") { it.url }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingBulkSave = false
+                    scope.launch {
+                        saving = true
+                        var savedCount = 0
+                        var failures = 0
+                        for (hit in selectedHits.take(8)) {
+                            try {
+                                val fetched = NativeResearch.fetch(hit.url)
+                                LocalKnowledgeVault.importResearch(
+                                    context, fetched.title, fetched.canonicalUrl,
+                                    fetched.adapter, fetched.fetchedAtMillis, fetched.text,
+                                )
+                                savedCount++
+                            } catch (_: Exception) {
+                                failures++
+                            }
+                        }
+                        saving = false
+                        selectedUrls = emptySet()
+                        status = "$savedCount sources saved to Knowledge; $failures failed. " +
+                            "Saved sources retain their origins and are not promoted to trusted memory."
+                    }
+                }) { Text("Save selected") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingBulkSave = false }) { Text("Cancel") }
+            },
         )
     }
 }
