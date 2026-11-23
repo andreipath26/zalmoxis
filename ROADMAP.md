@@ -1119,3 +1119,74 @@ Recommendation: Approve the proof phase, narrow the MVP further, formalize the a
 That is the fastest credible route from Zalmoxis V9 as a design to Zalmoxis as a product that has earned the right to make its promises.
 
 File status: V10 complete. Every finding from the full independent assessment integrated. Nothing removed from V9. Everything contextualized. The MVP is narrower. The timeline is realistic. The OTA pipeline is corrected. Full Trust is replaced with scoped delegation. The machine-enforced authorization architecture is added. The memory contract is added. The reliability report is added. The prompt-injection threat model is added. The offline contract is added. Customer discovery precedes the MVP build. Memory quarantine is added. The runtime capability state machine is added. give me o a one liner to write all to disk
+
+
+---
+
+# ADDENDUM (2026-11-23): LOCAL KNOWLEDGE WORKSPACE / LLM WIKI
+
+This addendum records the Zamolxis use of the local, linked knowledge-workspace pattern shown in the user-provided reference. It supplements the existing roadmap. No existing requirement, phase, technology, or decision is removed or silently rewritten.
+
+## Product outcome
+
+Zamolxis will provide a dedicated **Knowledge** area alongside Chat, Downloads, and Settings. Users can deliberately import material, inspect original sources, search and ask questions over selected local knowledge, review generated notes with citations, and explore links between sources and concepts. The workspace is local-first and follows the existing provenance, identity-isolation, prompt-injection, audit, export, and hard-delete contracts.
+
+The workspace has three inspectable layers:
+
+1. **Sources:** user-selected originals stored unchanged, with import time, MIME/type, content hash, origin, identity/client scope, and extraction status. Imported content is untrusted. The app does not crawl the device or request broad storage access.
+2. **Knowledge notes:** readable Markdown or an equivalent portable representation containing summaries, entities, concepts, comparisons, and synthesis. Every generated claim links to source IDs and, where available, a page, section, timestamp, or text span. User-authored and confirmed facts remain distinct from model-generated drafts.
+3. **Rules and history:** a versioned schema defines note structure and ingest/query/lint behavior. An append-only operation log records imports, extraction, draft creation, acceptance, correction, deletion, and export.
+
+The wiki is a derived, rebuildable view, not a competing authority for the memory core. SQLite remains the Android operational store for identity-scoped metadata, full-text/vector indexes, graph edges, and revision state. Markdown is the inspectable/exportable representation. Backlinks and graph visualization derive from stable IDs and explicit links rather than a second source of truth.
+
+## Workflows
+
+- **Import / ingest:** the user selects files or shares content into Zamolxis; the app records immutable source bytes, extracts supported text locally, reports unsupported or failed extraction honestly, and proposes source/concept notes.
+- **Review:** proposed note changes appear as a diff with provenance. The user can accept, edit, reject, or quarantine them. Ingestion never silently overwrites or promotes confirmed memory.
+- **Query:** retrieval is limited to the active user's and selected client's scope. Answers include source citations and uncertainty; conflicting and superseded sources retain temporal context. The user can choose the context to include.
+- **Lint:** report broken links, orphan notes, uncited claims, stale summaries, extraction failures, unresolved conflicts, and possible missing concept pages. Suggestions do not silently modify data.
+- **Export / delete:** export readable Markdown and a source manifest through Android's document picker. Hard deletion removes in-scope originals, generated notes/revisions, FTS/vector entries, graph links, temporary extraction/OCR artifacts, and caches; verification reports what was removed and any declared backup-retention limits.
+
+## Trust and privacy invariants
+
+- Import is explicit; there is no background device-wide scan.
+- Source/OCR text and embedded instructions are tainted, untrusted data. They cannot grant permissions, call tools, alter policy, widen retrieval scope, authorize actions, or cause network egress.
+- Parsing, OCR, indexing, embeddings, graph construction, note drafting, and query inference run locally when supported. There is no cloud fallback. Any future cloud escalation follows existing explicit, cost-visible approval.
+- Notes and answers trace to source IDs, dates, and extraction locations. Model confidence is advisory and never controls authorization.
+- Per-user/client isolation is enforced in storage and query APIs, not by prompt instructions; export and deletion honor the same boundary.
+- Revisions and provenance prevent regeneration from erasing user edits or confirmed facts. Interrupted jobs preserve the prior usable state.
+- Existing memory contract, quarantine/coherence, taint tracking, audit-chain, offline-capability, and hard-delete requirements apply in full.
+
+## Technology and implementation boundaries
+
+- Reuse Kotlin/Jetpack Compose styling, document-picker patterns, app-private storage, local model shelf, `OnDeviceInferenceRuntime`, and performance reporting.
+- Define provider boundaries for source storage/extraction, Markdown note/revision storage, local search, graph queries, export, and verified deletion. Knowledge workflows do not depend directly on LiteRT-LM internals.
+- Use SQLite for indexed metadata and identity/client partitions. Evaluate FTS5 availability on supported devices and preserve lexical search where FTS5 is unavailable. Vector embeddings remain optional and rebuildable until relevance, latency, storage, and battery are measured.
+- Deterministic app code owns IDs, provenance, authorization scope, index updates, links, revisions, and deletion. The on-device LLM drafts summaries, concept candidates, and link suggestions; it does not own persistence or permissions.
+- Treat the screenshot's shell/Obsidian project as a workflow reference, not a drop-in Android app. Confirm third-party code reuse rights before copying code.
+
+## Phase placement and delivery gates
+
+This connects existing phases; it does not replace them.
+
+- **Phase 0 — Memory Core:** define source/note/provenance schema, temporal validity, identity/client partitioning, revisions, quarantine, inspection/correction/export/delete semantics, and acceptance tests.
+- **Phase 1 — Local Brain:** define local inference/embedding capabilities, model compatibility, resource budgets, and offline behavior. Model unavailability must not block import, lexical search, export, or deletion.
+- **Phase 2 — Android Layer:** implement explicit import/capture, supported local extraction, Knowledge area, scoped indexing, cited queries, reviewable note drafts, operation history, export, and verified deletion. Do not claim PDF/DOCX/OCR support until each path is implemented and validated.
+- **Phase 5 — Knowledge Evolution:** implement incremental source-to-wiki consolidation, entity/concept links, contradiction/staleness detection, optional reviewed query-result filing, lint suggestions, and graph exploration. Memory promotion remains review-gated under Phase 0.
+- **Phase 6 — Security Hardening:** test malicious-document/prompt injection, scope isolation, taint/egress, export boundaries, and hard deletion across derived data.
+- **Phase 7 — Launch and Iteration:** publish measured ingestion/query accuracy, citation coverage, false-link/conflict detection, latency, battery/storage, deletion verification, offline behavior, and known failures.
+
+### Acceptance gates
+
+1. Imports are explicit and originals remain byte-identical.
+2. Generated claims and grounded answers have resolvable provenance; uncited material is labeled as synthesis.
+3. Adversarial tests show no cross-user/client retrieval.
+4. Instructions embedded in sources cannot widen scope, authorize actions, or cause network access.
+5. Draft edits require review; rejection preserves notes and confirmed memory.
+6. Import/search work offline within documented format limits.
+7. Export is readable outside Zamolxis and includes stable source identifiers.
+8. Deletion verifies removal from originals, notes/revisions, metadata, indexes, graph edges, temporary files, and caches within the declared backup model.
+9. Graph display derives from stored links and is not required for import, search, query, export, or deletion.
+10. Performance and battery are measured on target devices before marking the feature `[VALIDATED]`.
+
+**Evidence status:** `[DESIGNED]`. This roadmap entry does not claim the Knowledge workspace is implemented or validated.
