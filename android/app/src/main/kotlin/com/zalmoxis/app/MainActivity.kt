@@ -613,6 +613,7 @@ private fun ZalmoxisHome() {
                         onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
                         initialTopic = researchTopic,
                         onInitialTopicConsumed = { researchTopic = "" },
+                        localRuntime = session,
                     )
                 }
                 HomeTab.SETTINGS -> {
