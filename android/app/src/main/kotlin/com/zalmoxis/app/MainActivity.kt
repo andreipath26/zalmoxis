@@ -1,8 +1,10 @@
 package com.zalmoxis.app
 
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -60,6 +62,7 @@ private fun ZalmoxisHome() {
     var modelName by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf("Choose a compatible .litertlm file stored on this device.") }
     var prompt by remember { mutableStateOf("") }
+    var imageFile by remember { mutableStateOf<File?>(null) }
     var response by remember { mutableStateOf("") }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
@@ -89,6 +92,9 @@ private fun ZalmoxisHome() {
     }
 
     LaunchedEffect(session) {
+        withContext(Dispatchers.IO) {
+            File(context.cacheDir, "zalmoxis-attachments").deleteRecursively()
+        }
         models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
         val savedName = context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
             .getString("last_model_name", null)
@@ -123,6 +129,29 @@ private fun ZalmoxisHome() {
                     loadModel(file)
                 } catch (error: Exception) {
                     status = error.message ?: "Could not import this model."
+                    busy = false
+                }
+            }
+        }
+    }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                busy = true
+                status = "Copying selected image into temporary private storage…"
+                try {
+                    val newFile = withContext(Dispatchers.IO) { copyImage(context, uri) }
+                    imageFile?.let { old ->
+                        withContext(Dispatchers.IO) { old.delete() }
+                    }
+                    imageFile = newFile
+                    status = "Image attached. It will be removed after this request."
+                } catch (error: Exception) {
+                    status = error.message ?: "Could not attach this image."
+                } finally {
                     busy = false
                 }
             }
@@ -190,6 +219,26 @@ private fun ZalmoxisHome() {
             }
         }
 
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { imagePicker.launch(arrayOf("image/*")) },
+                enabled = modelName != null && !busy,
+            ) { Text("Attach image") }
+            imageFile?.let { attached ->
+                Text("Image attached", modifier = Modifier.padding(top = 12.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            withContext(Dispatchers.IO) { attached.delete() }
+                            imageFile = null
+                            status = "Image removed."
+                        }
+                    },
+                    enabled = !busy,
+                ) { Text("Clear") }
+            }
+        }
+
         if (modelName != null) {
             Button(
                 onClick = {
@@ -244,9 +293,13 @@ private fun ZalmoxisHome() {
 
         Button(
             onClick = {
-                val submitted = prompt.trim()
+                val selectedImage = imageFile
+                val submitted = prompt.trim().ifEmpty {
+                    if (selectedImage != null) "Describe this image." else ""
+                }
                 if (submitted.isNotEmpty()) {
                     prompt = ""
+                    imageFile = null
                     response = ""
                     metrics = ""
                     busy = true
@@ -255,7 +308,7 @@ private fun ZalmoxisHome() {
                         var firstOutputMs: Long? = null
                         var outputChunks = 0
                         try {
-                            session.stream(submitted).collect { piece ->
+                            session.stream(submitted, selectedImage).collect { piece ->
                                 if (firstOutputMs == null) {
                                     firstOutputMs = (System.nanoTime() - startedAt) / 1_000_000L
                                 }
@@ -268,12 +321,13 @@ private fun ZalmoxisHome() {
                         } catch (error: Exception) {
                             status = error.message ?: "Inference failed."
                         } finally {
+                            withContext(Dispatchers.IO) { selectedImage?.delete() }
                             busy = false
                         }
                     }
                 }
             },
-            enabled = modelName != null && prompt.isNotBlank() && !busy,
+            enabled = modelName != null && (prompt.isNotBlank() || imageFile != null) && !busy,
         ) { Text(if (busy) "Working…" else "Send") }
 
         if (metrics.isNotBlank()) Text(metrics, style = MaterialTheme.typography.bodySmall)
@@ -328,5 +382,26 @@ private suspend fun saveBenchmarkReport(
         .put("runs", runs)
     return File(directory, "benchmark-$createdAt.json").apply {
         writeText(report.toString(2))
+    }
+}
+
+private fun copyImage(context: Context, uri: Uri): File {
+    val mimeType = context.contentResolver.getType(uri)
+    require(mimeType?.startsWith("image/", ignoreCase = true) == true) {
+        "Choose an image file."
+    }
+    val directory = File(context.cacheDir, "zalmoxis-attachments").apply { mkdirs() }
+    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "img"
+    val destination = File(directory, "image-${java.util.UUID.randomUUID()}.$extension")
+    try {
+        context.contentResolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "Could not open the selected image." }
+            destination.outputStream().use { output -> input.copyTo(output) }
+        }
+        require(destination.length() > 0L) { "The selected image is empty." }
+        return destination
+    } catch (error: Throwable) {
+        destination.delete()
+        throw error
     }
 }

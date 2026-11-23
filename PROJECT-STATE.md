@@ -166,3 +166,8 @@ Added a GitHub Actions workflow scoped to the Android foundation branch and Andr
 
 
 The branch-scoped workflow was triggered and retried. Both GitHub Actions attempts ended before a runner was assigned (runner ID 0, no job steps); no APK artifact was produced. The failure is currently an Actions runner allocation issue, not a compiler result. Local build is still blocked by the unavailable Gradle distribution and Android SDK 36.
+
+
+## 2026-11-23 — Local image input
+
+Added optional image attachment through Android's document picker. The selected image is copied into the app's private cache, passed to LiteRT-LM as an image file with the user's prompt, then removed after inference. Startup clears stale temporary image files. No broad photo permission is requested. Image inference requires a multimodal model; this path has not been built or exercised because the local Gradle/Android SDK toolchain is unavailable and the remote runner failed before job startup.

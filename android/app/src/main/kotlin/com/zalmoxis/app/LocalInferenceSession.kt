@@ -2,6 +2,7 @@ package com.zalmoxis.app
 
 import android.content.Context
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
@@ -53,10 +54,15 @@ class LocalInferenceSession {
         }
     }
 
-    fun stream(prompt: String): Flow<String> {
+    fun stream(prompt: String, imageFile: File? = null): Flow<String> {
         require(prompt.isNotBlank()) { "Enter a message first." }
         val activeConversation = checkNotNull(conversation) { "Load a local model first." }
-        return activeConversation.sendMessageAsync(prompt).map { message -> message.toString() }
+        val contents = buildList {
+            imageFile?.let { add(Content.ImageFile(it.absolutePath)) }
+            add(Content.Text(prompt))
+        }
+        return activeConversation.sendMessageAsync(Contents.of(contents))
+            .map { message -> message.toString() }
     }
 
     suspend fun runWarmBenchmark(prompt: String, measuredRuns: Int = 3): List<InferenceSample> =
