@@ -62,7 +62,12 @@ async function authorize(request: Request, e: Env): Promise<Response> {
   const oauth = oauthServer.getOAuthApi(e);
   let requestDetails: AuthRequest;
   try {
-    requestDetails = await oauth.parseAuthRequest(request);
+    // Authorization parameters come from the original URL on both GET and
+    // consent POST. Parse with a GET-shaped request so a form body is not
+    // mistaken for an OAuth token/grant payload.
+    requestDetails = await oauth.parseAuthRequest(
+      new Request(request.url, { method: "GET", headers: request.headers })
+    );
   } catch (error) {
     if (error instanceof AuthorizationError) {
       if (error.redirectTo) return Response.redirect(error.redirectTo, 302);
