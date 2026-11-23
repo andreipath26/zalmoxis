@@ -1136,7 +1136,7 @@ On branch `codex/gallery-android-foundation`, the Android source now contains:
 - User-triggered Android speech output that selects only an installed voice reporting no network requirement, with a stop control.
 - A branch-scoped Android build workflow. The source has not yet been build-validated: local Gradle distribution access failed and the prior GitHub Actions attempts ended before runner assignment.
 
-The foundation has no Android Internet permission, account sign-in, analytics SDK, model-provided tools, MCP execution, JavaScript execution, or AccessibilityService. The runtime interface provides a seam for a future KILN/llama.cpp adapter; that Android backend is not implemented. These statements record the current code state and do not change the requirements or capabilities elsewhere in this roadmap.
+The Android INTERNET permission is limited to allowlisted public Hugging Face model downloads; prompts, inference, and benchmark reports remain on-device. The foundation has no account sign-in, analytics SDK, model-provided tools, MCP execution, JavaScript execution, or AccessibilityService. The runtime interface provides a seam for a future KILN/llama.cpp adapter; that Android backend is not implemented. These statements record the current code state and do not change the requirements or capabilities elsewhere in this roadmap.
 
 ### Gallery capability-to-Zalmoxis map
 
