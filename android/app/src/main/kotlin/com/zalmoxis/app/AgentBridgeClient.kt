@@ -145,7 +145,9 @@ internal object AgentBridgeClient {
             JSONObject().put("message_id",id).put("reply",message?:"").put("reject",reject))
     }
     suspend fun disconnect(c:Context,x:BridgeConnection) {
-        try{request(x.baseUrl,"/v1/device/disconnect","POST",x.token,JSONObject())}
-        finally{clearLocal(c)}
+        // Do not discard the only revocation credential if the phone is offline.
+        // Keep the pairing until the server confirms revocation.
+        request(x.baseUrl,"/v1/device/disconnect","POST",x.token,JSONObject())
+        clearLocal(c)
     }
 }
