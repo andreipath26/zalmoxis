@@ -47,6 +47,8 @@ import java.util.UUID
 internal data class KnowledgeSource(
     val id: String, val name: String, val mimeType: String, val sizeBytes: Long,
     val sha256: String, val importedAtMillis: Long, val searchable: Boolean,
+    val originUrl: String? = null, val originAdapter: String? = null,
+    val fetchedAtMillis: Long? = null, val tainted: Boolean = false,
 )
 internal data class KnowledgeMatch(val source: KnowledgeSource, val excerpt: String)
 
@@ -69,6 +71,10 @@ internal object LocalKnowledgeVault {
                         json.optLong("size_bytes", sourceFile.length()),
                         json.getString("sha256"), json.optLong("imported_at", 0L),
                         json.optBoolean("searchable", false),
+                        json.optString("origin_url").takeIf { it.startsWith("https://") },
+                        json.optString("source_adapter").takeIf { it.isNotBlank() },
+                        json.optLong("fetched_at").takeIf { it > 0 },
+                        json.optBoolean("tainted", false),
                     )
                 }.getOrNull()
             }.sortedByDescending { it.importedAtMillis }
@@ -157,7 +163,8 @@ internal object LocalKnowledgeVault {
             receiptTemp.writeText(receipt.toString())
             check(receiptTemp.renameTo(receiptFile)) { "Could not save research provenance." }
             KnowledgeSource(id, safeTitle, "text/plain", bytes.size.toLong(), sha,
-                receipt.optLong("imported_at"), true)
+                receipt.optLong("imported_at"), true, sourceUrl, adapter,
+                fetchedAtMillis, true)
         } catch (error: Throwable) {
             temp.delete()
             destination.delete()
@@ -341,6 +348,19 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
                         "Imported $imported · SHA-256 ${source.sha256.take(16)}…",
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (source.originUrl != null) {
+                        Text(
+                            "Online source: ${source.originUrl}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "Untrusted external content · ${source.originAdapter ?: "unknown adapter"} · " +
+                                "Fetched ${source.fetchedAtMillis?.let { java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.ROOT).format(java.util.Date(it)) } ?: "unknown"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     TextButton(onClick = { pendingDelete = source }, enabled = !busy) { Text("Delete source") }
                 }
             }
