@@ -68,8 +68,17 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+    private val incomingShare = mutableStateOf<String?>(null)
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        incomingShare.value = AgentBridgeHandoff.extractIncoming(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        incomingShare.value = AgentBridgeHandoff.extractIncoming(intent)
         window.statusBarColor = ZalmoxisDarkColors.background.toArgb()
         window.navigationBarColor = ZalmoxisDarkColors.background.toArgb()
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -81,7 +90,10 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
-                ) { ZalmoxisHome() }
+                ) { ZalmoxisHome(
+                    incomingSharedText = incomingShare.value,
+                    onSharedTextHandled = { incomingShare.value = null },
+                ) }
             }
         }
     }
@@ -114,11 +126,15 @@ private enum class HomeTab(val title: String) {
     DOWNLOADS("Models"),
     WORKSPACE("Workspace"),
     RESEARCH("Research"),
+    AGENT_BRIDGE("Agent Bridge"),
     SETTINGS("Settings"),
 }
 
 @Composable
-private fun ZalmoxisHome() {
+private fun ZalmoxisHome(
+    incomingSharedText: String?,
+    onSharedTextHandled: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var session by remember { mutableStateOf<OnDeviceInferenceRuntime?>(null) }
@@ -375,7 +391,7 @@ private fun ZalmoxisHome() {
             HomeTab.CHAT, HomeTab.VOICE -> chatScrollState
             HomeTab.KNOWLEDGE -> knowledgeScrollState
             HomeTab.DOWNLOADS -> downloadsScrollState
-            HomeTab.WORKSPACE, HomeTab.RESEARCH, HomeTab.SETTINGS -> settingsScrollState
+            HomeTab.WORKSPACE, HomeTab.RESEARCH, HomeTab.AGENT_BRIDGE, HomeTab.SETTINGS -> settingsScrollState
         }
         Column(
             modifier = Modifier
@@ -617,6 +633,7 @@ private fun ZalmoxisHome() {
                         onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
                         onModels = { selectedTab = HomeTab.DOWNLOADS },
                         onResearch = { selectedTab = HomeTab.RESEARCH },
+                        onAgentBridge = { selectedTab = HomeTab.AGENT_BRIDGE },
                     )
                 }
                 HomeTab.RESEARCH -> {
@@ -628,6 +645,9 @@ private fun ZalmoxisHome() {
                         initialSaveProposal = researchSaveRequested,
                         localRuntime = session,
                     )
+                }
+                HomeTab.AGENT_BRIDGE -> {
+                    AgentBridgeWorkspace(onBack = { selectedTab = HomeTab.WORKSPACE })
                 }
                 HomeTab.SETTINGS -> {
                     Text("Settings", style = MaterialTheme.typography.headlineMedium)
@@ -836,7 +856,7 @@ private fun ZalmoxisHome() {
         V2Navigation(
             selected = when (selectedTab) {
                 HomeTab.VOICE, HomeTab.SETTINGS -> "CHAT"
-                HomeTab.RESEARCH -> "WORKSPACE"
+                HomeTab.RESEARCH, HomeTab.AGENT_BRIDGE -> "WORKSPACE"
                 else -> selectedTab.name
             },
             onNavigate = { key ->
@@ -845,6 +865,34 @@ private fun ZalmoxisHome() {
         )
     }
 
+
+    if (incomingSharedText != null) {
+        AlertDialog(
+            onDismissRequest = onSharedTextHandled,
+            title = { Text("Receive shared agent message?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Source: Android share sheet (sender identity not verified).")
+                    Text(
+                        incomingSharedText.take(1200),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 12,
+                    )
+                    Text("Accepting fills your chat draft. It does not execute any tools or modify Knowledge.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    prompt = incomingSharedText.take(AgentBridgeHandoff.MAX_MESSAGE_LENGTH)
+                    selectedTab = HomeTab.CHAT
+                    onSharedTextHandled()
+                }) { Text("Use as chat draft") }
+            },
+            dismissButton = {
+                TextButton(onClick = onSharedTextHandled) { Text("Discard") }
+            },
+        )
+    }
 
     pendingDeleteModel?.let { model ->
         AlertDialog(
