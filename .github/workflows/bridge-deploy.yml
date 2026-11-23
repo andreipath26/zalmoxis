@@ -1,0 +1,126 @@
+name: Deploy secure agent bridge
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Deliberate infrastructure deployment approval"
+        type: choice
+        required: true
+        options:
+          - CANCEL
+          - DEPLOY
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event.inputs.confirmation == 'DEPLOY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: zalmoxis-bridge
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      AUTH_URL: ${{ vars.ZALMOXIS_AUTH_URL }}
+      MCP_URL: ${{ vars.ZALMOXIS_MCP_URL }}
+      ACCESS_TEAM_DOMAIN: ${{ vars.ZALMOXIS_ACCESS_TEAM_DOMAIN }}
+      ACCESS_AUD: ${{ vars.ZALMOXIS_ACCESS_AUD }}
+      OAUTH_KV_ID: ${{ vars.ZALMOXIS_OAUTH_KV_ID }}
+      BRIDGE_D1_ID: ${{ vars.ZALMOXIS_BRIDGE_D1_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Require complete Cloudflare and Access configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for value in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID AUTH_URL MCP_URL ACCESS_TEAM_DOMAIN ACCESS_AUD OAUTH_KV_ID BRIDGE_D1_ID; do
+            if [[ -z "${!value:-}" ]]; then
+              echo "Missing required GitHub Actions secret/variable: $value"
+              exit 1
+            fi
+          done
+          if [[ "$AUTH_URL" != https://* || "$MCP_URL" != https://*/mcp ]]; then
+            echo "Auth URL must be HTTPS and MCP URL must end in /mcp"
+            exit 1
+          fi
+
+      - name: Install and check authorization server
+        working-directory: bridge/auth-server
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+      - name: Install and check MCP server
+        working-directory: bridge/mcp-server
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm test
+
+      - name: Generate private Cloudflare Worker configurations
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const e = process.env;
+          const base = { compatibility_date: '2026-11-23', compatibility_flags: ['nodejs_compat'] };
+          const auth = {
+            ...base, name: 'zalmoxis-auth', main: 'src/index.ts',
+            compatibility_flags: ['nodejs_compat','global_fetch_strictly_public'],
+            vars: {
+              ISSUER: e.AUTH_URL,
+              MCP_SERVER_URL: e.MCP_URL,
+              ACCESS_TEAM_DOMAIN: e.ACCESS_TEAM_DOMAIN,
+              ACCESS_AUD: e.ACCESS_AUD,
+            },
+            kv_namespaces: [{ binding: 'OAUTH_KV', id: e.OAUTH_KV_ID }],
+          };
+          const mcp = {
+            ...base, name: 'zalmoxis-mcp', main: 'src/index.ts',
+            vars: { MCP_SERVER_URL: e.MCP_URL, AUTH_SERVER_URL: e.AUTH_URL },
+            d1_databases: [{binding:'DB',database_name:'zalmoxis-bridge',database_id:e.BRIDGE_D1_ID}],
+            services: [{binding:'AUTH_SERVER',service:'zalmoxis-auth'}],
+            triggers: { crons: ['0 4 * * *'] },
+          };
+          fs.writeFileSync('bridge/auth-server/wrangler.jsonc', JSON.stringify(auth, null, 2));
+          fs.writeFileSync('bridge/mcp-server/wrangler.jsonc', JSON.stringify(mcp, null, 2));
+          NODE
+
+      - name: Deploy OAuth authorization service
+        working-directory: bridge/auth-server
+        run: npx wrangler deploy --config wrangler.jsonc
+
+      - name: Apply persistent D1 schema migrations
+        working-directory: bridge/mcp-server
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Initial deployment requires all three migrations. On subsequent
+          # deployments existing schemas must not be ALTERed twice.
+          existing="$(npx wrangler d1 execute zalmoxis-bridge --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name='bridges'" --json --config wrangler.jsonc)"
+          if ! echo "$existing" | grep -q '"bridges"'; then
+            npx wrangler d1 execute zalmoxis-bridge --remote --file=../migrations/0001_init.sql --config wrangler.jsonc
+          fi
+          existing="$(npx wrangler d1 execute zalmoxis-bridge --remote --command "PRAGMA table_info(bridges)" --json --config wrangler.jsonc)"
+          if ! echo "$existing" | grep -q '"owner_id"'; then
+            npx wrangler d1 execute zalmoxis-bridge --remote --file=../migrations/0002_oauth_pairing.sql --config wrangler.jsonc
+          fi
+          existing="$(npx wrangler d1 execute zalmoxis-bridge --remote --command "PRAGMA table_info(bridges)" --json --config wrangler.jsonc)"
+          if ! echo "$existing" | grep -q '"client_id"'; then
+            npx wrangler d1 execute zalmoxis-bridge --remote --file=../migrations/0003_client_isolation.sql --config wrangler.jsonc
+          fi
+
+      - name: Deploy OAuth-protected MCP server
+        working-directory: bridge/mcp-server
+        run: npx wrangler deploy --config wrangler.jsonc
+
+      - name: Show connection endpoint
+        shell: bash
+        run: |
+          echo "Deployed MCP endpoint: $MCP_URL"
+          echo "Next: verify OAuth consent and pair Zalmoxis Android via create_pairing_code."
