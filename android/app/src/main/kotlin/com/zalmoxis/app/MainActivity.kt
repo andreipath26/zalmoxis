@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
 
 private enum class HomeTab(val title: String) {
     CHAT("Chat"),
+    KNOWLEDGE("Knowledge"),
     DOWNLOADS("Downloads"),
     SETTINGS("Settings"),
 }
@@ -105,6 +106,7 @@ private fun ZalmoxisHome() {
     var busy by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.CHAT) }
     val chatScrollState = rememberScrollState()
+    val knowledgeScrollState = rememberScrollState()
     val downloadsScrollState = rememberScrollState()
     val settingsScrollState = rememberScrollState()
 
@@ -306,6 +308,7 @@ private fun ZalmoxisHome() {
 
         val activeScroll = when (selectedTab) {
             HomeTab.CHAT -> chatScrollState
+            HomeTab.KNOWLEDGE -> knowledgeScrollState
             HomeTab.DOWNLOADS -> downloadsScrollState
             HomeTab.SETTINGS -> settingsScrollState
         }
@@ -484,6 +487,13 @@ private fun ZalmoxisHome() {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+                }
+                HomeTab.KNOWLEDGE -> {
+                    KnowledgeWorkspace(
+                        busy = busy,
+                        onBusyChange = { busy = it },
+                        onStatus = { status = it },
+                    )
                 }
                 HomeTab.DOWNLOADS -> {
                     Text("DOWNLOADS", style = MaterialTheme.typography.titleMedium)
