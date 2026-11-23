@@ -678,6 +678,7 @@ private fun ZalmoxisHome() {
 
 }
 
+@Composable
 private fun CatalogDownloadCard(
     entry: ModelCatalogEntry,
     installed: Boolean,
