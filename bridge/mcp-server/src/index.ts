@@ -109,7 +109,7 @@ function createServer() {
   server.registerTool("bridge_status", {
     description: "Read the user's Zalmoxis phone bridge pairing status. No actions are executed.",
     inputSchema: {},
-  }, async (context) => {
+  }, async (_args, context) => {
     const id = await authorizedBridge(context.http?.authInfo?.clientId);
     return text({ connected: !!id, bridge_id: id, phone_reachability: "not measured" });
   });
@@ -131,7 +131,7 @@ function createServer() {
   server.registerTool("list_replies", {
     description: "Read replies/rejections for tasks this provider sent to Zalmoxis.",
     inputSchema: {},
-  }, async (context) => {
+  }, async (_args, context) => {
     const id = await authorizedBridge(context.http?.authInfo?.clientId);
     if (!id) return fail("Not paired.");
     const result = await env.DB.prepare(
@@ -143,7 +143,7 @@ function createServer() {
   server.registerTool("list_phone_requests", {
     description: "Read messages explicitly sent by the user from Zalmoxis for this connected provider.",
     inputSchema: {},
-  }, async (context) => {
+  }, async (_args, context) => {
     const id = await authorizedBridge(context.http?.authInfo?.clientId);
     if (!id) return fail("Not paired.");
     const result = await env.DB.prepare(
