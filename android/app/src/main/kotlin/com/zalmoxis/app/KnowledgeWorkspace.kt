@@ -49,6 +49,7 @@ internal data class KnowledgeSource(
     val sha256: String, val importedAtMillis: Long, val searchable: Boolean,
     val originUrl: String? = null, val originAdapter: String? = null,
     val fetchedAtMillis: Long? = null, val tainted: Boolean = false,
+    val draft: Boolean = false, val citedUrls: List<String> = emptyList(),
 )
 internal data class KnowledgeMatch(val source: KnowledgeSource, val excerpt: String)
 
@@ -75,6 +76,11 @@ internal object LocalKnowledgeVault {
                         json.optString("source_adapter").takeIf { it.isNotBlank() },
                         json.optLong("fetched_at").takeIf { it > 0 },
                         json.optBoolean("tainted", false),
+                        json.optString("origin_type") == "ai_research_draft",
+                        json.optJSONArray("source_urls")?.let { urls ->
+                            (0 until urls.length()).map { urls.optString(it) }
+                                .filter { it.startsWith("https://github.com/") }
+                        }.orEmpty(),
                     )
                 }.getOrNull()
             }.sortedByDescending { it.importedAtMillis }
@@ -165,6 +171,77 @@ internal object LocalKnowledgeVault {
             KnowledgeSource(id, safeTitle, "text/plain", bytes.size.toLong(), sha,
                 receipt.optLong("imported_at"), true, sourceUrl, adapter,
                 fetchedAtMillis, true)
+        } catch (error: Throwable) {
+            temp.delete()
+            destination.delete()
+            receiptTemp.delete()
+            receiptFile.delete()
+            throw error
+        }
+    }
+
+    /** An editable, explicitly saved LLM synthesis draft, never a verified source or memory fact. */
+    suspend fun importResearchDraft(
+        context: Context,
+        title: String,
+        draftText: String,
+        sourceUrls: List<String>,
+    ): KnowledgeSource = withContext(Dispatchers.IO) {
+        require(sourceUrls.isNotEmpty() && sourceUrls.size <= 8) {
+            "Drafts require 1–8 public source citations."
+        }
+        require(sourceUrls.all { it.startsWith("https://github.com/") }) {
+            "The current research draft requires canonical GitHub source URLs."
+        }
+        val content = buildString {
+            append("# AI-generated research draft — verify before relying on it\\n")
+            append("This is a model-generated interpretation, not a confirmed memory.\\n\\n")
+            append(draftText.trim())
+            append("\\n\\n## Public source links\\n")
+            sourceUrls.distinct().forEachIndexed { index, url ->
+                append("[")
+                append(index + 1)
+                append("] ")
+                append(url)
+                append("\\n")
+            }
+        }
+        val bytes = content.toByteArray(Charsets.UTF_8)
+        require(draftText.isNotBlank() && bytes.size <= MAX_INDEX_BYTES) {
+            "Draft is empty or exceeds the local Knowledge text limit."
+        }
+        val id = UUID.randomUUID().toString()
+        val stored = "$id.md"
+        val temp = File(sources(context), "$stored.partial")
+        val destination = File(sources(context), stored)
+        val receiptFile = File(metadata(context), "$id.json")
+        val receiptTemp = File(metadata(context), "$id.json.partial")
+        val sha = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { byte -> "%02x".format(byte) }
+        try {
+            temp.writeBytes(bytes)
+            check(temp.renameTo(destination)) { "Could not write the research draft." }
+            val now = System.currentTimeMillis()
+            val receipt = JSONObject()
+                .put("id", id)
+                .put("name", "AI draft · " + title.take(100))
+                .put("mime_type", "text/markdown")
+                .put("stored_name", stored)
+                .put("size_bytes", bytes.size)
+                .put("sha256", sha)
+                .put("imported_at", now)
+                .put("searchable", true)
+                .put("origin_type", "ai_research_draft")
+                .put("source_adapter", "local_inference")
+                .put("source_urls", org.json.JSONArray(sourceUrls.distinct()))
+                .put("tainted", true)
+                .put("review_status", "unverified")
+            receiptTemp.writeText(receipt.toString())
+            check(receiptTemp.renameTo(receiptFile)) { "Could not write draft provenance." }
+            KnowledgeSource(id, receipt.getString("name"), "text/markdown",
+                bytes.size.toLong(), sha, now, true,
+                originAdapter = "local_inference", tainted = true, draft = true,
+                citedUrls = sourceUrls.distinct())
         } catch (error: Throwable) {
             temp.delete()
             destination.delete()
@@ -348,6 +425,17 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
                         "Imported $imported · SHA-256 ${source.sha256.take(16)}…",
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (source.draft) {
+                        Text(
+                            "UNVERIFIED AI DRAFT · inspect before using as a fact",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        source.citedUrls.forEach { link ->
+                            Text(link, color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                     if (source.originUrl != null) {
                         Text(
                             "Online source: ${source.originUrl}",
