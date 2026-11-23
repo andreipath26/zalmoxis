@@ -44,12 +44,12 @@ function currentOwner(): string | null {
     ? userId : null;
 }
 
-async function authorizedBridge(): Promise<string | null> {
+async function authorizedBridge(clientId: string | undefined): Promise<string | null> {
   const userId = currentOwner();
-  if (!userId) return null;
+  if (!userId || !clientId || clientId.length > 256) return null;
   const row = await env.DB.prepare(
-    "SELECT id FROM bridges WHERE owner_id=? AND revoked=0 AND device_token_hash IS NOT NULL ORDER BY created DESC LIMIT 1"
-  ).bind(userId).first<{ id: string }>();
+    "SELECT id FROM bridges WHERE owner_id=? AND client_id=? AND revoked=0 AND device_token_hash IS NOT NULL ORDER BY created DESC LIMIT 1"
+  ).bind(userId, clientId).first<{ id: string }>();
   return row?.id ?? null;
 }
 const hex = (bytes: Uint8Array) =>
@@ -67,19 +67,20 @@ function createServer() {
   }, async ({ provider }, context) => {
     if (!context.http?.authInfo?.scopes?.includes("mcp:write")) return fail("OAuth mcp:write scope required.");
     const owner = currentOwner();
-    if (!owner) return fail("OAuth user identity missing; pairing denied.");
+    const clientId = context.http?.authInfo?.clientId;
+    if (!owner || !clientId) return fail("OAuth identity/client ID missing; pairing denied.");
     await env.DB.prepare(
-      "UPDATE bridges SET revoked=1 WHERE owner_id=? AND device_token_hash IS NULL AND pair_expires<?"
-    ).bind(owner,current()).run();
+      "UPDATE bridges SET revoked=1 WHERE owner_id=? AND client_id=? AND device_token_hash IS NULL AND pair_expires<?"
+    ).bind(owner,clientId,current()).run();
     const existing = await env.DB.prepare(
-      "SELECT id FROM bridges WHERE owner_id=? AND revoked=0 LIMIT 1"
-    ).bind(owner).first();
+      "SELECT id FROM bridges WHERE owner_id=? AND client_id=? AND revoked=0 LIMIT 1"
+    ).bind(owner,clientId).first();
     if (existing) return fail("A phone is already paired or a code is pending. Disconnect, revoke, or allow the code to expire.");
     const code = secret(8).toUpperCase();
     const id = uuid();
     await env.DB.prepare(
-      "INSERT INTO bridges(id,provider,pair_hash,pair_expires,provider_token_hash,owner_id,created) VALUES(?,?,?,?,?,?,?)"
-    ).bind(id, provider, await hash(code), current() + 900, await hash(secret()), owner, current()).run();
+      "INSERT INTO bridges(id,provider,pair_hash,pair_expires,provider_token_hash,owner_id,client_id,created) VALUES(?,?,?,?,?,?,?,?)"
+    ).bind(id, provider, await hash(code), current() + 900, await hash(secret()), owner, clientId, current()).run();
     return text({ code, provider, expires_in_seconds: 900, bridge_id: id,
       instruction: "Enter this code under Zalmoxis → Workspace → Agent Bridge; do not publish it." });
   });
@@ -87,8 +88,8 @@ function createServer() {
   server.registerTool("bridge_status", {
     description: "Read the user's Zalmoxis phone bridge pairing status. No actions are executed.",
     inputSchema: {},
-  }, async () => {
-    const id = await authorizedBridge();
+  }, async (context) => {
+    const id = await authorizedBridge(context.http?.authInfo?.clientId);
     return text({ connected: !!id, bridge_id: id, phone_reachability: "not measured" });
   });
 
@@ -97,7 +98,7 @@ function createServer() {
     inputSchema: { message: z.string().trim().min(1).max(12000) },
   }, async ({ message }, context) => {
     if (!context.http?.authInfo?.scopes?.includes("mcp:write")) return fail("OAuth mcp:write scope required.");
-    const id = await authorizedBridge();
+    const id = await authorizedBridge(context.http?.authInfo?.clientId);
     if (!id) return fail("Phone is not paired or access has been revoked.");
     const msgId = uuid();
     await env.DB.prepare(
@@ -109,8 +110,8 @@ function createServer() {
   server.registerTool("list_replies", {
     description: "Read replies/rejections for tasks this provider sent to Zalmoxis.",
     inputSchema: {},
-  }, async () => {
-    const id = await authorizedBridge();
+  }, async (context) => {
+    const id = await authorizedBridge(context.http?.authInfo?.clientId);
     if (!id) return fail("Not paired.");
     const result = await env.DB.prepare(
       "SELECT id,status,reply,created FROM messages WHERE bridge_id=? AND direction='provider_to_phone' AND status IN ('replied','rejected') AND expires>? ORDER BY created DESC LIMIT 30"
@@ -121,8 +122,8 @@ function createServer() {
   server.registerTool("list_phone_requests", {
     description: "Read messages explicitly sent by the user from Zalmoxis for this connected provider.",
     inputSchema: {},
-  }, async () => {
-    const id = await authorizedBridge();
+  }, async (context) => {
+    const id = await authorizedBridge(context.http?.authInfo?.clientId);
     if (!id) return fail("Not paired.");
     const result = await env.DB.prepare(
       "SELECT id,body,status,created FROM messages WHERE bridge_id=? AND direction='phone_to_provider' AND status='queued' AND expires>? ORDER BY created DESC LIMIT 30"
@@ -138,7 +139,7 @@ function createServer() {
     },
   }, async ({ message_id, reply }, context) => {
     if (!context.http?.authInfo?.scopes?.includes("mcp:write")) return fail("OAuth mcp:write scope required.");
-    const id = await authorizedBridge();
+    const id = await authorizedBridge(context.http?.authInfo?.clientId);
     if (!id) return fail("Not paired.");
     const result = await env.DB.prepare(
       "UPDATE messages SET reply=?,status='replied' WHERE id=? AND bridge_id=? AND direction='phone_to_provider' AND status='queued' AND expires>?"
