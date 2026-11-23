@@ -1,8 +1,24 @@
 # ZALMOXIS
 
-**ZALMOXIS is a local-first AI assistant for Android.** It brings together on-device inference, a private model library, local source storage, and a compact workspace with separate Chat, Knowledge, Downloads, and Settings tabs.
+**ZALMOXIS is a local-first AI assistant for Android.** It brings together on-device inference, a private model library, local source storage, and a redesigned Obsidian/Lime mobile interface with Chat, Voice, Knowledge, Models, and Workspace destinations; Settings remains accessible from the header.
 
 The Android app is under active development. The repository contains the source and a GitHub Actions workflow for producing a debug APK. A successful debug build is not a signed release or a claim that every model works on every device.
+
+## Zalmoxis V2 — approved interface direction
+
+![Zalmoxis V2: Chat, Voice, Knowledge, Models, Workspace](docs/assets/zalmoxis-v2-mockup.svg)
+
+> **Design reference, not a running-app screenshot.** This five-screen SVG storyboard follows the approved Obsidian/Lime concept. The original high-resolution generated concept remains the visual target; the checked-in SVG is a recreated, version-controlled reference rather than the original PNG. Real Android screenshots and device-level visual comparison are required before declaring an exact match.
+
+The V2 UI implementation is being developed around these five experiences:
+
+- **Chat:** assistant welcome screen, focused conversations, offline local inference, contextual quick actions, clear model readiness, and voice entry.
+- **Voice:** dedicated voice view with distinct listening and idle states; Android microphone permission and installed offline language remain mandatory.
+- **Knowledge:** local source shelf, source retrieval, and inspectable provenance. The design shows a richer library than the current simple text/Markdown search, so unsupported document formats are not represented as implemented.
+- **Models:** local model management, verified downloads, device guidance, and transparent installed/available status. Models pictured in the design are illustrative, not a compatibility guarantee.
+- **Workspace:** structured capabilities and future workflows. Unimplemented agent actions are marked **Planned** rather than exposed as functional controls.
+
+**Visual acceptance:** compare Android screenshots to the approved concept on a typical phone and small phone at default and large font size; verify content alignment, navigation, button sizes, contrast, keyboard/inset handling, loading/error states, and reduced-motion behavior. An approximation is not an exact match until the screenshots and real-device interaction tests establish it. The underlying app continues to use Kotlin, Compose, and local-first runtime boundaries.
 
 ## What is in the app
 

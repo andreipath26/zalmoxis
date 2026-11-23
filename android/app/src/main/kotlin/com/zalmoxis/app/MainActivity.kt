@@ -88,8 +88,10 @@ class MainActivity : ComponentActivity() {
 
 private enum class HomeTab(val title: String) {
     CHAT("Chat"),
+    VOICE("Voice"),
     KNOWLEDGE("Knowledge"),
-    DOWNLOADS("Downloads"),
+    DOWNLOADS("Models"),
+    WORKSPACE("Workspace"),
     SETTINGS("Settings"),
 }
 
@@ -315,42 +317,23 @@ private fun ZalmoxisHome() {
 
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text("ZALMOXIS", style = MaterialTheme.typography.headlineSmall, maxLines = 1)
-            Text(
-                "LOCAL MODEL WORKSPACE",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        V2Header(onSettings = { selectedTab = HomeTab.SETTINGS })
+        if (busy || status != "Choose a compatible .litertlm file stored on this device.") {
             Text(
                 status,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 4,
+                maxLines = 3,
             )
-            ScrollableTabRow(
-                selectedTabIndex = selectedTab.ordinal,
-                containerColor = MaterialTheme.colorScheme.background,
-                edgePadding = 0.dp,
-            ) {
-                HomeTab.values().forEach { tab ->
-                    Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(tab.title) },
-                    )
-                }
-            }
         }
         val activeScroll = when (selectedTab) {
-            HomeTab.CHAT -> chatScrollState
+            HomeTab.CHAT, HomeTab.VOICE -> chatScrollState
             HomeTab.KNOWLEDGE -> knowledgeScrollState
             HomeTab.DOWNLOADS -> downloadsScrollState
-            HomeTab.SETTINGS -> settingsScrollState
+            HomeTab.WORKSPACE, HomeTab.SETTINGS -> settingsScrollState
         }
         Column(
             modifier = Modifier
@@ -362,116 +345,20 @@ private fun ZalmoxisHome() {
         ) {
             when (selectedTab) {
                 HomeTab.CHAT -> {
-                    Text("CHAT", style = MaterialTheme.typography.titleMedium)
+                    if (activePrompt.isEmpty() && priorTurns.isEmpty()) {
+                        V2Welcome(
+                            onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
+                            onModels = { selectedTab = HomeTab.DOWNLOADS },
+                            onVoice = { selectedTab = HomeTab.VOICE },
+                        )
+                    }
                     Text(
                         modelName?.let { "Active model · $it" }
                             ?: "No model loaded. Choose one in Downloads to start a conversation.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { imagePicker.launch(arrayOf("image/*")) },
-                    enabled = modelName != null && !busy,
-                ) { Text("Attach image") }
-                imageFile?.let { attached ->
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                withContext(Dispatchers.IO) { attached.delete() }
-                                imageFile = null
-                                status = "Image removed."
-                            }
-                        },
-                        enabled = !busy,
-                    ) { Text("Clear image") }
-                }
-            }
-            if (imageFile != null) Text("Image attached", style = MaterialTheme.typography.bodySmall)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(
-                onClick = {
-                    if (speechActive) {
-                        speechInput?.cancel()
-                        speechInput = null
-                        speechActive = false
-                        status = "Dictation stopped."
-                    } else if (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.RECORD_AUDIO,
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        startOnDeviceSpeech()
-                    } else {
-                        microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                },
-                enabled = !busy,
-            ) { Text(if (speechActive) "Stop dictation" else "Dictate on device") }
-            Text(
-                "Dictation needs an installed offline Android speech language. You can dictate before loading a model.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        OutlinedTextField(
-            value = prompt,
-            onValueChange = { prompt = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Message") },
-            enabled = !busy && !speechActive,
-            minLines = 2,
-        )
-
-        Button(
-            onClick = {
-                val selectedImage = imageFile
-                val submitted = prompt.trim().ifEmpty {
-                    if (selectedImage != null) "Describe this image." else ""
-                }
-                if (submitted.isNotEmpty()) {
-                    if (activePrompt.isNotBlank()) {
-                        priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
-                    }
-                    activePrompt = submitted
-                    prompt = ""
-                    imageFile = null
-                    response = ""
-                    metrics = ""
-                    busy = true
-                    scope.launch {
-                        val startedAt = System.nanoTime()
-                        var firstOutputMs: Long? = null
-                        var outputChunks = 0
-                        try {
-                            checkNotNull(session) { "Load a local model first." }
-                                .stream(submitted, selectedImage)
-                                .flowOn(Dispatchers.Default)
-                                .collect { piece ->
-                                if (firstOutputMs == null) {
-                                    firstOutputMs = (System.nanoTime() - startedAt) / 1_000_000L
-                                }
-                                outputChunks += 1
-                                response += piece
-                            }
-                            val totalMs = (System.nanoTime() - startedAt) / 1_000_000L
-                            metrics = "First text: ${firstOutputMs ?: 0} ms · Total: ${totalMs} ms · Stream events: $outputChunks"
-                            status = "Response complete. No tools were available to the model."
-                        } catch (error: Exception) {
-                            status = error.message ?: "Inference failed."
-                        } finally {
-                            withContext(Dispatchers.IO) { selectedImage?.delete() }
-                            busy = false
-                        }
-                    }
-                }
-            },
-            enabled = modelName != null && (prompt.isNotBlank() || imageFile != null) && !busy,
-        ) { Text(if (busy) "Working…" else "Send") }
-
+        if (imageFile != null) Text("Image attached to next request", style = MaterialTheme.typography.bodySmall)
         if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         priorTurns.forEach { (question, answer) ->
             Text(question, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
@@ -554,6 +441,33 @@ private fun ZalmoxisHome() {
             )
         }
                 }
+                HomeTab.VOICE -> {
+                    V2VoicePanel(
+                        isListening = speechActive,
+                        feedback = status,
+                        onToggle = {
+                            if (speechActive) {
+                                speechInput?.cancel()
+                                speechInput = null
+                                speechActive = false
+                                status = "Dictation stopped."
+                            } else if (ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.RECORD_AUDIO,
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                startOnDeviceSpeech()
+                            } else {
+                                microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        onBack = { selectedTab = HomeTab.CHAT },
+                    )
+                    if (prompt.isNotBlank()) {
+                        Text("Transcript", style = MaterialTheme.typography.titleMedium)
+                        Text(prompt, style = MaterialTheme.typography.bodyLarge)
+                        Button(onClick = { selectedTab = HomeTab.CHAT }) { Text("Use in chat") }
+                    }
+                }
                 HomeTab.KNOWLEDGE -> {
                     KnowledgeWorkspace(
                         busy = busy,
@@ -634,6 +548,12 @@ private fun ZalmoxisHome() {
             )
         }
                 }
+                HomeTab.WORKSPACE -> {
+                    V2Workspace(
+                        onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
+                        onModels = { selectedTab = HomeTab.DOWNLOADS },
+                    )
+                }
                 HomeTab.SETTINGS -> {
                     Text("SETTINGS & DIAGNOSTICS", style = MaterialTheme.typography.titleMedium)
         if (modelName != null && session != null) {
@@ -711,6 +631,119 @@ private fun ZalmoxisHome() {
                 }
             }
         }
+        if (selectedTab == HomeTab.CHAT) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = ZalmoxisV2.background,
+                tonalElevation = 0.dp,
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Button(
+                            onClick = { imagePicker.launch(arrayOf("image/*")) },
+                            enabled = modelName != null && !busy,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
+                        ) { Text("＋") }
+                        Button(
+                            onClick = {
+                                if (speechActive) {
+                                    speechInput?.cancel()
+                                    speechInput = null
+                                    speechActive = false
+                                    status = "Dictation stopped."
+                                } else if (ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.RECORD_AUDIO,
+                                    ) == PackageManager.PERMISSION_GRANTED) {
+                                    startOnDeviceSpeech()
+                                } else {
+                                    microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            },
+                            enabled = !busy,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
+                        ) { Text(if (speechActive) "■" else "♩") }
+                        OutlinedTextField(
+                            value = prompt,
+                            onValueChange = { prompt = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Ask Zalmoxis…") },
+                            enabled = !busy && !speechActive,
+                            maxLines = 3,
+                            singleLine = false,
+                        )
+                                Button(
+                                    onClick = {
+                                        val selectedImage = imageFile
+                                        val submitted = prompt.trim().ifEmpty {
+                                            if (selectedImage != null) "Describe this image." else ""
+                                        }
+                                        if (submitted.isNotEmpty()) {
+                                            if (activePrompt.isNotBlank()) {
+                                                priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
+                                            }
+                                            activePrompt = submitted
+                                            prompt = ""
+                                            imageFile = null
+                                            response = ""
+                                            metrics = ""
+                                            busy = true
+                                            scope.launch {
+                                                val startedAt = System.nanoTime()
+                                                var firstOutputMs: Long? = null
+                                                var outputChunks = 0
+                                                try {
+                                                    checkNotNull(session) { "Load a local model first." }
+                                                        .stream(submitted, selectedImage)
+                                                        .flowOn(Dispatchers.Default)
+                                                        .collect { piece ->
+                                                        if (firstOutputMs == null) {
+                                                            firstOutputMs = (System.nanoTime() - startedAt) / 1_000_000L
+                                                        }
+                                                        outputChunks += 1
+                                                        response += piece
+                                                    }
+                                                    val totalMs = (System.nanoTime() - startedAt) / 1_000_000L
+                                                    metrics = "First text: ${firstOutputMs ?: 0} ms · Total: ${totalMs} ms · Stream events: $outputChunks"
+                                                    status = "Response complete. No tools were available to the model."
+                                                } catch (error: Exception) {
+                                                    status = error.message ?: "Inference failed."
+                                                } finally {
+                                                    withContext(Dispatchers.IO) { selectedImage?.delete() }
+                                                    busy = false
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = modelName != null && (prompt.isNotBlank() || imageFile != null) && !busy,
+                                ) { Text(if (busy) "…" else "➜") }
+                        
+                        
+                    }
+                    if (imageFile != null) {
+                        TextButton(
+                            onClick = {
+                                val pending = imageFile
+                                imageFile = null
+                                scope.launch { withContext(Dispatchers.IO) { pending?.delete() } }
+                            },
+                        ) { Text("Remove attached image") }
+                    }
+                }
+            }
+        }
+        V2Navigation(
+            selected = if (selectedTab == HomeTab.VOICE || selectedTab == HomeTab.SETTINGS) "CHAT" else selectedTab.name,
+            onNavigate = { key ->
+                selectedTab = HomeTab.valueOf(key)
+            },
+        )
     }
 
 
