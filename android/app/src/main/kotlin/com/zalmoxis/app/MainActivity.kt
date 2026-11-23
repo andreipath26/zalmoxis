@@ -31,7 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -292,7 +292,7 @@ private fun ZalmoxisHome() {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("ZALMOXIS", style = MaterialTheme.typography.headlineSmall)
+            Text("ZALMOXIS", style = MaterialTheme.typography.headlineSmall, maxLines = 1)
             Text(
                 "LOCAL MODEL WORKSPACE",
                 style = MaterialTheme.typography.labelSmall,
@@ -304,9 +304,10 @@ private fun ZalmoxisHome() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
             )
-            TabRow(
+            ScrollableTabRow(
                 selectedTabIndex = selectedTab.ordinal,
                 containerColor = MaterialTheme.colorScheme.background,
+                edgePadding = 0.dp,
             ) {
                 HomeTab.values().forEach { tab ->
                     Tab(
@@ -340,26 +341,28 @@ private fun ZalmoxisHome() {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { imagePicker.launch(arrayOf("image/*")) },
-                enabled = modelName != null && !busy,
-            ) { Text("Attach image") }
-            imageFile?.let { attached ->
-                Text("Image attached", modifier = Modifier.padding(top = 12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = {
-                        scope.launch {
-                            withContext(Dispatchers.IO) { attached.delete() }
-                            imageFile = null
-                            status = "Image removed."
-                        }
-                    },
-                    enabled = !busy,
-                ) { Text("Clear") }
+                    onClick = { imagePicker.launch(arrayOf("image/*")) },
+                    enabled = modelName != null && !busy,
+                ) { Text("Attach image") }
+                imageFile?.let { attached ->
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                withContext(Dispatchers.IO) { attached.delete() }
+                                imageFile = null
+                                status = "Image removed."
+                            }
+                        },
+                        enabled = !busy,
+                    ) { Text("Clear image") }
+                }
             }
+            if (imageFile != null) Text("Image attached", style = MaterialTheme.typography.bodySmall)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(
                 onClick = {
                     if (speechActive) {
@@ -380,9 +383,9 @@ private fun ZalmoxisHome() {
                 enabled = !busy,
             ) { Text(if (speechActive) "Stop dictation" else "Dictate on device") }
             Text(
-                "Microphone access is requested only when dictation is started; there is no network fallback.",
-                modifier = Modifier.padding(top = 12.dp),
+                "Dictation needs an installed offline Android speech language. You can dictate before loading a model.",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -391,7 +394,7 @@ private fun ZalmoxisHome() {
             onValueChange = { prompt = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Message") },
-            enabled = modelName != null && !busy,
+            enabled = !busy && !speechActive,
             minLines = 2,
         )
 
@@ -453,7 +456,7 @@ private fun ZalmoxisHome() {
         }
 
         if (response.isNotBlank()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
                         val output = speechOutput
@@ -508,12 +511,14 @@ private fun ZalmoxisHome() {
                 }
                 HomeTab.DOWNLOADS -> {
                     Text("DOWNLOADS", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = { modelPicker.launch(arrayOf("*/*")) },
                 enabled = !busy,
             ) { Text("Import model") }
-            modelName?.let { Text("Active: $it", modifier = Modifier.padding(top = 12.dp)) }
+            modelName?.let {
+                Text("Active: $it", style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         if (models.isNotEmpty()) {
@@ -525,9 +530,9 @@ private fun ZalmoxisHome() {
                     color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             if (model.provenanceValid) {
@@ -539,9 +544,10 @@ private fun ZalmoxisHome() {
                                 "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
                                     "Provenance record invalid · Reimport this model to use it."
                             },
-                            modifier = Modifier.weight(1f).padding(top = 10.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = { loadModel(model.file) },
                             enabled = !busy && model.name != modelName && model.provenanceValid,
@@ -573,6 +579,7 @@ private fun ZalmoxisHome() {
                             },
                             enabled = !busy,
                         ) { Text("Delete") }
+                        }
                     }
                 }
             }
