@@ -9,12 +9,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -156,6 +160,7 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
     val scope = rememberCoroutineScope()
     var items by remember { mutableStateOf(emptyList<KnowledgeSource>()) }
     var query by rememberSaveable { mutableStateOf("") }
+    var selectedFilter by rememberSaveable { mutableStateOf("All") }
     var matches by remember { mutableStateOf(emptyList<KnowledgeMatch>()) }
     var pendingDelete by remember { mutableStateOf<KnowledgeSource?>(null) }
 
@@ -195,19 +200,53 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("KNOWLEDGE", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("Knowledge", style = MaterialTheme.typography.headlineMedium)
+                Text("${items.size} private sources", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !busy) { Text("＋ Add") }
+        }
         Text(
-            "Private source shelf. Originals stay unchanged on this device. Search reads text and Markdown up to 2 MB; other files are stored but not parsed.",
+            "Your private library, searchable on this device. Text and Markdown sources up to 2 MB are indexed.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !busy) { Text("Import sources") }
         OutlinedTextField(
             value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(),
             label = { Text("Search text and Markdown sources") }, enabled = !busy, singleLine = true,
         )
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf("All", "Documents", "Books", "Notes").forEach { filter ->
+                FilterChip(
+                    selected = selectedFilter == filter,
+                    onClick = { selectedFilter = filter },
+                    label = { Text(filter) },
+                )
+            }
+        }
+        fun matchesCategory(name: String, mime: String): Boolean {
+            val ext = name.substringAfterLast('.', "").lowercase()
+            return when (selectedFilter) {
+                "Documents" -> ext in setOf("pdf", "doc", "docx", "txt", "csv") ||
+                    mime == "application/pdf"
+                "Books" -> ext in setOf("epub", "mobi", "azw", "azw3")
+                "Notes" -> ext in setOf("md", "markdown", "txt")
+                else -> true
+            }
+        }
+        val filteredItems = items.filter { matchesCategory(it.name, it.mimeType) }
+        val filteredMatches = matches.filter { matchesCategory(it.source.name, it.source.mimeType) }
         if (query.isNotBlank()) {
-            Text("${matches.size} matching source(s)", style = MaterialTheme.typography.labelMedium)
-            matches.forEach { match ->
+            Text("${filteredMatches.size} matching source(s)", style = MaterialTheme.typography.labelMedium)
+            filteredMatches.forEach { match ->
                 Surface(
                     modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surface,
@@ -224,15 +263,27 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
                 }
             }
         }
-        Text("SAVED SOURCES · ${items.size}", style = MaterialTheme.typography.labelMedium)
-        items.forEach { source ->
+        Text("SAVED SOURCES · ${filteredItems.size}", style = MaterialTheme.typography.labelMedium)
+        filteredItems.forEach { source ->
             Surface(
                 modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(source.name, style = MaterialTheme.typography.titleSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(
+                            when (source.name.substringAfterLast('.', "").lowercase()) {
+                                "pdf" -> "▣"
+                                "epub" -> "▤"
+                                "md", "markdown" -> "✎"
+                                else -> "▧"
+                            },
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        Text(source.name, style = MaterialTheme.typography.titleSmall)
+                    }
                     val imported = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.ROOT)
                         .format(java.util.Date(source.importedAtMillis))
                     val extractionState = if (source.searchable) "Text indexed locally" else "Stored locally · text extraction unavailable"
@@ -248,7 +299,12 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
                 }
             }
         }
-        if (items.isEmpty()) Text("No sources yet. Import text or Markdown files to create a searchable local knowledge shelf.")
+        if (filteredItems.isEmpty()) Text(
+            if (items.isEmpty()) "No sources yet. Use Add to create your private knowledge library."
+            else "No sources in this category.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(Modifier.height(4.dp))
     }
 
