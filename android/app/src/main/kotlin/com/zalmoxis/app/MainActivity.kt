@@ -785,7 +785,8 @@ private fun CatalogDownloadCard(
     val progressPercent = if (total > 0L) ((downloaded * 100L) / total).toInt() else -1
     val active = transferStatus == ModelDownloadStatus.RUNNING ||
         transferStatus == ModelDownloadStatus.ENQUEUED
-    val finished = transferStatus == ModelDownloadStatus.SUCCEEDED && installed
+    val finished = installed && transferStatus != ModelDownloadStatus.RUNNING &&
+        transferStatus != ModelDownloadStatus.ENQUEUED
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -810,6 +811,10 @@ private fun CatalogDownloadCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (active) {
+                LinearProgressIndicator(
+                    progress = { (progressPercent.coerceIn(0, 100)) / 100f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Text(
                     if (progressPercent >= 0) {
                         "Downloading: $progressPercent% (${formatBytes(downloaded)} / ${formatBytes(total)})"
@@ -839,17 +844,17 @@ private fun CatalogDownloadCard(
                 onClick = {
                     if (active) {
                         ModelDownloadCoordinator.cancel(context, entry.id)
-                    } else if (!finished) {
+                    } else if (!installed) {
                         actionMessage = if (ModelDownloadCoordinator.start(context, entry.id)) null
                         else "Download could not be started."
                     }
                 },
-                enabled = active || !finished,
+                enabled = active || !installed,
             ) {
                 Text(
                     when {
                         active -> "Cancel download"
-                        finished -> "Installed"
+                        installed -> "Installed"
                         transferStatus == ModelDownloadStatus.FAILED ||
                             transferStatus == ModelDownloadStatus.CANCELLED -> "Retry download"
                         else -> "Download"
