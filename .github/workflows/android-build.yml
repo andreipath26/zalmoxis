@@ -3,6 +3,7 @@ name: Android build
 on:
   push:
     branches:
+      - main
       - codex/gallery-android-foundation
     paths:
       - "android/**"
@@ -21,7 +22,7 @@ permissions:
 jobs:
   assemble:
     name: Assemble debug APK
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
       run:
@@ -40,7 +41,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
-          cache-read-only: ${{ github.ref != 'refs/heads/codex/gallery-android-foundation' }}
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
