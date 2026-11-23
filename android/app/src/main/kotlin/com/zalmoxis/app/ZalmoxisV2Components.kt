@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -50,7 +51,7 @@ internal fun V2Header(onSettings: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         ZalmoxisMark(Modifier.size(28.dp))
-        Text("ZALMOXIS", style = MaterialTheme.typography.titleMedium, letterSpacing = androidx.compose.ui.unit.TextUnit(2.8f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = FontWeight.Medium)
+        Text("ZALMOXIS", style = MaterialTheme.typography.titleMedium, letterSpacing = 2.8.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.weight(1f))
         Text("● LOCAL", color = ZalmoxisV2.accent, style = MaterialTheme.typography.labelSmall)
         Text(
