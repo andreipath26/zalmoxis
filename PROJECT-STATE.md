@@ -128,3 +128,12 @@ If the first command prints anything, stop. Investigate before any git operation
 
 ---
 
+
+
+---
+
+## 2026-11-23 — Owner-directed roadmap tracking change
+
+The repository owner provided the original ZALMOXIS V10 `ROADMAP.md` and directed that the supplied files be reviewed and placed in the repository. The full roadmap is now tracked at the repository root. The `.gitignore` entry excluding `ROADMAP.md` was removed to reflect that decision. The existing `RULE SET.md` exclusion remains in place; no rule-set file was provided in this update. The October 2026 statements above describe the earlier repository state and are preserved as history.
+
+Commits: roadmap `0a3bfe9`; tracking rule `e7a075f`.
