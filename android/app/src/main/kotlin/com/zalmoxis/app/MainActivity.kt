@@ -30,6 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -38,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -73,6 +76,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private enum class HomeTab(val title: String) {
+    CHAT("Chat"),
+    DOWNLOADS("Downloads"),
+    SETTINGS("Settings"),
+}
+
 @Composable
 private fun ZalmoxisHome() {
     val context = LocalContext.current
@@ -94,6 +103,10 @@ private fun ZalmoxisHome() {
     var benchmarkSummary by remember { mutableStateOf("") }
     var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableStateOf(HomeTab.CHAT) }
+    val chatScrollState = rememberScrollState()
+    val downloadsScrollState = rememberScrollState()
+    val settingsScrollState = rememberScrollState()
 
     DisposableEffect(Unit) {
         onDispose {
@@ -259,115 +272,60 @@ private fun ZalmoxisHome() {
                     val newFile = withContext(Dispatchers.IO) { copyImage(context, uri) }
                     imageFile?.let { old ->
                         withContext(Dispatchers.IO) { old.delete() }
-                    }
-                    imageFile = newFile
-                    status = "Image attached. It will be removed after this request."
-                } catch (error: Exception) {
-                    status = error.message ?: "Could not attach this image."
-                } finally {
-                    busy = false
-                }
-            }
-        }
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("ZALMOXIS", style = MaterialTheme.typography.headlineMedium)
-        Text("Local model workspace", style = MaterialTheme.typography.titleMedium)
-        Text(status, style = MaterialTheme.typography.bodyMedium)
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { modelPicker.launch(arrayOf("*/*")) },
-                enabled = !busy,
-            ) { Text("Import model") }
-            modelName?.let { Text("Active: $it", modifier = Modifier.padding(top = 12.dp)) }
-        }
-
-        if (models.isNotEmpty()) {
-            Text("Models on this device", style = MaterialTheme.typography.titleMedium)
-            models.forEach { model ->
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            if (model.provenanceValid) {
-                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                                    "SHA-256 ${model.sha256.take(16)}…\n" +
-                                    "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
-                                    "License: ${model.licenseStatus}"
-                            } else {
-                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                                    "Provenance record invalid · Reimport this model to use it."
-                            },
-                            modifier = Modifier.weight(1f).padding(top = 10.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        Button(
-                            onClick = { loadModel(model.file) },
-                            enabled = !busy && model.name != modelName && model.provenanceValid,
-                        ) { Text(if (model.name == modelName) "Loaded" else "Load") }
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    busy = true
-                                    try {
-                                        if (model.name == modelName) {
-                                            session?.close()
-                                            session = null
-                                            modelName = null
-                                            modelSha256 = null
-                                            context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
-                                                .edit().remove("last_model_name").apply()
-                                        }
-                                        val deleted = withContext(Dispatchers.IO) {
-                                            LocalModelCatalog.delete(model)
-                                        }
-                                        models = withContext(Dispatchers.IO) {
-                                            LocalModelCatalog.list(context)
-                                        }
-                                        status = if (deleted) "Model deleted from app storage." else "Could not delete model."
-                                    } finally {
-                                        busy = false
-                                    }
-                                }
-                            },
-                            enabled = !busy,
-                        ) { Text("Delete") }
-                    }
-                }
-            }
-        }
-
-        Text("Download a model", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "Catalog downloads contact Hugging Face. Prompts and inference stay on this device. " +
-                "Review the license and device guidance; downloading does not verify runtime compatibility.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        ModelCatalog.entries.forEach { entry ->
-            CatalogDownloadCard(
-                entry = entry,
-                installed = models.any { it.name == entry.fileName },
-                onInstalled = {
-                    scope.launch {
-                        models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
-                        status = "${entry.displayName} downloaded and verified. Choose Load when ready."
-                    }
-                },
+                 
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("ZALMOXIS", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "LOCAL MODEL WORKSPACE",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                status,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+            )
+            TabRow(
+                selectedTabIndex = selectedTab.ordinal,
+                containerColor = MaterialTheme.colorScheme.background,
+            ) {
+                HomeTab.values().forEach { tab ->
+                    Tab(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        text = { Text(tab.title) },
+                    )
+                }
+            }
         }
 
+        val activeScroll = when (selectedTab) {
+            HomeTab.CHAT -> chatScrollState
+            HomeTab.DOWNLOADS -> downloadsScrollState
+            HomeTab.SETTINGS -> settingsScrollState
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(activeScroll)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (selectedTab) {
+                HomeTab.CHAT -> {
+                    Text("CHAT", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        modelName?.let { "Active model · $it" }
+                            ?: "No model loaded. Choose one in Downloads to start a conversation.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = { imagePicker.launch(arrayOf("image/*")) },
@@ -387,73 +345,6 @@ private fun ZalmoxisHome() {
                 ) { Text("Clear") }
             }
         }
-
-        if (modelName != null && session != null) {
-            Button(
-                onClick = {
-                    scope.launch {
-                        busy = true
-                        benchmarkSummary = ""
-                        status = "Running one warm-up and three measured CPU runs…"
-                        try {
-                            val activeRuntime = checkNotNull(session)
-                            val samples = activeRuntime.runWarmBenchmark(
-                                prompt = "Reply with exactly OK.",
-                                measuredRuns = 3,
-                            )
-                            val file = withContext(Dispatchers.IO) {
-                                saveBenchmarkReport(
-                                    context,
-                                    modelName!!,
-                                    checkNotNull(modelSha256),
-                                    activeRuntime.runtimeName,
-                                    activeRuntime.backendName,
-                                    samples,
-                                )
-                            }
-                            latestBenchmarkFile = file
-                            val averageTotal = samples.map { it.totalMs }.average().toLong()
-                            val firstTextTimes = samples.mapNotNull { it.firstTextMs }
-                            val averageFirstText =
-                                if (firstTextTimes.isEmpty()) null else firstTextTimes.average().toLong()
-                            benchmarkSummary =
-                                "3 measured runs · average first text: " +
-                                    (averageFirstText?.let { "$it ms" } ?: "unavailable") +
-                                    " · average total: $averageTotal ms"
-                            status = "Benchmark saved in private app storage: ${file.name}"
-                        } catch (error: Exception) {
-                            status = error.message ?: "Benchmark failed."
-                        } finally {
-                            busy = false
-                        }
-                    }
-                },
-                enabled = !busy,
-            ) { Text("Run 3-run benchmark") }
-            Text(
-                "Runs a fixed prompt after one unreported warm-up. Reports latency and stream events; " +
-                    "it does not claim token throughput.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        if (benchmarkSummary.isNotBlank()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    benchmarkSummary,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Button(
-                    onClick = {
-                        latestBenchmarkFile?.let { report ->
-                            benchmarkExporter.launch(report.name)
-                        }
-                    },
-                    enabled = !busy && latestBenchmarkFile != null,
-                ) { Text("Export JSON") }
-            }
-        }
-
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = {
@@ -593,8 +484,179 @@ private fun ZalmoxisHome() {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+                }
+                HomeTab.DOWNLOADS -> {
+                    Text("DOWNLOADS", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { modelPicker.launch(arrayOf("*/*")) },
+                enabled = !busy,
+            ) { Text("Import model") }
+            modelName?.let { Text("Active: $it", modifier = Modifier.padding(top = 12.dp)) }
+        }
 
+        if (models.isNotEmpty()) {
+            Text("Models on this device", style = MaterialTheme.typography.titleMedium)
+            models.forEach { model ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            if (model.provenanceValid) {
+                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                                    "SHA-256 ${model.sha256.take(16)}…\n" +
+                                    "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
+                                    "License: ${model.licenseStatus}"
+                            } else {
+                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                                    "Provenance record invalid · Reimport this model to use it."
+                            },
+                            modifier = Modifier.weight(1f).padding(top = 10.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Button(
+                            onClick = { loadModel(model.file) },
+                            enabled = !busy && model.name != modelName && model.provenanceValid,
+                        ) { Text(if (model.name == modelName) "Loaded" else "Load") }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    busy = true
+                                    try {
+                                        if (model.name == modelName) {
+                                            session?.close()
+                                            session = null
+                                            modelName = null
+                                            modelSha256 = null
+                                            context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+                                                .edit().remove("last_model_name").apply()
+                                        }
+                                        val deleted = withContext(Dispatchers.IO) {
+                                            LocalModelCatalog.delete(model)
+                                        }
+                                        models = withContext(Dispatchers.IO) {
+                                            LocalModelCatalog.list(context)
+                                        }
+                                        status = if (deleted) "Model deleted from app storage." else "Could not delete model."
+                                    } finally {
+                                        busy = false
+                                    }
+                                }
+                            },
+                            enabled = !busy,
+                        ) { Text("Delete") }
+                    }
+                }
+            }
+        }
+
+        Text("Download a model", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Catalog downloads contact Hugging Face. Prompts and inference stay on this device. " +
+                "Review the license and device guidance; downloading does not verify runtime compatibility.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        ModelCatalog.entries.forEach { entry ->
+            CatalogDownloadCard(
+                entry = entry,
+                installed = models.any { it.name == entry.fileName },
+                onInstalled = {
+                    scope.launch {
+                        models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
+                        status = "${entry.displayName} downloaded and verified. Choose Load when ready."
+                    }
+                },
+            )
+        }
+                }
+                HomeTab.SETTINGS -> {
+                    Text("SETTINGS & DIAGNOSTICS", style = MaterialTheme.typography.titleMedium)
+        if (modelName != null && session != null) {
+            Button(
+                onClick = {
+                    scope.launch {
+                        busy = true
+                        benchmarkSummary = ""
+                        status = "Running one warm-up and three measured CPU runs…"
+                        try {
+                            val activeRuntime = checkNotNull(session)
+                            val samples = activeRuntime.runWarmBenchmark(
+                                prompt = "Reply with exactly OK.",
+                                measuredRuns = 3,
+                            )
+                            val file = withContext(Dispatchers.IO) {
+                                saveBenchmarkReport(
+                                    context,
+                                    modelName!!,
+                                    checkNotNull(modelSha256),
+                                    activeRuntime.runtimeName,
+                                    activeRuntime.backendName,
+                                    samples,
+                                )
+                            }
+                            latestBenchmarkFile = file
+                            val averageTotal = samples.map { it.totalMs }.average().toLong()
+                            val firstTextTimes = samples.mapNotNull { it.firstTextMs }
+                            val averageFirstText =
+                                if (firstTextTimes.isEmpty()) null else firstTextTimes.average().toLong()
+                            benchmarkSummary =
+                                "3 measured runs · average first text: " +
+                                    (averageFirstText?.let { "$it ms" } ?: "unavailable") +
+                                    " · average total: $averageTotal ms"
+                            status = "Benchmark saved in private app storage: ${file.name}"
+                        } catch (error: Exception) {
+                            status = error.message ?: "Benchmark failed."
+                        } finally {
+                            busy = false
+                        }
+                    }
+                },
+                enabled = !busy,
+            ) { Text("Run 3-run benchmark") }
+            Text(
+                "Runs a fixed prompt after one unreported warm-up. Reports latency and stream events; " +
+                    "it does not claim token throughput.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (benchmarkSummary.isNotBlank()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    benchmarkSummary,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(
+                    onClick = {
+                        latestBenchmarkFile?.let { report ->
+                            benchmarkExporter.launch(report.name)
+                        }
+                    },
+                    enabled = !busy && latestBenchmarkFile != null,
+                ) { Text("Export JSON") }
+            }
+        }
+                    Text("PRIVACY & PERMISSIONS", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
+        Text(
+            "Models are stored in Zalmoxis private storage. Catalog downloads contact Hugging Face; " +
+                "prompts, inference, and benchmark reports stay local. No account, analytics, or " +
+                "model-provided tool execution is enabled.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+                }
+            }
+        }
+    }
+}
+t(8.dp))
         Text(
             "Models are stored in Zalmoxis private storage. Catalog downloads contact Hugging Face; " +
                 "prompts, inference, and benchmark reports stay local. No account, analytics, or " +
