@@ -36,7 +36,7 @@ object ModelCatalog {
             sha256 = "c4a9b7289365ab80fe599b844b77ad253eb3c53fb0e5d963d699146a6f01255e",
             licenseName = "Apache-2.0",
             licenseUrl = "https://www.apache.org/licenses/LICENSE-2.0",
-            minimumMemoryGb = 4,
+            minimumMemoryGb = 6,
             modalities = setOf("text"),
             summary = "Compact text model prepared for LiteRT-LM.",
         ),
