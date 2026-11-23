@@ -12,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -328,6 +330,25 @@ private fun ZalmoxisHome() {
             }
         }
 
+        Text("Download a model", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Catalog downloads contact Hugging Face. Prompts and inference stay on this device. " +
+                "Review the license and device guidance; downloading does not verify runtime compatibility.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        ModelCatalog.entries.forEach { entry ->
+            CatalogDownloadCard(
+                entry = entry,
+                installed = models.any { it.name == entry.fileName },
+                onInstalled = {
+                    scope.launch {
+                        models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
+                        status = "${entry.displayName} downloaded and verified. Choose Load when ready."
+                    }
+                },
+            )
+        }
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = { imagePicker.launch(arrayOf("image/*")) },
@@ -545,10 +566,98 @@ private fun ZalmoxisHome() {
 
         Spacer(Modifier.height(8.dp))
         Text(
-            "Models are copied into Zalmoxis private storage. No account, analytics, network permission, " +
-                "or model-provided tool execution is enabled.",
+            "Models are stored in Zalmoxis private storage. Catalog downloads contact Hugging Face; " +
+                "prompts, inference, and benchmark reports stay local. No account, analytics, or " +
+                "model-provided tool execution is enabled.",
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+private fun CatalogDownloadCard(
+    entry: ModelCatalogEntry,
+    installed: Boolean,
+    onInstalled: () -> Unit,
+) {
+    val context = LocalContext.current
+    var downloadState by remember(entry.id) { mutableStateOf<ModelDownloadState?>(null) }
+    var actionMessage by remember(entry.id) { mutableStateOf<String?>(null) }
+
+    DisposableEffect(context, entry.id) {
+        val owner = context as LifecycleOwner
+        val liveData = ModelDownloadCoordinator.observe(context, entry.id)
+        val observer = Observer<ModelDownloadState> { state -> downloadState = state }
+        liveData.observe(owner, observer)
+        onDispose { liveData.removeObserver(observer) }
+    }
+
+    LaunchedEffect(downloadState?.status) {
+        if (downloadState?.status == ModelDownloadStatus.SUCCEEDED) onInstalled()
+    }
+
+    val transferStatus = downloadState?.status
+    val downloaded = downloadState?.bytesDownloaded ?: 0L
+    val total = downloadState?.totalBytes ?: entry.sizeBytes
+    val progressPercent = if (total > 0L) ((downloaded * 100L) / total).toInt() else -1
+    val active = transferStatus == ModelDownloadStatus.RUNNING ||
+        transferStatus == ModelDownloadStatus.ENQUEUED
+    val finished = transferStatus == ModelDownloadStatus.SUCCEEDED && installed
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(entry.displayName, style = MaterialTheme.typography.titleSmall)
+        Text(
+            "${entry.summary} ${formatBytes(entry.sizeBytes)} · ${entry.minimumMemoryGb} GB RAM guidance · " +
+                "${entry.modalities.joinToString().replaceFirstChar { it.uppercase() }} · ${entry.licenseName}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            "Source: ${entry.repoId} at pinned revision ${entry.revision.take(10)}… · License: ${entry.licenseUrl}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (active) {
+            Text(
+                if (progressPercent >= 0) {
+                    "Downloading: $progressPercent% (${formatBytes(downloaded)} / ${formatBytes(total)})"
+                } else {
+                    "Download queued…"
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (transferStatus == ModelDownloadStatus.FAILED) {
+            Text(
+                downloadState?.error ?: "Download failed. Retry to resume the verified partial transfer.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (transferStatus == ModelDownloadStatus.CANCELLED) {
+            Text("Download cancelled. A valid partial transfer may resume on retry.", style = MaterialTheme.typography.bodySmall)
+        }
+        actionMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        Button(
+            onClick = {
+                if (active) {
+                    ModelDownloadCoordinator.cancel(context, entry.id)
+                } else if (!finished) {
+                    actionMessage = if (ModelDownloadCoordinator.start(context, entry.id)) null
+                    else "Download could not be started."
+                }
+            },
+            enabled = active || !finished,
+        ) {
+            Text(
+                when {
+                    active -> "Cancel download"
+                    finished -> "Installed"
+                    transferStatus == ModelDownloadStatus.FAILED ||
+                        transferStatus == ModelDownloadStatus.CANCELLED -> "Retry download"
+                    else -> "Download"
+                }
+            )
+        }
     }
 }
 
