@@ -206,3 +206,8 @@ The Android model shelf now shows the local SHA-256 prefix, selected-file source
 ## 2026-11-23 — User-controlled benchmark export
 
 Added an Android document-picker export for the latest local benchmark JSON report. The app copies the report only after the user chooses a destination; it does not upload the report or share it automatically. Model changes clear the currently displayed export target while previous private reports remain stored. Source remains unbuilt and unvalidated.
+
+
+## 2026-11-23 — Benchmark export review
+
+Reviewed the report-export UI and gave the summary text a flexible width so the export control fits narrow screens. Updated the Gallery adoption record to include exact model digest, local provenance receipts, offline speech output, and user-controlled JSON export. Android build validation is still outstanding.

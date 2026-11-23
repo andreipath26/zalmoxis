@@ -7,13 +7,15 @@
 - LiteRT-LM Android runtime, pinned to com.google.ai.edge.litertlm:litertlm-android:0.18.1. Kotlin 2.3.20 is selected because LiteRT-LM 0.18.x publishes Kotlin 2.4 metadata and its current getting-started guide requires Kotlin 2.3 or newer.
 - Gallery's local model flow: explicit local file selection, import into app-private storage, background initialization, and streaming text display.
 - Gallery's model-manager pattern: a private model shelf with selection, deletion, and restoration of the last-used model.
+- Local model provenance: imports receive a private SHA-256 receipt, selected-file source label, import time, and explicit unknown-license state; the digest is checked before load. It identifies the local artifact but does not authenticate the publisher or validate licensing.
 - Gallery's inference observability pattern: show first-text latency, total generation time, and stream-event counts. Stream events are not presented as a benchmark token count.
-- A repeatable warm benchmark: one discarded warm-up, then three fresh-conversation measurements on a fixed prompt; device, model, run latency, elapsed time, and event counts are saved to a private JSON report.
+- A repeatable warm benchmark: one discarded warm-up, then three fresh-conversation measurements on a fixed prompt; device, model SHA-256, runtime/backend, latency, elapsed time, and event counts are saved to a private JSON report that the user can export through Android's document picker.
 - Gallery's device-first inference shape: the initial runtime uses CPU as a universal fallback. The adapter can grow backend selection and measurement after checking supported hardware/model combinations.
+- Voice input/output: on-device Android speech recognition and user-triggered Android TTS that selects an installed voice reporting no network requirement.
 
 ## Build and measurement
 
-The app includes a fixed-prompt warm benchmark that saves raw local JSON samples and device metadata. A branch-scoped GitHub Actions workflow is configured to install Android SDK 36, assemble a debug APK, and upload it as an artifact. The first two attempts failed before a runner was assigned, so the build remains unverified.
+The app includes a fixed-prompt warm benchmark that saves raw local JSON samples, model SHA-256, and device metadata; the report can be exported by explicit user action. A branch-scoped GitHub Actions workflow is configured to install Android SDK 36, assemble a debug APK, and upload it as an artifact. The first two attempts failed before a runner was assigned, so the build remains unverified.
 
 ## Security boundary
 

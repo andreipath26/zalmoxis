@@ -393,7 +393,11 @@ private fun ZalmoxisHome() {
         }
         if (benchmarkSummary.isNotBlank()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(benchmarkSummary, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    benchmarkSummary,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 Button(
                     onClick = {
                         latestBenchmarkFile?.let { report ->
