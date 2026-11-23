@@ -8,10 +8,10 @@ import android.os.Build
 import android.os.PersistableBundle
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.Transformations
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import org.json.JSONObject
+import java.util.UUID
 
 enum class ModelDownloadStatus { IDLE, ENQUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED }
 
@@ -31,6 +31,8 @@ data class ModelDownloadState(
 object ModelDownloadCoordinator {
     private const val PREFS = "model_download_uidt"
     private const val CANCEL_PREFIX = "cancel-requested-"
+    private const val WORK_ID_PREFIX = "latest-work-id-"
+    private const val RETRY_PREFIX = "transient-retries-"
 
     fun start(context: Context, catalogId: String): Boolean {
         val app = context.applicationContext
@@ -38,7 +40,7 @@ object ModelDownloadCoordinator {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val scheduler = app.getSystemService(JobScheduler::class.java)
             val jobId = jobId(catalogId)
-            prefs(app).edit().remove(cancelKey(catalogId)).apply()
+            prefs(app).edit().remove(cancelKey(catalogId)).remove(retryKey(catalogId)).apply()
             publish(
                 app,
                 ModelDownloadState(catalogId, entry.displayName, ModelDownloadStatus.ENQUEUED, totalBytes = entry.sizeBytes),
@@ -50,7 +52,8 @@ object ModelDownloadCoordinator {
             )
                 .setUserInitiated(true)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setEstimatedNetworkBytes(0L, entry.sizeBytes)
+                .setEstimatedNetworkBytes(entry.sizeBytes, 0L)
+                .setBackoffCriteria(30_000L, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
                 .setExtras(extras)
                 .build()
             val result = scheduler.schedule(info)
@@ -61,7 +64,8 @@ object ModelDownloadCoordinator {
             )
             return false
         }
-        ModelDownloadWorker.enqueue(app, catalogId)
+        val requestId = ModelDownloadWorker.enqueue(app, catalogId)
+        prefs(app).edit().putString(workIdKey(catalogId), requestId.toString()).apply()
         return true
     }
 
@@ -69,7 +73,7 @@ object ModelDownloadCoordinator {
         val app = context.applicationContext
         val entry = ModelCatalog.find(catalogId)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            prefs(app).edit().putBoolean(cancelKey(catalogId), true).apply()
+            prefs(app).edit().putBoolean(cancelKey(catalogId), true).remove(retryKey(catalogId)).apply()
             app.getSystemService(JobScheduler::class.java).cancel(jobId(catalogId))
             publish(
                 app,
@@ -97,11 +101,15 @@ object ModelDownloadCoordinator {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             StoredStateLiveData(app, catalogId, empty)
         } else {
-            val source = ModelDownloadWorker.workInfo(app, catalogId)
-            MediatorLiveData<ModelDownloadState>().apply {
-                value = empty
-                addSource(source) { infos ->
-                    value = infos.firstOrNull()?.let { mapWorkInfo(it, empty) } ?: empty
+            val requestId = prefs(app).getString(workIdKey(catalogId), null)
+                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            if (requestId == null) {
+                MediatorLiveData<ModelDownloadState>().apply { value = empty }
+            } else {
+                val source = WorkManager.getInstance(app).getWorkInfoByIdLiveData(requestId)
+                MediatorLiveData<ModelDownloadState>().apply {
+                    value = empty
+                    addSource(source) { info -> value = info?.let { mapWorkInfo(it, empty) } ?: empty }
                 }
             }
         }
@@ -141,7 +149,11 @@ object ModelDownloadCoordinator {
     }
 
     private fun mapWorkInfo(info: WorkInfo, empty: ModelDownloadState): ModelDownloadState {
-        val data = if (info.state == WorkInfo.State.SUCCEEDED) info.outputData else info.progress
+        val data = if (info.state == WorkInfo.State.SUCCEEDED || info.state == WorkInfo.State.FAILED) {
+            info.outputData
+        } else {
+            info.progress
+        }
         val status = when (info.state) {
             WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> ModelDownloadStatus.ENQUEUED
             WorkInfo.State.RUNNING -> ModelDownloadStatus.RUNNING
@@ -161,6 +173,19 @@ object ModelDownloadCoordinator {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     private fun cancelKey(catalogId: String) = CANCEL_PREFIX + catalogId
+    private fun workIdKey(catalogId: String) = WORK_ID_PREFIX + catalogId
+    private fun retryKey(catalogId: String) = RETRY_PREFIX + catalogId
+
+    internal fun noteTransientFailure(context: Context, catalogId: String): Int {
+        val preferences = prefs(context)
+        val next = preferences.getInt(retryKey(catalogId), 0) + 1
+        preferences.edit().putInt(retryKey(catalogId), next).apply()
+        return next
+    }
+
+    internal fun clearTransientFailures(context: Context, catalogId: String) {
+        prefs(context).edit().remove(retryKey(catalogId)).apply()
+    }
 
     private fun jobId(catalogId: String): Int = 14_000 + (catalogId.hashCode() and 0x3fffffff) % 1_000_000
 
@@ -171,7 +196,7 @@ object ModelDownloadCoordinator {
     ) : LiveData<ModelDownloadState>() {
         private val preferences = prefs(context)
         private val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == catalogId) value = read(context, catalogId, fallback)
+            if (key == catalogId) postValue(read(context, catalogId, fallback))
         }
 
         override fun onActive() {

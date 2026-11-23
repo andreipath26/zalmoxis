@@ -15,6 +15,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 /** Android 14+ native user-initiated data transfer adapter for large explicit model downloads. */
@@ -35,6 +36,7 @@ class ModelDownloadJobService : JobService() {
             JOB_END_NOTIFICATION_POLICY_DETACH,
         )
         val running = RunningJob(params)
+        var wantsReschedule = false
         val job = serviceScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
             try {
                 ModelDownloadCoordinator.publish(
@@ -61,6 +63,7 @@ class ModelDownloadJobService : JobService() {
                         )
                     }
                 }
+                ModelDownloadCoordinator.clearTransientFailures(applicationContext, catalogId)
                 ModelDownloadCoordinator.publish(
                     applicationContext,
                     ModelDownloadState(catalogId, entry.displayName, ModelDownloadStatus.SUCCEEDED, entry.sizeBytes, entry.sizeBytes),
@@ -68,7 +71,34 @@ class ModelDownloadJobService : JobService() {
             } catch (cancelled: CancellationException) {
                 // onStopJob owns the state and rescheduling decision.
                 throw cancelled
+            } catch (error: IOException) {
+                val retries = ModelDownloadCoordinator.noteTransientFailure(applicationContext, catalogId)
+                if (retries <= MAX_TRANSIENT_RETRIES) {
+                    val previous = ModelDownloadCoordinator.read(
+                        applicationContext,
+                        catalogId,
+                        ModelDownloadState(catalogId, entry.displayName, ModelDownloadStatus.ENQUEUED, totalBytes = entry.sizeBytes),
+                    )
+                    ModelDownloadCoordinator.publish(
+                        applicationContext,
+                        previous.copy(status = ModelDownloadStatus.ENQUEUED, error = "Connection interrupted; retry scheduled."),
+                    )
+                    wantsReschedule = true
+                } else {
+                    ModelDownloadCoordinator.clearTransientFailures(applicationContext, catalogId)
+                    ModelDownloadCoordinator.publish(
+                        applicationContext,
+                        ModelDownloadState(
+                            catalogId,
+                            entry.displayName,
+                            ModelDownloadStatus.FAILED,
+                            totalBytes = entry.sizeBytes,
+                            error = "Download failed after retries: ${error.message ?: "temporary I/O error"}",
+                        ),
+                    )
+                }
             } catch (error: Exception) {
+                ModelDownloadCoordinator.clearTransientFailures(applicationContext, catalogId)
                 ModelDownloadCoordinator.publish(
                     applicationContext,
                     ModelDownloadState(
@@ -80,7 +110,7 @@ class ModelDownloadJobService : JobService() {
                     ),
                 )
             } finally {
-                if (active.remove(params.jobId, running)) jobFinished(params, false)
+                if (active.remove(params.jobId, running)) jobFinished(params, wantsReschedule)
             }
         }
         running.job = job
@@ -153,6 +183,7 @@ class ModelDownloadJobService : JobService() {
     companion object {
         const val EXTRA_CATALOG_ID = "catalog_id"
         private const val CHANNEL_ID = "model-downloads"
+        private const val MAX_TRANSIENT_RETRIES = 5
     }
 }
 
