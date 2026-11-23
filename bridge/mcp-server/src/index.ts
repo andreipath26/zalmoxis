@@ -17,6 +17,7 @@ import {
 } from "@cloudflare/workers-oauth-provider";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
+import { phoneFetch } from "./phone";
 
 type AuthProps = { userId: string; bridgeId: string };
 interface Env {
@@ -144,7 +145,7 @@ function createServer() {
 
 const mcpHandler = createMcpHandler(createServer);
 
-export default new OAuthResourceServer<Env, AuthProps>({
+const oauthMcp = new OAuthResourceServer<Env, AuthProps>({
   resourceMetadata: {
     resource: env.MCP_SERVER_URL,
     authorization_servers: [env.AUTH_SERVER_URL],
@@ -163,3 +164,20 @@ export default new OAuthResourceServer<Env, AuthProps>({
     },
   },
 });
+
+/** The /mcp route uses standards-compliant OAuth; phone routes use a separately
+ * paired 256-bit credential. Neither accepts the other's credential. */
+export default {
+  fetch(request: Request, workerEnv: Env, ctx: ExecutionContext): Promise<Response> | Response {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === "/v1/pair" || pathname.startsWith("/v1/device/")) {
+      return phoneFetch(request, workerEnv);
+    }
+    if (pathname === "/health" && request.method === "GET") {
+      return new Response(JSON.stringify({ service: "zalmoxis-mcp", status: "ready" }), {
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+    return oauthMcp.fetch(request, workerEnv, ctx);
+  },
+};
