@@ -612,6 +612,7 @@ private fun ZalmoxisHome() {
                         onBack = { selectedTab = HomeTab.WORKSPACE },
                         onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
                         initialTopic = researchTopic,
+                        onInitialTopicConsumed = { researchTopic = "" },
                     )
                 }
                 HomeTab.SETTINGS -> {
