@@ -1399,3 +1399,76 @@ The comparison is a technology map, not an exhaustive security or licensing audi
 **Specific connection requirements:** the ChatGPT product must have an eligible custom remote MCP plugin connected by the user; the secure bridge server must be deployed and reachable; the phone must have installed an APK containing the client and be paired. Neither source-code commits nor an Android Sharesheet alone establishes live two-way ChatGPT communication.
 
 References: https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt ; https://developers.openai.com/api/docs/guides/custom-mcp-server ; https://developers.openai.com/api/docs/guides/tools-connectors-mcp ; https://developer.android.com/training/app-links/about .
+
+
+---
+
+# ADDENDUM (2026-11-23): API-KEY-FREE MULTI-PROVIDER AGENT BRIDGE — DEEPSEEK REQUIRED
+
+**Directive / priority:** Make DeepSeek a **first-class mandatory integration target**, alongside ChatGPT, Claude, and Mistral, for two-way communication with Zalmoxis without requiring the user to obtain or paste a commercial model API key. Continue with the common secure bridge architecture already defined above. Append-only extension: no prior phase, security rule, or existing roadmap item is replaced.
+
+**Current evidence status: [RESEARCHED] for documented upstream mechanisms; [DESIGNED] for integration; NOT IMPLEMENTED as an operational remote bridge; NOT TESTED on the user's Android phone.** No API key does **not** mean no account, login, subscription, OAuth token, internet, hosting, or rate limits. No provider may be represented as connected before a real round trip succeeds.
+
+## Key DeepSeek discovery: OFFICIAL DeepSeek Harness account login + MCP
+
+The official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) is the **preferred keyless route**. Its official packages document:
+
+- [DeepSeek account-backed model route](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/llm/llm-deepseek-account/README.md): the `deepseek-account` model provider uses a DeepSeek account sign-in supplied by the account service, and sends `x-dsh-auth-token`. It does **not** fall back to the DeepSeek API key. Model availability and request permissions depend on the signed-in account; a signed-out or ineligible account returns `ACCOUNT_SIGN_IN_REQUIRED`.
+- [Account/sign-in service](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/account/deepseek-account/README.md) and [account platform credential plugin](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/credentials/deepseek-account-platform/README.md): user authorizes in the system browser; the host holds credentials and exposes status without handing credentials to arbitrary tools. Confirm exact login and account eligibility on deployed Harness build.
+- [Official DeepSeek MCP client](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md): connects tools from approved local stdio or remote Streamable HTTP MCP servers to the harness agent. Configure a Zalmoxis relay endpoint as **one named server**, scope exposed tools and validate the server security/auth requirements.
+- [DeepSeek authentication service](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/account/deepseek-auth/README.md): separates account and key credentials per route, limits destinations and invalidates rejected/revoked grants. Use the explicit account route; never silently switch to an API-key-billed route.
+- [DeepSeek web Search/Fetch](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/web/web-deepseek-api/README.md) and [Search adapter](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/web/web-search-deepseek/README.md): some search/fetch operations support account-authenticated conversations. Other APIs may remain API-key-only. Feature-gate per operation; do not promise unqualified keyless support for every DeepSeek product.
+
+**Important distinction:** Official DeepSeek API docs at https://api-docs.deepseek.com/api/deepseek-api/ still require an API key for ordinary API calls. The Harness account route is a **separate supported authentication path within Harness**, not an anonymous public API and not proof that any Android application can directly reuse consumer DeepSeek web credentials. DeepSeek's standard consumer web/mobile chat is not independently verified to expose custom MCP connectors. The host where Harness runs must be protected, paired with Zalmoxis, and reachable via the approved relay. No user-facing credential extraction.
+
+### DeepSeek connection candidates, ranked
+
+| Priority | Method | API key? | What it provides | Limitations / verdict |
+| --- | --- | --- | --- | --- |
+| **P0 mandatory** | **Official DeepSeek Harness + official DeepSeek account sign-in + MCP client → Zalmoxis secure relay** | **No model API key**, authenticated DeepSeek account required | Real model-to-Zalmoxis task calls and responses when Harness supports account model and remote MCP | **BUILD/VALIDATE FIRST**; requires trusted hosted Harness or owner's machine, account eligibility, relay, OAuth/device pairing, and explicit session/agent execution |
+| **P0 fallback** | User-mediated Android Sharesheet → official DeepSeek chat app/site → Zalmoxis share/import | No | Immediate message exchange with human approval | **SUPPORTED DESIGN**, not automatic round trips; DeepSeek must be selectable/share text through available Android UI |
+| **P1 resilient** | DeepSeek-R1 distilled open weights via compatible local inference runtime | No | Local DeepSeek-family assistant; no commercial service dependency | **EVALUATE**, not remotely connected consumer DeepSeek account; verify exact model packaging, phone RAM/performance, Android LiteRT-LM compatibility and source/derivative licenses |
+| **P2 experimental** | User-owned browser session bridge, e.g. https://github.com/nezumi0627/deepseek-web-harness | No DeepSeek API key, but logged-in browser session | Unofficial DeepSeek Web automation with MCP-like interface | **RESEARCH ONLY / NOT DEFAULT**: breaks on UI updates, session compromise risks, likely desktop-host requirement; no cookie export or auth bypass; legal/terms review mandatory |
+| **Not acceptable** | Reverse-engineered DeepSeek private endpoints, stolen/extracted cookies, proxy bypassing verification, distributing someone else's API key | Not legitimately | Unreliable/unsafe | **REJECT** |
+
+**Local model reference:** https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B documents R1 Qwen-distilled model family and MIT model weights; Qwen-derived and Llama-derived variants have different underlying license obligations. Use the smallest compatible quality-tested variant, and **do not claim GGUF/SafeTensors models run in the currently LiteRT-LM-only Zalmoxis runtime** without adding/converting/testing an appropriate runtime.
+
+## Universal provider adapter plan
+
+**One Zalmoxis bridge, multiple authenticated entrypoints**. Preserve separation of: (A) provider-agent → Zalmoxis via provider's MCP tools; (B) Zalmoxis → provider model via an officially supported, user-authorized provider route; and (C) provider-event → agent-session proactive processing, only where the provider explicitly supports event-driven execution. A connected MCP server alone cannot wake a dormant consumer AI conversation.
+
+| Provider | API-key-free candidate | Integration decision | Restrictions to verify |
+| --- | --- | --- | --- |
+| **DeepSeek — REQUIRED** | **Official DeepSeek Harness account login + MCP** | **P0 primary acceptance target** | Account-backed route eligibility, model quota, Harness hosting, remote MCP transport and safe pairing |
+| ChatGPT / OpenAI | Eligible Sign in with ChatGPT OAuth for model requests; custom remote MCP for conversation tools | **P0** two distinct paths | Eligibility, account/product availability, MCP tool permissions, session trigger; no claim of access to existing ChatGPT chats |
+| Claude / Anthropic | Account-based custom remote MCP connector | **P0** | Free-plan connector cap, account features, remote endpoint authorization and whether reads/writes allowed |
+| Mistral Vibe | Account-based remote MCP connector | **P0** | Supported plan/device/tools; test OAuth and scopes |
+| Perplexity | Account-based custom remote MCP | **P1** research agent | Subscription tier and write capabilities |
+| Grok / xAI | Reported account MCP connector | **P1** after first-party validation | Region, account tier, actual tools, OAuth |
+| Gemini / Google | Custom Gemini apps/MCP where eligible | **P2** region-gated | Current geography/account requirements and platform policies |
+| Microsoft Copilot Studio | Organization-authenticated MCP connectors | **P2** enterprise | Tenant licensing and administrative approvals |
+| Self-hosted DeepSeek/open-weight models | Local inference / self-hosted agent | **P0 offline fallback** | Hardware, compatibility, license, resource costs; not consumer DeepSeek web service |
+
+**Do not confuse account-powered inference (Zalmoxis asks an AI model) with remote assistant-to-assistant transport (a provider agent sends tasks to Zalmoxis).** Both sides need a protocol message queue and authorization; some providers support only one direction.
+
+## Shared secure relay specification (provider-neutral)
+
+- Remote HTTPS MCP server exposes **only** `bridge_status`, `send_task`, `list_pending_replies`, `read_reply`, and `request_approval`. Providers never get unconstrained filesystem, microphone, Accessibility, shell, network, or Knowledge write methods. A `propose_knowledge_change` operation creates review-only proposals.
+- Account/device pairing uses OAuth or equivalent supported authorization, short-lived scoped sessions, token rotation/revocation, per-user/device separation, replay protection, timestamps, idempotency keys and expiry. Local device secrets remain in Android Keystore. DeepSeek Harness account token must remain within its trusted Harness auth service, **not** forwarded to the Zalmoxis relay.
+- Phone-originated requests use explicitly selected provider routes. DeepSeek account-backed requests should execute in a trusted Harness host via a restricted provider adapter. Never embed account tokens or model/API secrets in APK, URLs, public GitHub builds, or source logs.
+- Relay stores only minimal encrypted payloads with TTL, correlation IDs and acknowledgements. Authz is validated server-side. A connected but idle provider does **not** imply guaranteed real-time response. For bidirectional automatic turns, use a provider-acknowledged task worker or explicitly supported event subscription, not repeated unsolicited messages to ordinary chat sessions.
+- UI must show provider, bridge health/last reply, model/account authorization kind (**Account login**, **API key**, **Local**) without secret contents, task history, which content leaves the phone, user permissions, cost/quota limits, expiry, errors and **Disconnect**.
+- Each provider adapter has capability discovery and test cases: account linked, list models, invoke a harmless task, observe signed result, disconnect/revoke, offline recovery, and malicious input handling. Do not equate working DeepSeek Harness MCP tools with support in consumer DeepSeek Chat.
+
+## Execution order (additive to existing phases)
+
+1. **Gate D0 — Verify official DeepSeek account route**: check DeepSeek Harness supported version, login in trusted browser, prove a model response with **no `DEEPSEEK_API_KEY` configured**, record account/quota restrictions and distinguish ordinary API docs. Failure keeps the DeepSeek integration marked experimental.
+2. **Gate D1 — Implement shared secure relay**: authenticated remote MCP, structured two-way envelopes, protected queues, access control, expiration and revocation.
+3. **Gate D2 — DeepSeek Harness adapter**: connect the official `dsh-mcp-client` to the Zalmoxis relay and verify model-initiated tool calls and replies with no DeepSeek API key; verify Zalmoxis-originated task → Harness worker → account-backed DeepSeek model → reply **only if supported by an explicit authenticated orchestration worker**.
+4. **Gate D3 — Other providers**: ChatGPT, Claude, Mistral, Perplexity and further providers use same envelope, auth policy, and tests; do not reimplement transport separately.
+5. **Gate D4 — Android UX and local fallback**: pairing QR/deep link, keyless share mode, provider status, approvals, preview and offline DeepSeek-distill capability only when a measured, supported Android model passes runtime gates.
+6. **Gate D5 — Deployment validation**: signed APK and live relay. Ten or more genuine task/reply round trips *per provider/direction*, cold start, outage and reconnect, deny/revoke, replay and prompt-injection tests; collect delivery latency, relay retention, quota and error rates. Mark the provider connected only after these pass.
+
+**Deployment acceptance requirement:** A user can select DeepSeek, connect with supported account login (no model API key), request a task from Zalmoxis, receive a traceable answer, and send an appropriately authorized task back to the on-device agent without manually copying text—subject to active compatible Harness/agent session. If this cannot be demonstrated, explain the failure and retain the user-mediated DeepSeek handoff; never mislabel it as autonomous, direct or live.
+
+**Sources consulted (Nov 2026):** https://github.com/deepseek-ai/deepseek-harness ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/llm/llm-deepseek-account/README.md ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/account/deepseek-auth/README.md ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/web/web-search-deepseek/README.md ; https://api-docs.deepseek.com/api/deepseek-api/ ; https://github.com/nezumi0627/deepseek-web-harness ; https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B .
