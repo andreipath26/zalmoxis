@@ -39,8 +39,7 @@
 ## 1. What ZALMOXIS is
 
 ZALMOXIS is the framework, not a single app. It is the substrate beneath one
-or more agents. The Android product that runs on it is internally codenamed
-Sentinel; that name is not cleared and will be decided separately.
+or more agents. Sentinel was the previous name for ZALMOXIS. It is not a separate product.
 
 The framework provides a memory core, an identity layer, a deterministic
 policy engine, an append-only audit trail, a scoped permission architecture,
@@ -455,7 +454,7 @@ The most important competitive threat is not that Google or Apple will copy the 
 These are recorded so they are not forgotten. They are not pessimism; they are the actual constraints.
 
 1. No single app does everything. The pieces exist in fragments. The assembly is the work.
-2. ZALMOXIS is a working title. Trademark clearance has not been done. The internal product name Sentinel is not cleared either.
+2. ZALMOXIS is a working title. Trademark clearance has not been done. Sentinel was the previous name for this same project, not a separate product.
 3. Prompt injection is unsolved. Adaptive attackers break state-of-the-art defenses more than 80 percent of the time. The architecture limits damage; it does not prevent injection.
 4. The market gap is real but not yet searchable. People do not search for inspectable AI memory because they do not know it is possible.
 5. Battery is a constraint. Target is 2 to 5 percent daily idle. Continuous background reasoning is not viable.
