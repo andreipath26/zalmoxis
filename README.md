@@ -38,6 +38,14 @@ To get the APK, open the repository’s **Actions** tab, select a successful **A
 
 The app is not yet a complete autonomous agent. Long-term memory reconciliation, policy-gated actions, audit-chain verification, broader document extraction, and the roadmap’s remaining phases are not represented as shipped features merely because they appear in project documents.
 
+## Conversational research and Knowledge drafts
+
+The **Research** workspace no longer requires a pasted URL for its primary flow. Type a topic to search public GitHub repositories. Explicit Chat requests such as **“Research offline AI agents for Android”** open the scoped GitHub search. If the message includes **“and save findings to Knowledge”**, discovered sources are preselected for review—not imported automatically.
+
+Select sources, review the URLs and metadata, then confirm a single **Save selected sources** operation. With a compatible local model loaded, Zalmoxis can also draft a source-linked comparison using a user-editable research instruction; you can edit the draft and explicitly save it to Knowledge. Drafts are **unverified AI-generated material**, not confirmed memory or authoritative source content. Sources retain their GitHub URLs and SHA-256 digests.
+
+**Current limitation:** this is public GitHub repository discovery and public raw text retrieval, **not unrestricted general web search or autonomous browser control**. Ordinary prompts remain local. GitHub search is explicitly user-initiated and subject to unauthenticated API rate limits. Further providers and tool authorization must satisfy the roadmap's security and permission gates. Compiling, running and verifying this new research workflow on Android remain outstanding.
+
 ## Update Zalmoxis from GitHub on your phone
 
 Open **Settings → App updates → Check for updates**. Zalmoxis also checks for new signed releases when opened and displays a notice when one exists. Choose **Download verified update**, then **Install update**. Android asks you to authorize the installation; the app never silently installs anything. The update checker requests the public GitHub Releases API only (no sign-in or GitHub token). It downloads only from the Zalmoxis GitHub release channel and checks the SHA-256 digest, package name, increasing version code, and signing certificate before offering the installer.
