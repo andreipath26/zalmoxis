@@ -158,3 +158,8 @@ The Android foundation now includes a private local model catalog: import, list,
 Added a controlled local benchmark: one warm-up is excluded, then three fresh-conversation runs use the same prompt. Each run records first-text latency, total elapsed time, and runtime stream-event count. Device/API level, model filename, backend, protocol, and raw samples are written to a JSON report in app-private storage. Stream events are explicitly not treated as token counts. Build attempt was blocked because the workspace could not download the Gradle 8.13 distribution; Android SDK 36 is also unavailable. No test suite was added or run.
 
 Implementation branch at the start of this batch: codex/gallery-android-foundation (e91d88ab8eadf425b9ae58f4f38669988b1176f2).
+
+
+## 2026-11-23 — Remote build path
+
+Added a GitHub Actions workflow scoped to the Android foundation branch and Android file changes. It installs JDK 17 and Android SDK 36, runs the Gradle wrapper to assemble a debug APK, and uploads the APK artifact. The local wrapper attempt was blocked before Gradle could start because the sandbox could not reach services.gradle.org. CI status must be checked before treating the source as build-validated.

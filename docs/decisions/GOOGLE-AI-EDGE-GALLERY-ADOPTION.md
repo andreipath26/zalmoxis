@@ -11,6 +11,10 @@
 - A repeatable warm benchmark: one discarded warm-up, then three fresh-conversation measurements on a fixed prompt; device, model, run latency, elapsed time, and event counts are saved to a private JSON report.
 - Gallery's device-first inference shape: the initial runtime uses CPU as a universal fallback. The adapter can grow backend selection and measurement after checking supported hardware/model combinations.
 
+## Build and measurement
+
+The app includes a fixed-prompt warm benchmark that saves raw local JSON samples and device metadata. A branch-scoped GitHub Actions workflow installs Android SDK 36, assembles a debug APK, and uploads it as an artifact.
+
 ## Security boundary
 
 The initial conversation registers no tools, downloads no skills, and cannot call MCP, JavaScript, Android intents, or Accessibility APIs. A model response is text only. This preserves the invariant that model output cannot authorize or execute consequential actions.

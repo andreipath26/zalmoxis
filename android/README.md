@@ -21,7 +21,7 @@ Use JDK 17 and Android SDK 36. From this directory run:
 
     ./gradlew :app:assembleDebug
 
-Android SDK 36 was unavailable and the Gradle distribution could not be fetched in the implementation workspace, so this source has not been built here. Select a compatible LiteRT-LM model
+Android SDK 36 was unavailable and the Gradle distribution could not be fetched in the implementation workspace. The branch includes a GitHub Actions workflow to assemble the debug APK. Select a compatible LiteRT-LM model
 file on-device to use the chat screen. Model architecture, hardware support,
 licensing, and redistribution rights are model-specific; inspect those before
 packaging model weights.

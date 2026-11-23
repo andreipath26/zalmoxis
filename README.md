@@ -378,7 +378,7 @@ The Android application source is under android/. With JDK 17 and Android SDK 36
     cd android
     ./gradlew :app:assembleDebug
 
-The Android SDK was not available in the implementation workspace, so this build has not yet been verified. No tests or deployment claim are recorded.
+Local build verification was blocked by network restrictions while fetching Gradle; Android SDK 36 is also unavailable in this workspace. A branch-scoped GitHub Actions workflow now assembles the debug APK. No deployment claim is recorded.
 
 ---
 
