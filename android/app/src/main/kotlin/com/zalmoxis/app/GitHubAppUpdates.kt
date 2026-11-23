@@ -151,6 +151,26 @@ internal object GitHubAppUpdates {
         }
     }
 
+    /** Repeat integrity and package verification immediately before the installer is invoked. */
+    suspend fun verifyStaged(context: Context, apk: File, update: AppUpdate) = withContext(Dispatchers.IO) {
+        require(apk.isFile && apk.parentFile == File(context.cacheDir, "updates")) {
+            "The staged APK is no longer available."
+        }
+        require(apk.length() == update.sizeBytes) { "The staged APK changed size." }
+        val digest = MessageDigest.getInstance("SHA-256")
+        apk.inputStream().buffered().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        require(actual == update.expectedSha256) { "The staged APK failed integrity verification." }
+        verifyInstallableUpdate(context, apk, update.versionCode)
+    }
+
     /** Android installer is always user-initiated and retains the OS confirmation dialog. */
     fun install(context: Context, apk: File) {
         require(apk.isFile && apk.parentFile == File(context.cacheDir, "updates")) {
