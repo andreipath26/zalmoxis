@@ -38,6 +38,7 @@ internal fun ResearchWorkspace(
     onBack: () -> Unit,
     onKnowledge: () -> Unit,
     initialTopic: String = "",
+    onInitialTopicConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -90,6 +91,7 @@ internal fun ResearchWorkspace(
     LaunchedEffect(initialTopic) {
         if (initialTopic.isNotBlank()) {
             topic = initialTopic
+            onInitialTopicConsumed()
             search(initialTopic)
         }
     }
