@@ -38,6 +38,23 @@ To get the APK, open the repository’s **Actions** tab, select a successful **A
 
 The app is not yet a complete autonomous agent. Long-term memory reconciliation, policy-gated actions, audit-chain verification, broader document extraction, and the roadmap’s remaining phases are not represented as shipped features merely because they appear in project documents.
 
+## Real multi-agent bridge — SDK implementation status
+
+The bridge now has an **Android messaging client and UI** plus two source implementations of Cloudflare Workers:
+
+- [Bridge deployment and security guide](bridge/README.md)
+- [Official MCP SDK resource server](bridge/mcp-server/src/index.ts), with Cloudflare OAuth resource-server protection and scoped tools
+- [Cloudflare OAuth authorization server](bridge/auth-server/src/index.ts), with verified Access identity and explicit user consent
+- [Android phone transport](android/app/src/main/kotlin/com/zalmoxis/app/AgentBridgeClient.kt) and [Agent Bridge screen](android/app/src/main/kotlin/com/zalmoxis/app/AgentBridgeWorkspace.kt)
+- [DeepSeek Harness integration guide](bridge/deepseek/README.md)
+- [Security tests](bridge/mcp-server/tests/phone.test.mjs) and [CI source checks](.github/workflows/bridge-check.yml)
+
+Messages pass through a 24-hour D1 task queue, each OAuth client is isolated, the Android token is Keystore-encrypted, and incoming provider tasks cannot execute actions. An authorized provider can issue a one-time phone pairing code. Android supports opt-in polling while the bridge screen is open, text replies/rejections and server-confirmed revocation. Manual Sharesheet sharing remains the no-hosting fallback.
+
+**Not yet connected or deployed:** Cloudflare Access/Workers/KV/D1 must be provisioned using the owner's account; the OAuth app must be configured, phone APK built and installed, and provider connections (starting with DeepSeek Harness) actually paired. Source code and a public MCP URL are not interchangeable: do not expose the obsolete `bridge/src/index.js` prototype, which is disabled by default. The configured hosted bridge uses **no OpenAI or DeepSeek model API key**, but still needs real account login, Cloudflare hosting permissions and OAuth tokens. Real model-to-model autonomous replies are not guaranteed when a provider's consumer chat is idle.
+
+The current Android UI supports a **single active paired provider at a time**; multi-provider channel switching, background delivery, end-to-end payload encryption, device action approval integration, release APK validation and actual runtime round trips remain deployment/extension gates. The relay stores messages as plaintext in Cloudflare D1 until expiration, so do not send secrets or private Knowledge until at-rest and end-to-end privacy controls are completed.
+
 ## Agent Bridge: no API key handoff and direct-connection roadmap
 
 **Available in source (not yet APK-tested):** Open **Workspace → Agent Bridge** to prepare a message and share it through Android's Sharesheet. Choose ChatGPT as the destination if Android offers it. From another app, use Android's **Share → Zalmoxis** to bring text back; Zalmoxis displays an explicit acceptance dialog and fills a chat draft only if you approve. The sender's identity cannot be authenticated from Android Sharesheet metadata. Messages are not executed as commands and are not imported into the Knowledge database. Sharing is **manual and user-mediated**, not a persistent agent-to-agent connection or a guarantee that ChatGPT automatically processes the shared message.
