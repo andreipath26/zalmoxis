@@ -1,3 +1,8 @@
+// DEVELOPMENT PROTOTYPE ONLY — NOT A PRODUCTION MCP/OAUTH SERVER.
+// This hand-written JSON-RPC transport is superseded by the upstream-first decision:
+// docs/decisions/MCP-BRIDGE-REUSE-ASSESSMENT.md
+// Do not deploy publicly as an authenticated provider MCP endpoint.
+// Production will use the official MCP SDK / Cloudflare Agents and Workers OAuth Provider.
 // Zalmoxis Bridge: minimal remote MCP + phone JSON relay.
 // Deployed behind HTTPS on Cloudflare Workers; no model API key.
 const headers = {"content-type":"application/json","cache-control":"no-store","x-content-type-options":"nosniff"};
@@ -78,7 +83,8 @@ export default {
   const url=new URL(req.url);
   try{
    if(url.pathname==="/health"&&req.method==="GET")return json({service:"zalmoxis-bridge",status:"ready",version:1});
-   if(url.pathname==="/mcp")return await mcp(req,env);
+   // Disabled until standards-compliant MCP SDK and OAuth 2.1 migration is completed.
+   if(url.pathname==="/mcp")return err("MCP prototype disabled; use the supported SDK/OAuth implementation.",503);
    if(req.method==="POST"&&url.pathname==="/v1/admin/provision"){
     if(!env.ADMIN_TOKEN||auth(req)!==env.ADMIN_TOKEN)return err("Unauthorized",401);
     const b=await body(req,512),provider=b.provider;
