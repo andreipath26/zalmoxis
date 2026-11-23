@@ -211,3 +211,8 @@ Added an Android document-picker export for the latest local benchmark JSON repo
 ## 2026-11-23 — Benchmark export review
 
 Reviewed the report-export UI and gave the summary text a flexible width so the export control fits narrow screens. Updated the Gallery adoption record to include exact model digest, local provenance receipts, offline speech output, and user-controlled JSON export. Android build validation is still outstanding.
+
+
+## 2026-11-23 — Invalid model receipt recovery
+
+A malformed local provenance receipt no longer aborts model-catalog display. The affected model remains visible, loading is disabled, and reimporting a replacement of the same name can repair the receipt. This preserves a user recovery path while keeping receipt verification fail-closed. Android source remains unbuilt and unvalidated.

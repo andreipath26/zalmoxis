@@ -281,16 +281,21 @@ private fun ZalmoxisHome() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                            "SHA-256 ${model.sha256.take(16)}…\n" +
-                            "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
-                            "License: ${model.licenseStatus}",
+                        if (model.provenanceValid) {
+                            "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                                "SHA-256 ${model.sha256.take(16)}…\n" +
+                                "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
+                                "License: ${model.licenseStatus}"
+                        } else {
+                            "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                                "Provenance record invalid · Reimport this model to use it."
+                        },
                         modifier = Modifier.weight(1f).padding(top = 10.dp),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Button(
                         onClick = { loadModel(model.file) },
-                        enabled = !busy && model.name != modelName,
+                        enabled = !busy && model.name != modelName && model.provenanceValid,
                     ) { Text(if (model.name == modelName) "Loaded" else "Load") }
                     Button(
                         onClick = {

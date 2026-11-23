@@ -18,6 +18,7 @@ data class LocalModel(
     val sourceDescription: String,
     val licenseStatus: String,
     val importedAtEpochMs: Long,
+    val provenanceValid: Boolean = true,
 )
 
 object LocalModelCatalog {
@@ -31,12 +32,19 @@ object LocalModelCatalog {
             .sortedBy { it.name.lowercase() }
             .map { file ->
                 val metadata = receiptFile(file)
-                if (metadata.exists()) {
-                    requireNotNull(readReceipt(file)) {
-                        "The provenance record for ${file.name} is invalid. Reimport the model to review it."
-                    }
-                } else {
+                if (!metadata.exists()) {
                     createLegacyReceipt(file).also { writeReceipt(file, it) }
+                } else {
+                    readReceipt(file) ?: LocalModel(
+                        name = file.name,
+                        file = file,
+                        sizeBytes = file.length(),
+                        sha256 = "",
+                        sourceDescription = "Invalid provenance record; reimport required",
+                        licenseStatus = "Unknown; reimport the model to review its source and terms",
+                        importedAtEpochMs = file.lastModified(),
+                        provenanceValid = false,
+                    )
                 }
             }
     }
