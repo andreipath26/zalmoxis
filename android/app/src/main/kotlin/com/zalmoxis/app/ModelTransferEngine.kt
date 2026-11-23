@@ -26,8 +26,15 @@ object ModelTransferEngine {
         requireSafeEntry(entry)
         val staging = File(context.filesDir, "model-downloads").apply { mkdirs() }
         val partial = File(staging, "${entry.id}.part")
+        if (partial.exists() && partial.length() > entry.sizeBytes) partial.delete()
         checkFreeSpace(context, partial, entry.sizeBytes)
-        transfer(entry, partial, onProgress)
+        try {
+            transfer(entry, partial, onProgress)
+        } catch (error: InvalidTransferException) {
+            // A malformed range or bad digest cannot become valid by appending another retry.
+            partial.delete()
+            throw error
+        }
         return LocalModelCatalog.installDownloaded(context, entry, partial)
     }
 
