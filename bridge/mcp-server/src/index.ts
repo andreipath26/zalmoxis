@@ -68,8 +68,13 @@ function createServer() {
     if (!context.http?.authInfo?.scopes?.includes("mcp:write")) return fail("OAuth mcp:write scope required.");
     const owner = currentOwner();
     if (!owner) return fail("OAuth user identity missing; pairing denied.");
-    const existing = await authorizedBridge();
-    if (existing) return fail("A phone is already paired. Disconnect or revoke before pairing a new one.");
+    await env.DB.prepare(
+      "UPDATE bridges SET revoked=1 WHERE owner_id=? AND device_token_hash IS NULL AND pair_expires<?"
+    ).bind(owner,current()).run();
+    const existing = await env.DB.prepare(
+      "SELECT id FROM bridges WHERE owner_id=? AND revoked=0 LIMIT 1"
+    ).bind(owner).first();
+    if (existing) return fail("A phone is already paired or a code is pending. Disconnect, revoke, or allow the code to expire.");
     const code = secret(8).toUpperCase();
     const id = uuid();
     await env.DB.prepare(
@@ -179,5 +184,15 @@ export default {
       });
     }
     return oauthMcp.fetch(request, workerEnv, ctx);
+  },
+  async scheduled(_event: ScheduledController, workerEnv: Env) {
+    const unix = current();
+    await workerEnv.DB.batch([
+      workerEnv.DB.prepare("DELETE FROM messages WHERE expires<?").bind(unix),
+      workerEnv.DB.prepare("DELETE FROM pairing_attempts WHERE attempted_at<?").bind(unix-900),
+      workerEnv.DB.prepare(
+        "UPDATE bridges SET revoked=1 WHERE device_token_hash IS NULL AND pair_expires<?"
+      ).bind(unix),
+    ]);
   },
 };
