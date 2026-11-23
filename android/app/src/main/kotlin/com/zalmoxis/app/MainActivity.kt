@@ -103,7 +103,7 @@ internal fun researchTopicFromChat(message: String): String? {
         .takeIf { it.length in 3..160 }
 }
 
-internal fun researchSaveRequested(message: String): Boolean =
+internal fun hasResearchSaveDirective(message: String): Boolean =
     researchTopicFromChat(message) != null && RESEARCH_SAVE_DIRECTIVE.containsMatchIn(message)
 
 
@@ -772,7 +772,7 @@ private fun ZalmoxisHome() {
                                                 researchTopicFromChat(submitted) else null
                                             if (researchRequest != null) {
                                                 researchTopic = researchRequest
-                                                researchSaveRequested = researchSaveRequested(submitted)
+                                                researchSaveRequested = hasResearchSaveDirective(submitted)
                                                 prompt = ""
                                                 selectedTab = HomeTab.RESEARCH
                                             } else {
