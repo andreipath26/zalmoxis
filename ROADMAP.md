@@ -1589,3 +1589,16 @@ The official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 - Never mark this addendum [IMPLEMENTED] or [VALIDATED] until the Android embedded MCP server exists, compiles, and passes actual local/remote device tests.
 
 **Current state at addition:** [PLANNED] for on-device MCP server, optional tunnel and hybrid routing; [IMPLEMENTED IN SOURCE / CI GREEN, NOT DEPLOYED] for hosted Worker infrastructure and Android HTTP client. This addendum corrects prior cloud-first assumptions: **internet hosting is optional for local functionality, and both paths must be supported.**
+
+
+### 2026-11-23 local MCP implementation evidence (post-addendum)
+
+**Implementation state: [SOURCE IMPLEMENTED + ANDROID CI ASSEMBLE PASS], [DEVICE RUNTIME NOT YET VERIFIED].** The Android build at https://github.com/andreipath26/zalmoxis/actions/runs/45223841942 passed for commit `cf99e424ed476508e2fdf2bf18ebc8357f39c6b9`, including APK artifact `zalmoxis-debug-apk` (artifact ID `14840914352`).
+
+- `LocalMcpServerService.kt`: explicit-start Android foreground service; official Kotlin MCP SDK v0.16.0 + Ktor CIO 3.5.2 Streamable HTTP on `127.0.0.1:8765/mcp`; no LAN binding, no cloud dependency. Exposes token-gated `status`, `submit_task`, `read_reply`; requests are human-reviewed, never executed as arbitrary code. Service is non-exported and has an Android specialUse foreground notification; Google Play declaration review remains required.
+- `LocalMcpPanel.kt`: Start/Stop controls, local endpoint and token view/copy, local task approval/reply screen, and visible Off/Local/Hosted/Hybrid state derived from the local listener and hosted pairing.
+- `AgentBridgeWorkspace.kt`: embeds the local control panel without removing hosted OAuth pairing, remote inbox/outbox, or Android Sharesheet fallback.
+- `AndroidManifest.xml`, `android/app/build.gradle.kts`: service/permission registration and versioned official MCP/Ktor dependencies.
+- **Limitations**: local task queue lives in process memory and is not an offline-persistent outbox; hosted and local routes are simultaneously usable but lack automated failover, cross-transport deduplication and end-to-end encryption. Tunnel/LAN is not yet enabled. External hosted relay still needs actual deployment and credentials. The signed production APK and on-phone runtime tests remain open.
+
+**Next device gates**: start/stop a foreground server without crashes on a representative Android handset; verify MCP initialization, tools/list, token-denial, submit/task/reply with a same-device MCP client; test orientation changes, notification dismissal, background/battery restrictions, model load, end-to-end hosted connection and E2E privacy requirements. Do not mark full Phase MCP-D deployed without these.
