@@ -29,6 +29,15 @@ internal data class ResearchResult(
     val truncated: Boolean,
 )
 
+/** Public GitHub search result. A search hit is not imported until explicitly selected. */
+internal data class ResearchSearchHit(
+    val title: String,
+    val url: String,
+    val description: String,
+    val stars: Long,
+    val updatedAt: String,
+)
+
 internal interface ResearchSourceAdapter {
     val id: String
     fun accepts(uri: URI): Boolean
@@ -44,6 +53,37 @@ internal object NativeResearch {
         "Public GitHub repositories (github.com/owner/repo)",
         "Public GitHub raw text files (raw.githubusercontent.com/owner/repo/revision/path)",
     )
+
+    /** User-approved topic search, limited to public repository metadata; no browser credentials. */
+    suspend fun searchRepositories(topic: String): List<ResearchSearchHit> = withContext(Dispatchers.IO) {
+        val query = topic.trim().replace(Regex("\\s+"), " ")
+        require(query.length in 3..160) { "Enter a research topic between 3 and 160 characters." }
+        require(query.none { it.isISOControl() }) { "The topic contains unsupported control characters." }
+        val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+        val endpoint = "https://api.github.com/search/repositories?q=$encoded&per_page=8&sort=best-match"
+        val bytes = fetchBytes(endpoint, "application/vnd.github+json", 384 * 1024)
+        val json = JSONObject(bytes.toString(Charsets.UTF_8))
+        val items = json.optJSONArray("items") ?: return@withContext emptyList()
+        buildList {
+            for (i in 0 until minOf(items.length(), 8)) {
+                val item = items.optJSONObject(i) ?: continue
+                if (item.optBoolean("private", false)) continue
+                val url = item.optString("html_url")
+                val uri = runCatching { parseUrl(url) }.getOrNull() ?: continue
+                if (!GitHubRepositoryAdapter.accepts(uri)) continue
+                add(
+                    ResearchSearchHit(
+                        title = item.optString("full_name").take(120),
+                        url = url,
+                        description = item.optString("description").take(500)
+                            .takeUnless { it == "null" }.orEmpty(),
+                        stars = item.optLong("stargazers_count"),
+                        updatedAt = item.optString("updated_at").take(40),
+                    )
+                )
+            }
+        }
+    }
 
     suspend fun fetch(userInput: String): ResearchResult = withContext(Dispatchers.IO) {
         val uri = parseUrl(userInput)
