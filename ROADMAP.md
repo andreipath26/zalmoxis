@@ -524,7 +524,7 @@ Status: [DESIGNED] + [RESEARCHED]. Build after MVP validated.
 PHASE 6: SECURITY HARDENING (Weeks 32–35)
 Core [RESEARCHED/DESIGNED]
 
-OpenMuse OpenMuse Sentinel Pattern (risk levels, first-match-wins, taint). Secrets Vault. Audit Log (Sasana hash chain). Aletheia Truth Compiler (epistemic labels, 18 dimensions). Injection Scanning at Ingestion. Security Dashboard. Approval Gates (BiometricPrompt). OWASP MASVS. Android 14+ FGS Types. Mode Posture Security. Completeness Contract (Mercury). Sub-Agent Divergence Monitoring. Anti-Pattern Guards (test cases required). OTA Update Security (corrected). Permission Security.
+OpenMuse Sentinel Pattern (risk levels, first-match-wins, taint). Secrets Vault. Audit Log (Sasana hash chain). Aletheia Truth Compiler (epistemic labels, 18 dimensions). Injection Scanning at Ingestion. Security Dashboard. Approval Gates (BiometricPrompt). OWASP MASVS. Android 14+ FGS Types. Mode Posture Security. Completeness Contract (Mercury). Sub-Agent Divergence Monitoring. Anti-Pattern Guards (test cases required). OTA Update Security (corrected). Permission Security.
 Machine-Enforced Authorization Architecture
 
 This is the most important addition. A separate subsystem the model cannot rewrite:
