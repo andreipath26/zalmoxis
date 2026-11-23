@@ -110,7 +110,10 @@ class ModelDownloadJobService : JobService() {
                     ),
                 )
             } finally {
-                if (active.remove(params.jobId, running)) jobFinished(params, wantsReschedule)
+                if (active.remove(params.jobId, running)) {
+                    jobFinished(params, wantsReschedule)
+                    if (!wantsReschedule) clearNotification(params.jobId)
+                }
             }
         }
         running.job = job
@@ -132,6 +135,7 @@ class ModelDownloadJobService : JobService() {
                 this,
                 ModelDownloadState(catalogId, entry?.displayName ?: catalogId, ModelDownloadStatus.CANCELLED, totalBytes = entry?.sizeBytes ?: 0L),
             )
+            clearNotification(params.jobId)
             return false
         }
         if (entry != null) {
@@ -174,7 +178,11 @@ class ModelDownloadJobService : JobService() {
             .setOngoing(true)
             .build()
 
-    private fun notificationId(jobId: Int) = 73_000 + jobId % 1_000
+    private fun notificationId(jobId: Int) = 73_000 + (jobId - MIN_JOB_ID)
+
+    private fun clearNotification(jobId: Int) {
+        getSystemService(NotificationManager::class.java).cancel(notificationId(jobId))
+    }
 
     private class RunningJob(val params: JobParameters) {
         var job: Job? = null
@@ -183,6 +191,7 @@ class ModelDownloadJobService : JobService() {
     companion object {
         const val EXTRA_CATALOG_ID = "catalog_id"
         private const val CHANNEL_ID = "model-downloads"
+        private const val MIN_JOB_ID = 14_000
         private const val MAX_TRANSIENT_RETRIES = 5
     }
 }
