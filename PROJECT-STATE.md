@@ -201,3 +201,8 @@ Local model imports now receive a private provenance receipt with SHA-256, file 
 ## 2026-11-23 — Provenance visible in model shelf
 
 The Android model shelf now shows the local SHA-256 prefix, selected-file source label, import timestamp, and license status. A malformed provenance receipt blocks automatic restore and requests a reimport for review. This checkpoint follows model provenance and benchmark identity commit e36205788713a39c6a507d856776bc4708592cb2. Android source remains unbuilt and unvalidated.
+
+
+## 2026-11-23 — User-controlled benchmark export
+
+Added an Android document-picker export for the latest local benchmark JSON report. The app copies the report only after the user chooses a destination; it does not upload the report or share it automatically. Model changes clear the currently displayed export target while previous private reports remain stored. Source remains unbuilt and unvalidated.

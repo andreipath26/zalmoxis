@@ -78,6 +78,7 @@ private fun ZalmoxisHome() {
     var response by remember { mutableStateOf("") }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
+    var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
     var busy by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
@@ -144,6 +145,7 @@ private fun ZalmoxisHome() {
                 response = ""
                 metrics = ""
                 benchmarkSummary = ""
+                latestBenchmarkFile = null
                 status = "Ready. Inference stays on this device."
             } catch (error: Exception) {
                 newRuntime.close()
@@ -185,6 +187,31 @@ private fun ZalmoxisHome() {
             }
         } else if (savedName != null) {
             status = "The saved model file is no longer available. Choose or import a model."
+        }
+    }
+
+    val benchmarkExporter = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        val report = latestBenchmarkFile
+        if (uri != null && report != null) {
+            scope.launch {
+                busy = true
+                status = "Exporting the local benchmark report…"
+                try {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri, "wt").use { output ->
+                            requireNotNull(output) { "Could not open the selected export destination." }
+                            report.inputStream().use { input -> input.copyTo(output) }
+                        }
+                    }
+                    status = "Benchmark report exported through the selected document provider."
+                } catch (error: Exception) {
+                    status = error.message ?: "Could not export benchmark report."
+                } finally {
+                    busy = false
+                }
+            }
         }
     }
 
@@ -339,6 +366,7 @@ private fun ZalmoxisHome() {
                                     samples,
                                 )
                             }
+                            latestBenchmarkFile = file
                             val averageTotal = samples.map { it.totalMs }.average().toLong()
                             val firstTextTimes = samples.mapNotNull { it.firstTextMs }
                             val averageFirstText =
@@ -364,7 +392,17 @@ private fun ZalmoxisHome() {
             )
         }
         if (benchmarkSummary.isNotBlank()) {
-            Text(benchmarkSummary, style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(benchmarkSummary, style = MaterialTheme.typography.bodyMedium)
+                Button(
+                    onClick = {
+                        latestBenchmarkFile?.let { report ->
+                            benchmarkExporter.launch(report.name)
+                        }
+                    },
+                    enabled = !busy && latestBenchmarkFile != null,
+                ) { Text("Export JSON") }
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

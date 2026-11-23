@@ -14,7 +14,7 @@ interface; LiteRT-LM is the first runtime adapter.
 - On-device speech dictation through Android's on-device recognizer where available; microphone permission is requested only when dictation starts, with no network recognizer fallback.
 - User-triggered speech output using an installed Android TTS voice that reports no network requirement; network-required voices are never selected.
 - Basic per-turn first-text latency and elapsed-time measurements.
-- A fixed-prompt benchmark with one warm-up and three measured runs; raw results are saved as JSON with device and model metadata.
+- A fixed-prompt benchmark with one warm-up and three measured runs; raw results are saved as JSON with device and model metadata and can be exported through Android's document picker on explicit request.
 - No network permission, account sign-in, analytics SDK, MCP client, or model-provided tool execution.
 - The model is instructed that it can propose actions but has no tools.
 
