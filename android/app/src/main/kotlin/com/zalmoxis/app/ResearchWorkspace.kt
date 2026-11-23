@@ -41,6 +41,7 @@ internal fun ResearchWorkspace(
     onKnowledge: () -> Unit,
     initialTopic: String = "",
     onInitialTopicConsumed: () -> Unit = {},
+    initialSaveProposal: Boolean = false,
     localRuntime: OnDeviceInferenceRuntime? = null,
 ) {
     val context = LocalContext.current
@@ -102,6 +103,10 @@ internal fun ResearchWorkspace(
             topic = initialTopic
             onInitialTopicConsumed()
             search(initialTopic)
+            if (initialSaveProposal) {
+                selectedUrls = hits.map { it.url }.toSet()
+                status += " Sources preselected for your review; nothing has been saved."
+            }
         }
     }
 
