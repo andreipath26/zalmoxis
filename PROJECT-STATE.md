@@ -171,3 +171,8 @@ The branch-scoped workflow was triggered and retried. Both GitHub Actions attemp
 ## 2026-11-23 — Local image input
 
 Added optional image attachment through Android's document picker. The selected image is copied into the app's private cache, passed to LiteRT-LM as an image file with the user's prompt, then removed after inference. Startup clears stale temporary image files. No broad photo permission is requested. Image inference requires a multimodal model; this path has not been built or exercised because the local Gradle/Android SDK toolchain is unavailable and the remote runner failed before job startup.
+
+
+## 2026-11-23 — On-device speech input
+
+Added push-to-dictate using Android SpeechRecognizer's on-device instance (Android 12/API 31+ and only when the device reports availability). RECORD_AUDIO is requested at runtime only after the user presses the dictation control. Denial leaves text entry available, and there is no network-recognition fallback. Manifest includes the speech-service visibility query and marks microphone hardware optional. This is source-only; the local Android build and GitHub Actions runner are still unavailable.

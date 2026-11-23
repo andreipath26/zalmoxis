@@ -313,7 +313,7 @@ Private GitHub repository at github.com/andreipath26/zalmoxis. The tracked tree 
 
 ### 10.4 Initial Android implementation
 
-The Android app imports local .litertlm models into app-private storage, lists/selects/deletes them, restores the last-used model, and streams text plus optional image input through LiteRT-LM on CPU for compatible multimodal models. It includes a repeatable warm benchmark that records first-text latency, total time, and stream-event counts in a local JSON report. It does not report stream events as token throughput. It has no network permission, account integration, analytics, MCP client, or model-provided tools. The source is present but has not been built or validated. See android/README.md.
+The Android app imports local .litertlm models into app-private storage, lists/selects/deletes them, restores the last-used model, and streams text plus optional image input through LiteRT-LM on CPU for compatible multimodal models. It includes a repeatable warm benchmark that records first-text latency, total time, and stream-event counts in a local JSON report. It does not report stream events as token throughput. It includes optional on-device speech dictation with microphone permission requested only on tap. It has no network permission, account integration, analytics, MCP client, or model-provided tools. The source is present but has not been built or validated. See android/README.md.
 
 ### 10.5 What is not built
 

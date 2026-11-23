@@ -11,6 +11,7 @@ inference engine.
 - A LiteRT-LM CPU backend with streaming text and optional image input for compatible multimodal models.
 - A private local model shelf with size display, selection, deletion, and last-model restoration.
 - Image selection through Android's document picker, copied to private cache and deleted after the request; no broad photo permission.
+- On-device speech dictation through Android's on-device recognizer where available; microphone permission is requested only when dictation starts, with no network recognizer fallback.
 - Basic per-turn first-text latency and elapsed-time measurements.
 - A fixed-prompt benchmark with one warm-up and three measured runs; raw results are saved as JSON with device and model metadata.
 - No network permission, account sign-in, analytics SDK, MCP client, or model-provided tool execution.

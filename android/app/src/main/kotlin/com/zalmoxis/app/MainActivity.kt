@@ -1,6 +1,8 @@
 package com.zalmoxis.app
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -63,12 +66,55 @@ private fun ZalmoxisHome() {
     var status by remember { mutableStateOf("Choose a compatible .litertlm file stored on this device.") }
     var prompt by remember { mutableStateOf("") }
     var imageFile by remember { mutableStateOf<File?>(null) }
+    var speechInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
+    var speechActive by remember { mutableStateOf(false) }
     var response by remember { mutableStateOf("") }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
 
-    DisposableEffect(session) { onDispose { session.close() } }
+    DisposableEffect(session) {
+        onDispose {
+            session.close()
+            speechInput?.close()
+        }
+    }
+
+    fun startOnDeviceSpeech() {
+        try {
+            val input = OnDeviceSpeechInput(
+                context = context,
+                onResult = { recognizedText ->
+                    prompt = listOfNotNull(prompt.trim().takeIf { it.isNotEmpty() }, recognizedText)
+                        .joinToString(" ")
+                    status = "Dictation finished on device."
+                    speechActive = false
+                    speechInput = null
+                },
+                onError = { message ->
+                    status = message
+                    speechActive = false
+                    speechInput = null
+                },
+            )
+            speechInput = input
+            speechActive = true
+            status = "Listening. Speech recognition is on device."
+            input.start()
+        } catch (error: Exception) {
+            speechInput?.close()
+            speechInput = null
+            speechActive = false
+            status = error.message ?: "Could not start on-device speech recognition."
+        }
+    }
+
+    val microphonePermission = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startOnDeviceSpeech()
+        else status = "Microphone permission was declined. You can still type."
+    }
 
     fun loadModel(file: File) {
         scope.launch {
@@ -280,6 +326,33 @@ private fun ZalmoxisHome() {
         }
         if (benchmarkSummary.isNotBlank()) {
             Text(benchmarkSummary, style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    if (speechActive) {
+                        speechInput?.cancel()
+                        speechInput = null
+                        speechActive = false
+                        status = "Dictation stopped."
+                    } else if (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO,
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        startOnDeviceSpeech()
+                    } else {
+                        microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                enabled = !busy,
+            ) { Text(if (speechActive) "Stop dictation" else "Dictate on device") }
+            Text(
+                "Microphone access is requested only when dictation is started; there is no network fallback.",
+                modifier = Modifier.padding(top = 12.dp),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
 
         OutlinedTextField(
