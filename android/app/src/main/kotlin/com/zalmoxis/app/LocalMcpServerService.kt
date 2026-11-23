@@ -50,14 +50,14 @@ internal object LocalMcpState {
     const val URL = "http://127.0.0.1:$PORT/mcp"
     private const val STORE = "zalmoxis_local_mcp"
     private val random = SecureRandom()
-    @Volatile var running by mutableStateOf(false)
+    var running by mutableStateOf(false)
         private set
-    @Volatile var diagnostic by mutableStateOf("Stopped")
+    var diagnostic by mutableStateOf("Stopped")
         private set
 
     internal data class Task(val id: String, val message: String, val createdAt: Long, val reply: String? = null)
     private val tasks = LinkedHashMap<String, Task>()
-    @Volatile var revision by mutableStateOf(0)
+    var revision by mutableStateOf(0)
         private set
 
     @Synchronized fun inbox(): List<Task> = tasks.values.filter { it.reply == null }.toList()
