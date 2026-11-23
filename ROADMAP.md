@@ -1472,3 +1472,35 @@ The official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 **Deployment acceptance requirement:** A user can select DeepSeek, connect with supported account login (no model API key), request a task from Zalmoxis, receive a traceable answer, and send an appropriately authorized task back to the on-device agent without manually copying text—subject to active compatible Harness/agent session. If this cannot be demonstrated, explain the failure and retain the user-mediated DeepSeek handoff; never mislabel it as autonomous, direct or live.
 
 **Sources consulted (Nov 2026):** https://github.com/deepseek-ai/deepseek-harness ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/llm/llm-deepseek-account/README.md ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/account/deepseek-auth/README.md ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md ; https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/web/web-search-deepseek/README.md ; https://api-docs.deepseek.com/api/deepseek-api/ ; https://github.com/nezumi0627/deepseek-web-harness ; https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B .
+
+
+---
+
+# ADDENDUM (2026-11-23): REUSE ESTABLISHED MCP, OAUTH AND A2A INFRASTRUCTURE
+
+**Mandatory architecture correction after upstream due diligence:** Before further implementation, **reuse the official Model Context Protocol SDK, Cloudflare Agents MCP runtime and Workers OAuth Provider rather than implementing the MCP protocol and OAuth security by hand**. The first custom relay prototype in `bridge/src/index.js` is **not approved for production deployment**. Android manual Sharesheet remains a fallback. This addendum does not delete previous phases or DeepSeek requirements.
+
+**Approved reuse stack:**
+- https://github.com/modelcontextprotocol/typescript-sdk — official, spec-compatible MCP server/client and tools/transport handling (v2 for 2026-07-28 MCP).
+- https://github.com/cloudflare/agents — Cloudflare remote MCP Worker integration and supported handler.
+- https://github.com/cloudflare/workers-oauth-provider — OAuth 2.1 provider/resource-server authentication, pairing authorization, protected-resource metadata, clients and token validation.
+- https://github.com/a2aproject/A2A and https://github.com/a2aproject/a2a-js — official agent-to-agent task/status/artifact vocabulary; use for Zalmoxis/provider task semantics. A2A HTTP endpoints are a future adapter when official interoperability tests pass.
+- https://github.com/deepseek-ai/deepseek-harness — **mandatory** account-authenticated DeepSeek agent and MCP client validation. https://github.com/hyqhyq3/dsh-mcp-manager is a community OAuth/PKCE compatibility option requiring separate review.
+
+**Future infrastructure candidates:**
+- https://github.com/agentgateway/agentgateway — agent-native MCP+A2A security, routing and observability at multi-provider scale; defer until needed.
+- https://github.com/IBM/mcp-context-forge — MCP+A2A governance/federation; defer due to operational complexity.
+- https://github.com/supercorp-ai/supergateway and https://github.com/sparfenyuk/mcp-proxy — MCP stdio/Streamable HTTP adaptation only, not authorization.
+- https://github.com/open-webui/mcpo — OpenAPI translation where an agent client requires it; not default.
+- https://github.com/pipelab-org/pipelock — optional defense-in-depth inspection, not a replacement for permissions.
+- https://developers.cloudflare.com/agents/model-context-protocol/cloudflare/mcp-portal/ — optional managed federation.
+
+**Next bridge implementation order:**
+1. Freeze bespoke hand-coded public MCP endpoint. Keep its queue and phone client as non-production integration scaffolding.
+2. Bootstrap authenticated remote MCP server from first-party Cloudflare template; use official MCP tool schemas and OAuth implementation; do not embed provider tokens in code or APK.
+3. Implement scoped device pairing and outbound Android HTTPS connectivity with durable queue, TTL, rate limits, grant expiry, revocation and replay tests.
+4. Connect DeepSeek Harness first, with **account sign-in (not DeepSeek API key)** and verify both directions. Check MCP client OAuth compatibility; don't claim current consumer DeepSeek chat can be used as an MCP provider until verified.
+5. Reuse the same bridge for ChatGPT, Claude and Mistral according to their actual account capabilities; add A2A compatibility using the official SDK for autonomous task lifecycle as supported.
+6. Automated MCP conformance, OAuth/authorization, tenant isolation, mobile offline/reconnect, malicious message and two-way delivery tests; 10+ successful live round trips for each supported provider before deployment.
+
+**Detailed decision and tradeoffs:** `docs/decisions/MCP-BRIDGE-REUSE-ASSESSMENT.md`. **Evidence level:** Upstream research and architecture accepted; secure production MCP migration, live relay deployment, DeepSeek sign-in, Android APK build and real conversations are NOT complete.
