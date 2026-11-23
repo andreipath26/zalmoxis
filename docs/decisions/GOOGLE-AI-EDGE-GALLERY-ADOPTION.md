@@ -21,6 +21,27 @@ The initial conversation registers no tools, downloads no skills, and cannot cal
 
 The app also omits Gallery's Firebase analytics/messaging, Hugging Face OAuth setup, and unrelated media/vision integrations. It currently has no Android INTERNET permission. Model distribution and each model's license must be assessed separately before adding discovery, downloads, or bundled weights.
 
+## Gallery capability adoption map
+
+This map covers the rest of the Gallery surface found in its current Android source and project README. The entries extend the integration plan; they do not remove or rewrite Zalmoxis roadmap requirements.
+
+| Gallery capability | Zalmoxis use | Current state / integration boundary |
+|---|---|---|
+| LiteRT-LM local model inference | Local chat, later image/audio-capable model sessions | CPU text path is implemented. Add backend selection only with device/model measurements. |
+| Model discovery and downloads | Discover compatible local models and manage them | Private local shelf is implemented. Gallery's Hugging Face catalog/download flow is a reference for an opt-in catalog, transfer progress, resume, gated-model auth, and model metadata. Before network downloads, bind every artifact to source/revision, size, checksum, license, and deletion state. |
+| Model benchmark and device metrics | Target-phone model gate and reproducible performance records | Fixed-prompt warm benchmark is implemented with first-text latency, elapsed time, and stream events. Extend with engine-reported token counts, prefill/decode measurements, memory, temperature, and battery where the runtime exposes them; do not infer tok/s from event count. |
+| Image and audio input | Local document/photo/audio workflows | LiteRT-LM exposes multimodal content types. Build explicit picker-based attachments and capability checks per model; keep selected-file access scoped and never grant broad media access just for inference. |
+| Speech recognition and synthesis | Voice interaction in the roadmap | Gallery's service abstraction and selectable ASR/TTS engines are useful references. Verify true offline behavior, device coverage, language support, permissions, and model/license requirements before connecting a provider. |
+| Embeddings and semantic media search | Provenance-aware memory and document retrieval | Gallery's on-device embedding and media-search flows are a strong implementation reference for local embedding, index creation, and retrieval evaluation. Integrate behind a Zalmoxis memory-provider contract and compare relevance, deletion, identity isolation, latency, and storage use. |
+| Agent skills, MCP, JavaScript, and Android intents | Future bounded workflows and integrations | Reuse typed schemas, status presentation, and consent UX as design references. Keep tools unregistered in the base conversation. Every future invocation must pass Zalmoxis's exact-parameter policy gate and audit path; never accept Gallery's automatic execution or “always allow” as the authority. |
+| Mobile Actions and FunctionGemma demos | Local function-call experiments | Useful as a controlled simulator for measuring proposal quality and malformed calls. It does not replace Android platform permission checks or Zalmoxis authorization. |
+| Prompt Lab | Prompt and model regression workflow | Build a local prompt-evaluation screen on top of the current benchmark/report format, with versioned prompt cases and explicit memory/privacy assertions. |
+| DataStore, WorkManager, and model-download workers | Persist settings and run user-visible transfers | Reuse patterns for durable settings and cancellable downloads when those features are integrated. Do not run inference or consequential actions as invisible background work. |
+| Firebase analytics and messaging | No current Zalmoxis requirement | These Gallery app integrations conflict with the current no-network baseline and are not in this app foundation. Any later telemetry or push behavior needs an explicit product and privacy decision. |
+| XR, video moments, and media cards | Possible multimodal workflows | Gallery proves these are buildable on-device experiences; map them to concrete Zalmoxis memory or ingestion tasks before adding their UI and dependencies. |
+
+The Gallery repository is an experimental application, not a drop-in library module. The reusable technical seam is LiteRT-LM plus selected model-management, streaming, device-measurement, and media-processing patterns. Zalmoxis remains a separate app and retains its own runtime, memory, policy, and audit contracts.
+
 ## Sources
 
 - AI Edge Gallery source and Apache-2.0 license: https://github.com/google-ai-edge/gallery
