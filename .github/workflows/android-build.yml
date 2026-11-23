@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   assemble:
@@ -59,3 +59,58 @@ jobs:
         with:
           name: zalmoxis-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # Signed Android updates are published separately. Actions artifacts are ZIP
+      # archives, may expire, and must not be installed in place of signed APKs.
+      - name: Prepare persistent signing key
+        id: signing
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.ZALMOXIS_SIGNING_KEYSTORE_B64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ZALMOXIS_SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ZALMOXIS_SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ZALMOXIS_SIGNING_KEY_PASSWORD }}
+        run: |
+          if [[ -z "$SIGNING_KEYSTORE_BASE64" || -z "$SIGNING_STORE_PASSWORD" || -z "$SIGNING_KEY_ALIAS" || -z "$SIGNING_KEY_PASSWORD" ]]; then
+            echo "Signed updates are disabled: configure the four ZALMOXIS_SIGNING_* repository secrets."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          umask 077
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/zalmoxis-update-keystore.jks"
+          {
+            echo "ready=true"
+            echo "keystore=$RUNNER_TEMP/zalmoxis-update-keystore.jks"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Assemble persistently signed Android update APK
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          ZALMOXIS_KEYSTORE_PATH: ${{ steps.signing.outputs.keystore }}
+          ZALMOXIS_KEYSTORE_PASSWORD: ${{ secrets.ZALMOXIS_SIGNING_STORE_PASSWORD }}
+          ZALMOXIS_KEY_ALIAS: ${{ secrets.ZALMOXIS_SIGNING_KEY_ALIAS }}
+          ZALMOXIS_KEY_PASSWORD: ${{ secrets.ZALMOXIS_SIGNING_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --console=plain --build-cache
+
+      - name: Publish signed APK as a GitHub pre-release
+        if: steps.signing.outputs.ready == 'true'
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk"
+          mkdir -p "$RUNNER_TEMP/update"
+          cp "$apk" "$RUNNER_TEMP/update/zalmoxis-update.apk"
+          sha256sum "$RUNNER_TEMP/update/zalmoxis-update.apk"
+          gh release create "android-build-$GITHUB_RUN_NUMBER" \
+            "$RUNNER_TEMP/update/zalmoxis-update.apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Zalmoxis Android build $GITHUB_RUN_NUMBER" \
+            --notes "Signed Android update generated from successful main-branch build. Installation requires explicit Android user approval. Update compatibility depends on the original app signing certificate." \
+            --prerelease
