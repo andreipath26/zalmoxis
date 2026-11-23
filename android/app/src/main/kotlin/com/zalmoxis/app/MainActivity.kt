@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -101,7 +102,7 @@ private fun ZalmoxisHome() {
     var modelName by remember { mutableStateOf<String?>(null) }
     var modelSha256 by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf("Choose a compatible .litertlm file stored on this device.") }
-    var prompt by remember { mutableStateOf("") }
+    var prompt by rememberSaveable { mutableStateOf("") }
     var imageFile by remember { mutableStateOf<File?>(null) }
     var speechInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
     var speechActive by remember { mutableStateOf(false) }
@@ -189,7 +190,7 @@ private fun ZalmoxisHome() {
                 newRuntime.load(context, file)
                 val previousRuntime = session
                 session = newRuntime
-                previousRuntime?.close()
+                withContext(Dispatchers.IO) { previousRuntime?.close() }
                 modelName = file.name
                 modelSha256 = verifiedSha256
                 context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
@@ -202,7 +203,7 @@ private fun ZalmoxisHome() {
                 latestBenchmarkFile = null
                 status = "Ready. Inference stays on this device."
             } catch (error: Exception) {
-                newRuntime.close()
+                withContext(Dispatchers.IO) { newRuntime.close() }
                 status = error.message ?: "Could not load this model."
             } finally {
                 busy = false
@@ -447,7 +448,9 @@ private fun ZalmoxisHome() {
                         var outputChunks = 0
                         try {
                             checkNotNull(session) { "Load a local model first." }
-                                .stream(submitted, selectedImage).collect { piece ->
+                                .stream(submitted, selectedImage)
+                                .flowOn(Dispatchers.Default)
+                                .collect { piece ->
                                 if (firstOutputMs == null) {
                                     firstOutputMs = (System.nanoTime() - startedAt) / 1_000_000L
                                 }
