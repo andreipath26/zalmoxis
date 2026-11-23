@@ -240,21 +240,64 @@ internal fun V2VoicePanel(isListening: Boolean, feedback: String, onToggle: () -
 
 @Composable
 internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Workspace", style = MaterialTheme.typography.headlineMedium)
-        Text("Local tools and capabilities. Actions requiring agent permissions are not yet available.", color = ZalmoxisV2.muted)
+        Text(
+            "Your personal AI toolkit. Capabilities unlock as they are implemented and verified.",
+            color = ZalmoxisV2.muted,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        val tiles = listOf(
+            Triple("▤", "Summarize documents", false),
+            Triple("◫", "Analyze information", false),
+            Triple("⌕", "Research assistant", false),
+            Triple("✎", "Writing assistant", false),
+            Triple("▦", "Plan & organize", false),
+            Triple("◇", "Custom workflows", false),
+        )
+        tiles.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                pair.forEach { (glyph, label, available) ->
+                    Surface(
+                        modifier = Modifier.weight(1f).height(122.dp),
+                        color = ZalmoxisV2.panel,
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, ZalmoxisV2.stroke),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(glyph, color = ZalmoxisV2.accent, style = MaterialTheme.typography.headlineSmall)
+                            Text(label, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                if (available) "Available" else "Coming later",
+                                color = ZalmoxisV2.muted,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Text("Available now", style = MaterialTheme.typography.titleMedium)
         V2QuickAction("Knowledge library", "▤", onKnowledge)
         V2QuickAction("Manage local AI models", "⬡", onModels)
-        listOf("Summarize documents", "Analyze information", "Research assistant", "Writing assistant", "Plan & organize", "Custom workflows").forEach { label ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = ZalmoxisV2.panel,
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, ZalmoxisV2.stroke),
-            ) {
-                Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(label)
-                    Text("Planned", color = ZalmoxisV2.muted, style = MaterialTheme.typography.labelSmall)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = ZalmoxisV2.panel,
+            border = BorderStroke(1.dp, ZalmoxisV2.stroke),
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Capabilities", style = MaterialTheme.typography.titleMedium)
+                listOf(
+                    "✓  Local AI model inference",
+                    "✓  Local text knowledge search",
+                    "✓  On-device speech, if installed",
+                    "○  Policy-gated agent actions — planned",
+                ).forEach { line ->
+                    Text(line, style = MaterialTheme.typography.bodySmall, color = ZalmoxisV2.muted)
                 }
             }
         }
