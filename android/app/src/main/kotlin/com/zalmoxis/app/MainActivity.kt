@@ -579,7 +579,9 @@ private fun ZalmoxisHome() {
                     )
                 }
                 HomeTab.SETTINGS -> {
-                    Text("SETTINGS & DIAGNOSTICS", style = MaterialTheme.typography.titleMedium)
+                    Text("Settings", style = MaterialTheme.typography.headlineMedium)
+                    AppUpdateSettings()
+                    Text("Diagnostics", style = MaterialTheme.typography.titleMedium)
         if (modelName != null && session != null) {
             Button(
                 onClick = {
