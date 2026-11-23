@@ -3,6 +3,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-23",
   "compatibility_flags": ["nodejs_compat"],
+  "triggers": { "crons": ["0 4 * * *"] },
   "vars": {
     "MCP_SERVER_URL": "https://YOUR-MCP.WORKERS.DEV/mcp",
     "AUTH_SERVER_URL": "https://YOUR-AUTH.WORKERS.DEV"
