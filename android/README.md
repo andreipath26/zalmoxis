@@ -6,7 +6,7 @@ interface; LiteRT-LM is the first runtime adapter.
 
 ## What is present
 
-- A Jetpack Compose Android shell.
+- A Jetpack Compose Android shell with a KILN-inspired charcoal-and-lime dark theme and separate Chat, Downloads, and Settings tabs. Chat, model management, and diagnostics stay in separate spaces while sharing the active runtime and in-progress state.
 - Local model import through Android's document picker into private app storage.
 - An OnDeviceInferenceRuntime contract and LiteRT-LM CPU adapter with streaming text and optional image input for compatible multimodal models.
 - A private local model shelf with size and SHA-256 display, selection, deletion, last-model restoration, local digest verification before loading, and explicit unknown-license labeling for local imports. Invalid receipts keep the model visible for replacement but disable loading. The digest identifies the local file but does not authenticate its publisher.
