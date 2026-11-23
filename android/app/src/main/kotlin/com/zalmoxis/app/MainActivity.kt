@@ -88,8 +88,10 @@ class MainActivity : ComponentActivity() {
 
 private enum class HomeTab(val title: String) {
     CHAT("Chat"),
+    VOICE("Voice"),
     KNOWLEDGE("Knowledge"),
-    DOWNLOADS("Downloads"),
+    DOWNLOADS("Models"),
+    WORKSPACE("Workspace"),
     SETTINGS("Settings"),
 }
 
@@ -315,42 +317,12 @@ private fun ZalmoxisHome() {
 
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text("ZALMOXIS", style = MaterialTheme.typography.headlineSmall, maxLines = 1)
-            Text(
-                "LOCAL MODEL WORKSPACE",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                status,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 4,
-            )
-            ScrollableTabRow(
-                selectedTabIndex = selectedTab.ordinal,
-                containerColor = MaterialTheme.colorScheme.background,
-                edgePadding = 0.dp,
-            ) {
-                HomeTab.values().forEach { tab ->
-                    Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(tab.title) },
-                    )
-                }
-            }
-        }
+        V2Header(onSettings = { selectedTab = HomeTab.SETTINGS })
         val activeScroll = when (selectedTab) {
-            HomeTab.CHAT -> chatScrollState
+            HomeTab.CHAT, HomeTab.VOICE -> chatScrollState
             HomeTab.KNOWLEDGE -> knowledgeScrollState
             HomeTab.DOWNLOADS -> downloadsScrollState
-            HomeTab.SETTINGS -> settingsScrollState
+            HomeTab.WORKSPACE, HomeTab.SETTINGS -> settingsScrollState
         }
         Column(
             modifier = Modifier
@@ -362,7 +334,13 @@ private fun ZalmoxisHome() {
         ) {
             when (selectedTab) {
                 HomeTab.CHAT -> {
-                    Text("CHAT", style = MaterialTheme.typography.titleMedium)
+                    if (activePrompt.isEmpty() && priorTurns.isEmpty()) {
+                        V2Welcome(
+                            onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
+                            onModels = { selectedTab = HomeTab.DOWNLOADS },
+                            onVoice = { selectedTab = HomeTab.VOICE },
+                        )
+                    }
                     Text(
                         modelName?.let { "Active model · $it" }
                             ?: "No model loaded. Choose one in Downloads to start a conversation.",
@@ -554,6 +532,33 @@ private fun ZalmoxisHome() {
             )
         }
                 }
+                HomeTab.VOICE -> {
+                    V2VoicePanel(
+                        isListening = speechActive,
+                        feedback = status,
+                        onToggle = {
+                            if (speechActive) {
+                                speechInput?.cancel()
+                                speechInput = null
+                                speechActive = false
+                                status = "Dictation stopped."
+                            } else if (ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.RECORD_AUDIO,
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                startOnDeviceSpeech()
+                            } else {
+                                microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        onBack = { selectedTab = HomeTab.CHAT },
+                    )
+                    if (prompt.isNotBlank()) {
+                        Text("Transcript", style = MaterialTheme.typography.titleMedium)
+                        Text(prompt, style = MaterialTheme.typography.bodyLarge)
+                        Button(onClick = { selectedTab = HomeTab.CHAT }) { Text("Use in chat") }
+                    }
+                }
                 HomeTab.KNOWLEDGE -> {
                     KnowledgeWorkspace(
                         busy = busy,
@@ -634,6 +639,12 @@ private fun ZalmoxisHome() {
             )
         }
                 }
+                HomeTab.WORKSPACE -> {
+                    V2Workspace(
+                        onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
+                        onModels = { selectedTab = HomeTab.DOWNLOADS },
+                    )
+                }
                 HomeTab.SETTINGS -> {
                     Text("SETTINGS & DIAGNOSTICS", style = MaterialTheme.typography.titleMedium)
         if (modelName != null && session != null) {
@@ -711,6 +722,12 @@ private fun ZalmoxisHome() {
                 }
             }
         }
+        V2Navigation(
+            selected = if (selectedTab == HomeTab.VOICE || selectedTab == HomeTab.SETTINGS) "CHAT" else selectedTab.name,
+            onNavigate = { key ->
+                selectedTab = HomeTab.valueOf(key)
+            },
+        )
     }
 
 
