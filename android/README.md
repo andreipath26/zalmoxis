@@ -1,14 +1,14 @@
 # Zalmoxis Android foundation
 
-This is the first Android application foundation. It uses the Google AI Edge
-Gallery's local model workflow as a reference and LiteRT-LM as its on-device
-inference engine.
+This is the first Android application foundation. It adapts Google AI Edge
+Gallery's local model workflow behind a Zalmoxis-owned on-device runtime
+interface; LiteRT-LM is the first runtime adapter.
 
 ## What is present
 
 - A Jetpack Compose Android shell.
 - Local model import through Android's document picker into private app storage.
-- A LiteRT-LM CPU backend with streaming text and optional image input for compatible multimodal models.
+- An OnDeviceInferenceRuntime contract and LiteRT-LM CPU adapter with streaming text and optional image input for compatible multimodal models.
 - A private local model shelf with size display, selection, deletion, and last-model restoration.
 - Image selection through Android's document picker, copied to private cache and deleted after the request; no broad photo permission.
 - On-device speech dictation through Android's on-device recognizer where available; microphone permission is requested only when dictation starts, with no network recognizer fallback.

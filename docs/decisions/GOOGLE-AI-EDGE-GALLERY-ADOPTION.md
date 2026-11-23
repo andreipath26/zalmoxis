@@ -27,7 +27,7 @@ This map covers the rest of the Gallery surface found in its current Android sou
 
 | Gallery capability | Zalmoxis use | Current state / integration boundary |
 |---|---|---|
-| LiteRT-LM local model inference | Local chat, later image/audio-capable model sessions | CPU text path is implemented. Add backend selection only with device/model measurements. |
+| LiteRT-LM local model inference | Local chat, later image/audio-capable model sessions | An OnDeviceInferenceRuntime contract and LiteRT-LM CPU adapter are implemented. Add accelerator selection only with device/model measurements. |
 | Model discovery and downloads | Discover compatible local models and manage them | Private local shelf is implemented. Gallery's Hugging Face catalog/download flow is a reference for an opt-in catalog, transfer progress, resume, gated-model auth, and model metadata. Before network downloads, bind every artifact to source/revision, size, checksum, license, and deletion state. |
 | Model benchmark and device metrics | Target-phone model gate and reproducible performance records | Fixed-prompt warm benchmark is implemented with first-text latency, elapsed time, and stream events. Extend with engine-reported token counts, prefill/decode measurements, memory, temperature, and battery where the runtime exposes them; do not infer tok/s from event count. |
 | Image and audio input | Local document/photo/audio workflows | Image attachment is implemented through Android's document picker and a private temporary file, with no broad media permission; models must support vision. Speech-to-text dictation uses Android's available on-device recognition service. Direct audio-to-model input remains a separate model capability and needs explicit permission/capability checks. |
@@ -52,6 +52,6 @@ The Gallery repository is an experimental application, not a drop-in library mod
 ## Follow-on integration boundaries
 
 1. Model discovery/transfer needs source, integrity metadata, license, and deletion handling. The local shelf now covers import, selection, deletion, and reload. Repeat benchmark reports remain in app-private storage.
-2. Add a runtime interface before adopting a second engine; compare LiteRT-LM with KILN/llama.cpp on target phones and supported model formats.
+2. The runtime interface is in place. Implement and compare a KILN/llama.cpp adapter on target phones and supported model formats before claiming Android GGUF/KILN support.
 3. Keep all action proposals in a deterministic authorization pipeline; never register an automatically executed tool with model inference.
 4. Preserve Gallery's device/performance visibility and connect it to measured phone acceptance gates.

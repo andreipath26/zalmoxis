@@ -176,3 +176,8 @@ Added optional image attachment through Android's document picker. The selected 
 ## 2026-11-23 — On-device speech input
 
 Added push-to-dictate using Android SpeechRecognizer's on-device instance (Android 12/API 31+ and only when the device reports availability). RECORD_AUDIO is requested at runtime only after the user presses the dictation control. Denial leaves text entry available, and there is no network-recognition fallback. Manifest includes the speech-service visibility query and marks microphone hardware optional. This is source-only; the local Android build and GitHub Actions runner are still unavailable.
+
+
+## 2026-11-23 — Runtime adapter boundary
+
+Extracted the app-facing OnDeviceInferenceRuntime interface and retained LiteRT-LM as its first CPU adapter. Model loading now selects the registered runtime by file format and rejects unregistered formats explicitly. Benchmark reports record runtime and backend identifiers. This creates the integration seam for KILN/llama.cpp while making no claim that its Android backend is implemented.

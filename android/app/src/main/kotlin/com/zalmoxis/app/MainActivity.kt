@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
 private fun ZalmoxisHome() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val session = remember { LocalInferenceSession() }
+    var session by remember { mutableStateOf<OnDeviceInferenceRuntime?>(null) }
     var models by remember { mutableStateOf(emptyList<LocalModel>()) }
     var modelName by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf("Choose a compatible .litertlm file stored on this device.") }
@@ -73,9 +73,9 @@ private fun ZalmoxisHome() {
     var benchmarkSummary by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
 
-    DisposableEffect(session) {
+    DisposableEffect(Unit) {
         onDispose {
-            session.close()
+            session?.close()
             speechInput?.close()
         }
     }
@@ -117,11 +117,15 @@ private fun ZalmoxisHome() {
     }
 
     fun loadModel(file: File) {
+        val newRuntime = LocalInferenceRuntimeFactory.createFor(file)
         scope.launch {
             busy = true
             status = "Loading model on CPU…"
             try {
-                session.load(context, file)
+                newRuntime.load(context, file)
+                val previousRuntime = session
+                session = newRuntime
+                previousRuntime?.close()
                 modelName = file.name
                 context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
                     .edit().putString("last_model_name", file.name).apply()
@@ -130,6 +134,7 @@ private fun ZalmoxisHome() {
                 benchmarkSummary = ""
                 status = "Ready. Inference stays on this device."
             } catch (error: Exception) {
+                newRuntime.close()
                 status = error.message ?: "Could not load this model."
             } finally {
                 busy = false
@@ -137,7 +142,7 @@ private fun ZalmoxisHome() {
         }
     }
 
-    LaunchedEffect(session) {
+    LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             File(context.cacheDir, "zalmoxis-attachments").deleteRecursively()
         }
@@ -149,10 +154,14 @@ private fun ZalmoxisHome() {
             busy = true
             status = "Restoring the last local model…"
             try {
-                session.load(context, savedFile)
+                val restoredRuntime = LocalInferenceRuntimeFactory.createFor(savedFile)
+                restoredRuntime.load(context, savedFile)
+                session = restoredRuntime
                 modelName = savedFile.name
                 status = "Ready. Inference stays on this device."
             } catch (error: Exception) {
+                session?.close()
+                session = null
                 status = error.message ?: "Could not restore the local model."
             } finally {
                 busy = false
@@ -242,7 +251,8 @@ private fun ZalmoxisHome() {
                                 busy = true
                                 try {
                                     if (model.name == modelName) {
-                                        session.close()
+                                        session?.close()
+                                        session = null
                                         modelName = null
                                         context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
                                             .edit().remove("last_model_name").apply()
@@ -285,7 +295,7 @@ private fun ZalmoxisHome() {
             }
         }
 
-        if (modelName != null) {
+        if (modelName != null && session != null) {
             Button(
                 onClick = {
                     scope.launch {
@@ -293,12 +303,19 @@ private fun ZalmoxisHome() {
                         benchmarkSummary = ""
                         status = "Running one warm-up and three measured CPU runs…"
                         try {
-                            val samples = session.runWarmBenchmark(
+                            val activeRuntime = checkNotNull(session)
+                            val samples = activeRuntime.runWarmBenchmark(
                                 prompt = "Reply with exactly OK.",
                                 measuredRuns = 3,
                             )
                             val file = withContext(Dispatchers.IO) {
-                                saveBenchmarkReport(context, modelName!!, samples)
+                                saveBenchmarkReport(
+                                    context,
+                                    modelName!!,
+                                    activeRuntime.runtimeName,
+                                    activeRuntime.backendName,
+                                    samples,
+                                )
                             }
                             val averageTotal = samples.map { it.totalMs }.average().toLong()
                             val firstTextTimes = samples.mapNotNull { it.firstTextMs }
@@ -381,7 +398,8 @@ private fun ZalmoxisHome() {
                         var firstOutputMs: Long? = null
                         var outputChunks = 0
                         try {
-                            session.stream(submitted, selectedImage).collect { piece ->
+                            checkNotNull(session) { "Load a local model first." }
+                                .stream(submitted, selectedImage).collect { piece ->
                                 if (firstOutputMs == null) {
                                     firstOutputMs = (System.nanoTime() - startedAt) / 1_000_000L
                                 }
@@ -427,6 +445,8 @@ private fun formatBytes(size: Long): String = when {
 private suspend fun saveBenchmarkReport(
     context: Context,
     modelName: String,
+    runtimeName: String,
+    backendName: String,
     samples: List<InferenceSample>,
 ): File {
     val directory = File(context.filesDir, "benchmarks").apply { mkdirs() }
@@ -445,7 +465,8 @@ private suspend fun saveBenchmarkReport(
         .put("schema_version", 1)
         .put("created_at_epoch_ms", createdAt)
         .put("model_file", modelName)
-        .put("backend", "CPU")
+        .put("runtime", runtimeName)
+        .put("backend", backendName)
         .put("device_manufacturer", Build.MANUFACTURER)
         .put("device_model", Build.MODEL)
         .put("android_api", Build.VERSION.SDK_INT)
