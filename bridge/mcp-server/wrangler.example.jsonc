@@ -1,0 +1,16 @@
+{
+  "name": "zalmoxis-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "MCP_SERVER_URL": "https://YOUR-MCP.WORKERS.DEV/mcp",
+    "AUTH_SERVER_URL": "https://YOUR-AUTH.WORKERS.DEV"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "zalmoxis-bridge", "database_id": "REPLACE_WITH_D1_DATABASE_ID" }
+  ],
+  "services": [
+    { "binding": "AUTH_SERVER", "service": "YOUR-DEPLOYED-OAUTH-AUTH-SERVER" }
+  ]
+}
