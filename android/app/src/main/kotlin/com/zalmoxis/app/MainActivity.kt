@@ -12,8 +12,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -53,9 +56,18 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = ZalmoxisDarkColors.background.toArgb()
+        window.navigationBarColor = ZalmoxisDarkColors.background.toArgb()
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) { ZalmoxisHome() }
+            ZalmoxisTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) { ZalmoxisHome() }
             }
         }
     }
@@ -278,54 +290,61 @@ private fun ZalmoxisHome() {
         if (models.isNotEmpty()) {
             Text("Models on this device", style = MaterialTheme.typography.titleMedium)
             models.forEach { model ->
-                Row(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
-                    Text(
-                        if (model.provenanceValid) {
-                            "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                                "SHA-256 ${model.sha256.take(16)}…\n" +
-                                "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
-                                "License: ${model.licenseStatus}"
-                        } else {
-                            "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
-                                "Provenance record invalid · Reimport this model to use it."
-                        },
-                        modifier = Modifier.weight(1f).padding(top = 10.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Button(
-                        onClick = { loadModel(model.file) },
-                        enabled = !busy && model.name != modelName && model.provenanceValid,
-                    ) { Text(if (model.name == modelName) "Loaded" else "Load") }
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                busy = true
-                                try {
-                                    if (model.name == modelName) {
-                                        session?.close()
-                                        session = null
-                                        modelName = null
-                                        modelSha256 = null
-                                        context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
-                                            .edit().remove("last_model_name").apply()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            if (model.provenanceValid) {
+                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                                    "SHA-256 ${model.sha256.take(16)}…\n" +
+                                    "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
+                                    "License: ${model.licenseStatus}"
+                            } else {
+                                "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                                    "Provenance record invalid · Reimport this model to use it."
+                            },
+                            modifier = Modifier.weight(1f).padding(top = 10.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Button(
+                            onClick = { loadModel(model.file) },
+                            enabled = !busy && model.name != modelName && model.provenanceValid,
+                        ) { Text(if (model.name == modelName) "Loaded" else "Load") }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    busy = true
+                                    try {
+                                        if (model.name == modelName) {
+                                            session?.close()
+                                            session = null
+                                            modelName = null
+                                            modelSha256 = null
+                                            context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+                                                .edit().remove("last_model_name").apply()
+                                        }
+                                        val deleted = withContext(Dispatchers.IO) {
+                                            LocalModelCatalog.delete(model)
+                                        }
+                                        models = withContext(Dispatchers.IO) {
+                                            LocalModelCatalog.list(context)
+                                        }
+                                        status = if (deleted) "Model deleted from app storage." else "Could not delete model."
+                                    } finally {
+                                        busy = false
                                     }
-                                    val deleted = withContext(Dispatchers.IO) {
-                                        LocalModelCatalog.delete(model)
-                                    }
-                                    models = withContext(Dispatchers.IO) {
-                                        LocalModelCatalog.list(context)
-                                    }
-                                    status = if (deleted) "Model deleted from app storage." else "Could not delete model."
-                                } finally {
-                                    busy = false
                                 }
-                            }
-                        },
-                        enabled = !busy,
-                    ) { Text("Delete") }
+                            },
+                            enabled = !busy,
+                        ) { Text("Delete") }
+                    }
                 }
             }
         }
@@ -514,7 +533,18 @@ private fun ZalmoxisHome() {
         if (metrics.isNotBlank()) Text(metrics, style = MaterialTheme.typography.bodySmall)
         if (response.isNotBlank()) {
             Text("Response", style = MaterialTheme.typography.titleMedium)
-            Text(response, style = MaterialTheme.typography.bodyLarge)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Text(
+                    response,
+                    modifier = Modifier.padding(14.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
         }
 
         if (response.isNotBlank()) {
@@ -603,60 +633,75 @@ private fun CatalogDownloadCard(
         transferStatus == ModelDownloadStatus.ENQUEUED
     val finished = transferStatus == ModelDownloadStatus.SUCCEEDED && installed
 
-    Column(
+    Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Text(entry.displayName, style = MaterialTheme.typography.titleSmall)
-        Text(
-            "${entry.summary} ${formatBytes(entry.sizeBytes)} · ${entry.minimumMemoryGb} GB RAM guidance · " +
-                "${entry.modalities.joinToString().replaceFirstChar { it.uppercase() }} · ${entry.licenseName}",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            "Source: ${entry.repoId} at pinned revision ${entry.revision.take(10)}… · License: ${entry.licenseUrl}",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        if (active) {
-            Text(
-                if (progressPercent >= 0) {
-                    "Downloading: $progressPercent% (${formatBytes(downloaded)} / ${formatBytes(total)})"
-                } else {
-                    "Download queued…"
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        if (transferStatus == ModelDownloadStatus.FAILED) {
-            Text(
-                downloadState?.error ?: "Download failed. Retry to resume the verified partial transfer.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        if (transferStatus == ModelDownloadStatus.CANCELLED) {
-            Text("Download cancelled. A valid partial transfer may resume on retry.", style = MaterialTheme.typography.bodySmall)
-        }
-        actionMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-        Button(
-            onClick = {
-                if (active) {
-                    ModelDownloadCoordinator.cancel(context, entry.id)
-                } else if (!finished) {
-                    actionMessage = if (ModelDownloadCoordinator.start(context, entry.id)) null
-                    else "Download could not be started."
-                }
-            },
-            enabled = active || !finished,
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            Text(entry.displayName, style = MaterialTheme.typography.titleSmall)
             Text(
-                when {
-                    active -> "Cancel download"
-                    finished -> "Installed"
-                    transferStatus == ModelDownloadStatus.FAILED ||
-                        transferStatus == ModelDownloadStatus.CANCELLED -> "Retry download"
-                    else -> "Download"
-                }
+                "${entry.summary} ${formatBytes(entry.sizeBytes)} · ${entry.minimumMemoryGb} GB RAM guidance · " +
+                    "${entry.modalities.joinToString().replaceFirstChar { it.uppercase() }} · ${entry.licenseName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                "Source: ${entry.repoId} at pinned revision ${entry.revision.take(10)}… · License: ${entry.licenseUrl}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (active) {
+                Text(
+                    if (progressPercent >= 0) {
+                        "Downloading: $progressPercent% (${formatBytes(downloaded)} / ${formatBytes(total)})"
+                    } else {
+                        "Download queued…"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (transferStatus == ModelDownloadStatus.FAILED) {
+                Text(
+                    downloadState?.error ?: "Download failed. Retry to resume the verified partial transfer.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (transferStatus == ModelDownloadStatus.CANCELLED) {
+                Text(
+                    "Download cancelled. A valid partial transfer may resume on retry.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            actionMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            Button(
+                onClick = {
+                    if (active) {
+                        ModelDownloadCoordinator.cancel(context, entry.id)
+                    } else if (!finished) {
+                        actionMessage = if (ModelDownloadCoordinator.start(context, entry.id)) null
+                        else "Download could not be started."
+                    }
+                },
+                enabled = active || !finished,
+            ) {
+                Text(
+                    when {
+                        active -> "Cancel download"
+                        finished -> "Installed"
+                        transferStatus == ModelDownloadStatus.FAILED ||
+                            transferStatus == ModelDownloadStatus.CANCELLED -> "Retry download"
+                        else -> "Download"
+                    }
+                )
+            }
         }
     }
 }
