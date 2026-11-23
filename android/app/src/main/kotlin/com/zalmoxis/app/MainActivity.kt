@@ -87,6 +87,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Explicit user research commands route to scoped research; ordinary chat stays local. */
+internal fun researchTopicFromChat(message: String): String? {
+    val match = Regex(
+        "^(?:research|search(?: the web)? for|find (?:github )?repositories (?:for|about)|look up)\\s+(.{3,160})$",
+        RegexOption.IGNORE_CASE,
+    ).matchEntire(message.trim()) ?: return null
+    return match.groupValues[1].trim().takeIf { it.length >= 3 }
+}
+
 private enum class HomeTab(val title: String) {
     CHAT("Chat"),
     VOICE("Voice"),
@@ -123,6 +132,7 @@ private fun ZalmoxisHome() {
     var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
     var busy by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.CHAT) }
+    var researchTopic by rememberSaveable { mutableStateOf("") }
     var availableAppUpdate by remember { mutableStateOf<AppUpdate?>(null) }
     val chatScrollState = rememberScrollState()
     val knowledgeScrollState = rememberScrollState()
@@ -601,6 +611,7 @@ private fun ZalmoxisHome() {
                     ResearchWorkspace(
                         onBack = { selectedTab = HomeTab.WORKSPACE },
                         onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
+                        initialTopic = researchTopic,
                     )
                 }
                 HomeTab.SETTINGS -> {
@@ -742,6 +753,13 @@ private fun ZalmoxisHome() {
                                             if (selectedImage != null) "Describe this image." else ""
                                         }
                                         if (submitted.isNotEmpty()) {
+                                            val researchRequest = if (selectedImage == null)
+                                                researchTopicFromChat(submitted) else null
+                                            if (researchRequest != null) {
+                                                researchTopic = researchRequest
+                                                prompt = ""
+                                                selectedTab = HomeTab.RESEARCH
+                                            } else {
                                             if (activePrompt.isNotBlank()) {
                                                 priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
                                             }
@@ -776,9 +794,11 @@ private fun ZalmoxisHome() {
                                                     busy = false
                                                 }
                                             }
+                                            }
                                         }
                                     },
-                                    enabled = modelName != null && (prompt.isNotBlank() || imageFile != null) && !busy,
+                                    enabled = (modelName != null || researchTopicFromChat(prompt) != null) &&
+                                        (prompt.isNotBlank() || imageFile != null) && !busy,
                                 ) {
                                     V2Icon("Send", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimary)
                                 }
