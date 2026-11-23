@@ -6,6 +6,19 @@ import org.junit.Test
 
 /** Deterministic no-network regression tests for the first native Research channel. */
 class NativeResearchPolicyTest {
+    @Test fun chatResearchCommandsDoNotRequirePastedLinks() {
+        assertEquals("offline AI agents for Android",
+            researchTopicFromChat("Research offline AI agents for Android"))
+        assertEquals("Android on-device models",
+            researchTopicFromChat("Search the web for Android on-device models"))
+        assertEquals("open-source OCR",
+            researchTopicFromChat("Research open-source OCR and save findings to my Knowledge"))
+        assertTrue(hasResearchSaveDirective(
+            "Research open-source OCR and save findings to my Knowledge"))
+        assertTrue(!hasResearchSaveDirective("Research open-source OCR"))
+        assertEquals(null, researchTopicFromChat("Explain what research is"))
+    }
+
     @Test fun onlyApprovedSourcesAreAdvertised() {
         val sources = NativeResearch.supportedSources()
         assertEquals(2, sources.size)
