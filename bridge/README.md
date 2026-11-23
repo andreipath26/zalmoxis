@@ -53,7 +53,7 @@ npx wrangler d1 create zalmoxis-bridge
 
 Write the returned KV ID into `bridge/auth-server/wrangler.jsonc` and D1 ID into `bridge/mcp-server/wrangler.jsonc`. Copy the checked-in `wrangler.example.jsonc` files to `wrangler.jsonc`; do not publish live account IDs or credentials. Configure the exact HTTPS auth/MCP URLs (MCP URL **ends in /mcp**) and the Access team domain/audience. Create a Cloudflare Access policy protecting the authorization route for your account and verify the Access JWT is available to the Worker. Authorization fails closed without a valid Access JWT.
 
-### 2. Apply both database migrations
+### 2. Apply all database migrations
 
 ```bash
 npx wrangler d1 migrations apply zalmoxis-bridge --remote --config bridge/mcp-server/wrangler.jsonc
@@ -64,6 +64,7 @@ Cloudflare Wrangler migrations require the configured `migrations_dir` to point 
 ```bash
 npx wrangler d1 execute zalmoxis-bridge --remote --file=bridge/migrations/0001_init.sql --config bridge/mcp-server/wrangler.jsonc
 npx wrangler d1 execute zalmoxis-bridge --remote --file=bridge/migrations/0002_oauth_pairing.sql --config bridge/mcp-server/wrangler.jsonc
+npx wrangler d1 execute zalmoxis-bridge --remote --file=bridge/migrations/0003_client_isolation.sql --config bridge/mcp-server/wrangler.jsonc
 ```
 
 Apply these once in order. Do not re-run the non-idempotent `ALTER TABLE` migration against an already-migrated database.
@@ -94,7 +95,7 @@ Before any phone pairing, an unauthenticated MCP request to `/mcp` must receive 
 
 Use a supported provider's custom MCP connection flow to connect to `https://YOUR-MCP.WORKERS.DEV/mcp`. Approve OAuth in the browser. After consent, call `create_pairing_code(provider)` and enter the one-time code in **Zalmoxis → Workspace → Agent Bridge** along with the MCP Worker origin. The code is valid for 15 minutes, single-use and throttled by IP at 10 attempts per 15 minutes. The phone stores the issued token using Android Keystore AES-GCM.
 
-Provider-initiated `send_task` queues a message. The phone may accept it, type a reply or reject. Phone-originated `send` queues a message that a running agent can retrieve with `list_phone_requests` and respond to using `reply_to_phone`. An idle consumer AI chat is not automatically awakened by MCP.
+Each OAuth client ID has its own bridge channel and cannot read another client’s queue. Provider-initiated `send_task` queues a message. The phone may accept it, type a reply or reject. Phone-originated `send` queues a message that a running agent can retrieve with `list_phone_requests` and respond to using `reply_to_phone`. An idle consumer AI chat is not automatically awakened by MCP.
 
 ### Provider-specific setup
 
