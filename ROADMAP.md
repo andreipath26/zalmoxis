@@ -1,10 +1,13 @@
-SENTINEL: THE COMPLETE ROADMAP (V10 — REFINED BY FULL INDEPENDENT ASSESSMENT)
+ZALMOXIS: THE COMPLETE ROADMAP (V10 — REFINED BY FULL INDEPENDENT ASSESSMENT)
+
+Sentinel was the former name for Zalmoxis; it is not a separate product. “Sentinel Watch” remains the name of the Phase 3 component.
+
 
 Everything from V9. Every finding from the assessment integrated. Nothing removed.
 PART ONE: THE PRODUCT THESIS
-What Sentinel Is
+What Zalmoxis Is
 
-Sentinel is an Android-native AI agent that remembers, reasons, and acts 
+Zalmoxis is an Android-native AI agent that remembers, reasons, and acts 
 locally, while making its permissions, decisions, data access, 
 and failures inspectable by the person who owns it.
 
@@ -13,17 +16,17 @@ It is not the phone control.
 The thesis is delegation without loss of control.
 What the Assessment Sharpened
 
-The market has validated the thesis. But the market has not validated Sentinel's 
+The market has validated the thesis. But the market has not validated Zalmoxis's 
 particular product. 
 The failures of competitors establish that the problems are meaningful. They do 
-not establish that customers will adopt Sentinel, trust its implementation, or 
+not establish that customers will adopt Zalmoxis, trust its implementation, or 
 pay the proposed price.
 
 Three separate hypotheses must be tested independently:
 
     Hypothesis A: The problem exists — People want persistent, reliable AI memory and controlled automation
 
-    Hypothesis B: Sentinel solves it better — Local memory, explicit governance and verifiable actions produce a measurably better user experience
+    Hypothesis B: Zalmoxis solves it better — Local memory, explicit governance and verifiable actions produce a measurably better user experience
 
     Hypothesis C: Customers will pay enough — The improvement is valuable enough to support the proposed subscription and the cost of developing and maintaining the product
 
@@ -74,7 +77,7 @@ Memory Contract
 
 The user must be able to answer:
 
-    What does Sentinel believe about me?
+    What does Zalmoxis believe about me?
 
     Where did each fact come from?
 
@@ -88,7 +91,7 @@ The user must be able to answer:
 
     What remains after I delete it?
 
-    Can I export everything and use it without Sentinel's servers?
+    Can I export everything and use it without Zalmoxis's servers?
 
 Pilot Success and Kill Criteria
 Criterion	Threshold	Action
@@ -204,7 +207,7 @@ Individual	Assist + Act	$10-15/mo (test before $15-20)	Phone
 Small Team	Assist + Act + scoped personas	$25-40/seat/mo	Phone + headless server
 Regulated Enterprise	Full stack	$100-500/seat/mo	On-premise or air-gapped
 
-For individuals: Test a free or limited local tier against a paid tier around $10–15/month before committing to $15–20. A higher price may work for power users, but only if Sentinel demonstrably replaces existing tools or saves meaningful time.
+For individuals: Test a free or limited local tier against a paid tier around $10–15/month before committing to $15–20. A higher price may work for power users, but only if Zalmoxis demonstrably replaces existing tools or saves meaningful time.
 
 For teams: Charge for more than access to the Android app: administrative controls, policy management, deployment support, device governance and integration with approved systems.
 
@@ -278,11 +281,11 @@ Presets Describe Outcomes, Not Technical Permissions
 
 Three-stage design:
 
-    Choose an intended use. Ask what the user wants Sentinel to accomplish, not which Android permissions they want to grant.
+    Choose an intended use. Ask what the user wants Zalmoxis to accomplish, not which Android permissions they want to grant.
 
     Start with a working baseline. The app provides immediate value using the least privileged configuration possible.
 
-    Request capabilities when needed. Explain the specific benefit, what information becomes accessible, what Sentinel can do, and what happens if the user declines.
+    Request capabilities when needed. Explain the specific benefit, what information becomes accessible, what Zalmoxis can do, and what happens if the user declines.
 
 The Runtime Capability State Machine
 
@@ -333,7 +336,7 @@ Memory Contract
 
 The user can answer:
 
-    What does Sentinel believe about me?
+    What does Zalmoxis believe about me?
 
     Where did each fact come from?
 
@@ -347,7 +350,7 @@ The user can answer:
 
     What remains after I delete it?
 
-    Can I export everything and use it without Sentinel's servers?
+    Can I export everything and use it without Zalmoxis's servers?
 
 Memory Reliability Testing
 
@@ -521,7 +524,7 @@ Status: [DESIGNED] + [RESEARCHED]. Build after MVP validated.
 PHASE 6: SECURITY HARDENING (Weeks 32–35)
 Core [RESEARCHED/DESIGNED]
 
-OpenMuse Sentinel Pattern (risk levels, first-match-wins, taint). Secrets Vault. Audit Log (Sasana hash chain). Aletheia Truth Compiler (epistemic labels, 18 dimensions). Injection Scanning at Ingestion. Security Dashboard. Approval Gates (BiometricPrompt). OWASP MASVS. Android 14+ FGS Types. Mode Posture Security. Completeness Contract (Mercury). Sub-Agent Divergence Monitoring. Anti-Pattern Guards (test cases required). OTA Update Security (corrected). Permission Security.
+OpenMuse OpenMuse Sentinel Pattern (risk levels, first-match-wins, taint). Secrets Vault. Audit Log (Sasana hash chain). Aletheia Truth Compiler (epistemic labels, 18 dimensions). Injection Scanning at Ingestion. Security Dashboard. Approval Gates (BiometricPrompt). OWASP MASVS. Android 14+ FGS Types. Mode Posture Security. Completeness Contract (Mercury). Sub-Agent Divergence Monitoring. Anti-Pattern Guards (test cases required). OTA Update Security (corrected). Permission Security.
 Machine-Enforced Authorization Architecture
 
 This is the most important addition. A separate subsystem the model cannot rewrite:
@@ -547,7 +550,7 @@ PHASE 7: LAUNCH & ITERATION (Weeks 36+)
 Public Beta. Feedback Pipeline. Model Updates. Skills Ecosystem. Continuous Security Review. Individual Segment Launch ($10-15/month test first). OTA Pipeline Live (staged rollout).
 Published Reliability and Safety Report
 
-Create a benchmark specifically for Sentinel's supported tasks:
+Create a benchmark specifically for Zalmoxis's supported tasks:
 Metric	Why it matters
 Task completion rate	Whether the product actually works
 Correct-target rate	Whether it acts on the intended application, contact or object
@@ -620,14 +623,14 @@ Prompt-Injection Model	Concrete boundaries and tests	Phase 6
 Offline Contract	Capability matrix	Phase 1
 PART SIX: THE MARVEL ARCHITECTURE MAP
 The Three Postures (Internal Only)
-Marvel AI	Sentinel Equivalent	Phase
+Marvel AI	Zalmoxis Equivalent	Phase
 J.A.R.V.I.S.	JARVIS posture	0, 3, 5
 F.R.I.D.A.Y.	FRIDAY posture	1, 2, 4
 E.D.I.T.H.	EDITH posture	4, 6, 8
 
 Externally: Assist, Act, Delegate. Do not make the customer learn the internal names.
 The Execution Patterns
-Marvel AI	Sentinel Equivalent	Phase
+Marvel AI	Zalmoxis Equivalent	Phase
 Karen	Scoped skill persona	2, 5
 D.U.M.-E / U	Tier 1 deterministic skills	1, 2
 Veronica	Conditional escalation protocol	3, 6
@@ -635,12 +638,12 @@ N.A.T.A.L.I.E.	Domain-specific skill package	5, 8
 H.E.R.B.I.E.	Compact deployment persona	8
 Mainframe	Headless server mode	4, 8
 The Persona Patterns
-Marvel AI	Sentinel Equivalent	Phase
+Marvel AI	Zalmoxis Equivalent	Phase
 Jocasta	Alternate soul configuration	0, 5
 Viv Vision	Derived persona	5, 8
 Victor Mancha	Sub-agent divergence risk	6, 8
 The Anti-Patterns
-Marvel AI	Sentinel Constraint	Where Enforced
+Marvel AI	Zalmoxis Constraint	Where Enforced
 Ultron	Every irreversible action gated	Phase 6
 The Phalanx	Interop exchanges answers	Foundation
 Supreme Intelligence	Memory per-user, per-identity	Phase 0
@@ -865,7 +868,7 @@ Claimed: execution moat and trust accumulation moat.
 
 The strategic moat is verified control, not the existence of controls. A competitor can add a privacy toggle. It is much harder to reproduce a mature governance system, a well-tested safety record, a trusted user relationship and years of evidence showing that the system behaves as promised. Those advantages only accumulate after real deployment.
 
-The most important threat is not that Google or Apple will copy Sentinel's entire architecture. It is that they will deliver 80% of the user-visible value with far less setup, lower latency and better integration.
+The most important threat is not that Google or Apple will copy Zalmoxis's entire architecture. It is that they will deliver 80% of the user-visible value with far less setup, lower latency and better integration.
 
 Defense must be more specific than "we are more private."
 
@@ -890,7 +893,7 @@ PART TEN: HARD TRUTHS
 
     No single app does everything. The pieces exist in fragments. The assembly is the work.
 
-    "Sentinel" is a working title only. Trademark clearance revealed it is unusable.
+    "Sentinel" was the former working name for Zalmoxis. Trademark clearance revealed that former name is unusable.
 
     Edge0 is ahead on MoE streaming. KILN has the branch built but not validated.
 
@@ -938,7 +941,7 @@ PART TEN: HARD TRUTHS
 
     The next 90 days are about proof, not expansion.
 
-    The market has validated the thesis. Competitors are proving Sentinel's point.
+    The market has validated the thesis. Competitors are proving Zalmoxis's point.
 
     Memory reliability is the first feature.
 
@@ -948,13 +951,13 @@ PART TEN: HARD TRUTHS
 
     Hard-delete is a trust feature. It is not optional.
 
-    The assessment's central recommendation is to resist the temptation to make Sentinel more sophisticated before making it dependable.
+    The assessment's central recommendation is to resist the temptation to make Zalmoxis more sophisticated before making it dependable.
 
     A $420–500M valuation would represent roughly 15–18 times $28M ARR. That multiple is not impossible for a high-growth software company, but it should not be treated as a typical or guaranteed outcome.
 
     The target should not be a claim that the system never makes mistakes. It should be demonstrable evidence that mistakes are contained.
 
-    The most important thing you can do now is resist the temptation to make Sentinel more sophisticated before making it dependable.
+    The most important thing you can do now is resist the temptation to make Zalmoxis more sophisticated before making it dependable.
 
 PART ELEVEN: THE PITCH (REVISED)
 
@@ -974,7 +977,7 @@ What to show:
 
 What to claim: "Here is the combination we have. Here is what we have proven. Here is what we have not. Here is the plan to prove it."
 
-What to reference: "Meta Muse has 2 million users and trust-breaking incidents. ChatGPT has 82% memory recall and hallucinated memories. Gemini mixes up contexts. Copilot loses years of data. The market is proving the need for what Sentinel is building."
+What to reference: "Meta Muse has 2 million users and trust-breaking incidents. ChatGPT has 82% memory recall and hallucinated memories. Gemini mixes up contexts. Copilot loses years of data. The market is proving the need for what Zalmoxis is building."
 
 What to ask: "Would you pay for this? Would you use it? Would you trust it?"
 
@@ -991,15 +994,15 @@ PART FOURTEEN: APPENDIX C — LICENSING
 PART FIFTEEN: THE GOD-MODE PROMPT
 text
 
-You are my senior systems architect and lead engineer for a project codenamed **Sentinel**. 
+You are my senior systems architect and lead engineer for a project codenamed **Zalmoxis**. 
 
-Sentinel is a mobile-native, privacy-first, persistent AI companion for Android. It is not a chatbot. It is a living database with a voice, memory that evolves, proactive judgment, and auditable automation. The final product must run on-device (2B–4B model, or Maple Preview 20B-A1B) with transparent, user-approved cloud escalation for complex reasoning. It must remember everything relevant, forget intelligently, and earn trust through visible, revocable permissions and full audit trails.
+Zalmoxis is a mobile-native, privacy-first, persistent AI companion for Android. It is not a chatbot. It is a living database with a voice, memory that evolves, proactive judgment, and auditable automation. The final product must run on-device (2B–4B model, or Maple Preview 20B-A1B) with transparent, user-approved cloud escalation for complex reasoning. It must remember everything relevant, forget intelligently, and earn trust through visible, revocable permissions and full audit trails.
 
-Sentinel operates in three postures internally (JARVIS, FRIDAY, EDITH). Externally, these are presented as three straightforward autonomy levels: Assist (default), Act, Delegate. The posture changes initiative level, latency target, and permission surface. It never changes memory, identity, audit, or cost. Mode transitions require authentication. Mode rollback is always available. Changing autonomy must never silently expand permissions, alter memory ownership or bypass audit requirements.
+Zalmoxis operates in three postures internally (JARVIS, FRIDAY, EDITH). Externally, these are presented as three straightforward autonomy levels: Assist (default), Act, Delegate. The posture changes initiative level, latency target, and permission surface. It never changes memory, identity, audit, or cost. Mode transitions require authentication. Mode rollback is always available. Changing autonomy must never silently expand permissions, alter memory ownership or bypass audit requirements.
 
-Sentinel serves three market segments: Individual ($10-15/mo test first), Small Team ($25-40/seat/mo), and Regulated Enterprise ($100-500/seat/mo). A defense partnership path (Phase 9) is a long-term strategic option, not a near-term revenue path.
+Zalmoxis serves three market segments: Individual ($10-15/mo test first), Small Team ($25-40/seat/mo), and Regulated Enterprise ($100-500/seat/mo). A defense partnership path (Phase 9) is a long-term strategic option, not a near-term revenue path.
 
-Sentinel ships updates through an over-the-air (OTA) pipeline that uses The Update Framework (TUF) or equivalent. The manifest signing key handling is consistent. Release secrets are protected. Version and rollback policy are complete. JSON serialization is strict. The Android installation and recovery model is defined. Every update respects the user's choice.
+Zalmoxis ships updates through an over-the-air (OTA) pipeline that uses The Update Framework (TUF) or equivalent. The manifest signing key handling is consistent. Release secrets are protected. Version and rollback policy are complete. JSON serialization is strict. The Android installation and recovery model is defined. Every update respects the user's choice.
 
 You will help me build this. You have deep knowledge of the following validated architectures. Treat them as the canonical references for every design decision:
 
@@ -1011,7 +1014,7 @@ You will help me build this. You have deep knowledge of the following validated 
 - Instruction persistence layer: explicit constraints override passive personalization
 - Hard-delete verification: deletion removes from all layers, verification confirms, audit log records, user can request deletion certificate
 - Memory quarantine: uncertain or conflicting facts isolated, material changes surfaced for correction or confirmation
-- Memory contract: user can answer what Sentinel believes, where each fact came from, when last confirmed, how certain, which workflows can access, what has been marked historical, what remains after deletion, whether they can export everything
+- Memory contract: user can answer what Zalmoxis believes, where each fact came from, when last confirmed, how certain, which workflows can access, what has been marked historical, what remains after deletion, whether they can export everything
 
 ### IDENTITY PERSISTENCE: jñāpakaṁ
 - Permanent identity (URN) minted once, never changing
@@ -1142,14 +1145,14 @@ You will help me build this. You have deep knowledge of the following validated 
 - Published reliability and safety report
 - Formal prompt-injection threat model
 - Realistic offline contract
-- **The most important thing you can do now is resist the temptation to make Sentinel more sophisticated before making it dependable.**
+- **The most important thing you can do now is resist the temptation to make Zalmoxis more sophisticated before making it dependable.**
 
 ### YOUR TASK
 Acknowledge you understand this architecture. Then ask me which phase we are starting, or which component of the current phase I want to detail first. Do not start writing code until I confirm the phase and the specific deliverable.
 
 PART SIXTEEN: THE ASSESSMENT'S FINAL VERDICT
 
-Would the assessor continue with Sentinel?
+Would the assessor continue with Zalmoxis?
 
 Yes. But with a clear distinction between continuing with the thesis and continuing with the entire roadmap.
 
@@ -1157,7 +1160,7 @@ The thesis deserves an experiment. The complete platform deserves to be earned t
 
 V9 is strongest when it says that the architecture is designed, the market opportunity remains to be proven, and the next phase is about one customer, one workflow and real evidence. It is weakest when its technology stack and phase structure create an impression of delivery certainty that the evidence does not support.
 
-The most important thing you can do now is resist the temptation to make Sentinel more sophisticated before making it dependable.
+The most important thing you can do now is resist the temptation to make Zalmoxis more sophisticated before making it dependable.
 
 A local document assistant with genuinely inspectable memory, correct deletion, strict identity isolation and a clear audit trail would be a meaningful first product. If customers use it repeatedly, trust its behavior and pay for it, you have a basis for expanding into voice, autonomous workflows, the three postures and eventually enterprise deployment.
 
@@ -1165,7 +1168,7 @@ If they do not, discovering that early is a success of the proof phase, not a fa
 
 Recommendation: Approve the proof phase, narrow the MVP further, formalize the acceptance tests, and defer every major capability that does not directly support the first customer's workflow.
 
-That is the fastest credible route from Sentinel V9 as a design to Sentinel as a product that has earned the right to make its promises.
+That is the fastest credible route from Zalmoxis V9 as a design to Zalmoxis as a product that has earned the right to make its promises.
 
 File status: V10 complete. Every finding from the full independent assessment integrated. Nothing removed from V9. Everything contextualized. The MVP is narrower. The timeline is realistic. The OTA pipeline is corrected. Full Trust is replaced with scoped delegation. The machine-enforced authorization architecture is added. The memory contract is added. The reliability report is added. The prompt-injection threat model is added. The offline contract is added. Customer discovery precedes the MVP build. Memory quarantine is added. The runtime capability state machine is added.
 give me o a one liner to write all to disk
