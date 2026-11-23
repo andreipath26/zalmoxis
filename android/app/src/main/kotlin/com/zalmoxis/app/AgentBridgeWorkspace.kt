@@ -187,7 +187,7 @@ internal fun AgentBridgeWorkspace(onBack: () -> Unit) {
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
-                                enabled = !working,
+                                enabled = !working && (selectedId != task.id || response.isNotBlank()),
                                 onClick = {
                                     if (selectedId != task.id) {
                                         selectedId = task.id
@@ -240,14 +240,15 @@ internal fun AgentBridgeWorkspace(onBack: () -> Unit) {
                 onClick = {
                     scope.launch {
                         working = true
-                        try { AgentBridgeClient.disconnect(context, bridge) }
-                        catch (error: Exception) {
-                            message = error.message ?: "Disconnect failed; local token cleared."
-                        } finally {
-                            AgentBridgeClient.clearLocal(context)
+                        try {
+                            AgentBridgeClient.disconnect(context, bridge)
                             connection = null
                             inbox = emptyList()
                             outbox = emptyList()
+                            message = "Bridge access revoked on the server."
+                        } catch (error: Exception) {
+                            message = error.message ?: "Unable to revoke remotely. Pairing retained for retry."
+                        } finally {
                             working = false
                         }
                     }
