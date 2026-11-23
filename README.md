@@ -38,6 +38,27 @@ To get the APK, open the repository’s **Actions** tab, select a successful **A
 
 The app is not yet a complete autonomous agent. Long-term memory reconciliation, policy-gated actions, audit-chain verification, broader document extraction, and the roadmap’s remaining phases are not represented as shipped features merely because they appear in project documents.
 
+## Update Zalmoxis from GitHub on your phone
+
+Open **Settings → App updates → Check for updates**. Zalmoxis also checks for new signed releases when opened and displays a notice when one exists. Choose **Download verified update**, then **Install update**. Android asks you to authorize the installation; the app never silently installs anything. The update checker requests the public GitHub Releases API only (no sign-in or GitHub token). It downloads only from the Zalmoxis GitHub release channel and checks the SHA-256 digest, package name, increasing version code, and signing certificate before offering the installer.
+
+**Why GitHub releases instead of a raw Actions artifact?** The normal `zalmoxis-debug-apk` workflow artifact is a ZIP archive and may expire or require GitHub authentication. Every successful, **main-branch** workflow can publish a **signed Android pre-release asset** named `zalmoxis-update.apk` when the four persistent signing secrets below are configured. This is the same workflow that uploads the regular debug artifact. Pull-request builds cannot publish installable phone updates. If the signing secrets are absent, CI still attempts the debug build but intentionally skips publishing an update.
+
+### One-time signing setup for maintainers
+
+Generate an Android application signing keystore **once**, keep it backed up securely, and configure these four GitHub Actions repository secrets (Settings → Secrets and variables → Actions):
+
+- `ZALMOXIS_SIGNING_KEYSTORE_B64` — base64-encoded contents of the JKS/PKCS12 signing keystore (single line, no newlines)
+- `ZALMOXIS_SIGNING_STORE_PASSWORD` — keystore password
+- `ZALMOXIS_SIGNING_KEY_ALIAS` — signing key alias
+- `ZALMOXIS_SIGNING_KEY_PASSWORD` — signing key password
+
+Never commit the keystore or passwords into Git. GitHub Actions assembles a signed release APK with an automatically increasing `versionCode` based on the workflow run number and publishes `android-build-<run_number>` as a pre-release. The GitHub release asset's SHA-256 digest is checked before installation. A workflow artifact alone is not an update publication.
+
+**Important existing-install migration:** Android updates require the **same signing certificate** as the installed copy. An existing APK signed with another debug key cannot be updated in place by the new release key. A one-time reinstall may be necessary and may erase app-private data; export or back up anything important **before** removing the old app. Thereafter, keep using the **same** release keystore for every build. Losing or replacing it blocks updates over previously installed versions.
+
+The updater is currently an implementation in source, **not a verified running feature**. It must pass a real APK build and two consecutive signed-update installation tests (including denial/cancellation, no-network and tampered-APK cases) before being marked ready for deployment. Google Play distribution would require separate policy and installer-compliance review.
+
 ## Build from source
 
 Requirements:
