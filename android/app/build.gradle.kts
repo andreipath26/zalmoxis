@@ -4,7 +4,11 @@ plugins {
 }
 android {
     namespace = "com.zalmoxis.app"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
     defaultConfig {
         applicationId = "com.zalmoxis.app"
         minSdk = 26
