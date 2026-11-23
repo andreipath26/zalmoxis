@@ -33,5 +33,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Type check
         run: npm run typecheck
+      - name: Phone API security tests
+        if: matrix.workspace == 'mcp-server'
+        run: npm test
       - name: Bundle Worker without deploying
         run: npx wrangler deploy --dry-run --config wrangler.example.jsonc --outdir /tmp/zalmoxis-bridge-check
