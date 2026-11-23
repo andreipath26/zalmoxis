@@ -121,6 +121,52 @@ internal object LocalKnowledgeVault {
         }
     }
 
+    /** Explicit user-reviewed online research import with immutable source and provenance receipt. */
+    suspend fun importResearch(
+        context: Context,
+        title: String,
+        sourceUrl: String,
+        adapter: String,
+        fetchedAtMillis: Long,
+        content: String,
+    ): KnowledgeSource = withContext(Dispatchers.IO) {
+        require(sourceUrl.startsWith("https://")) { "Research origins must be HTTPS URLs." }
+        val bytes = content.toByteArray(Charsets.UTF_8)
+        require(bytes.isNotEmpty() && bytes.size <= MAX_INDEX_BYTES) {
+            "This research excerpt is empty or exceeds the 2 MB local text index limit."
+        }
+        val id = UUID.randomUUID().toString()
+        val safeTitle = title.take(120).ifBlank { "Research source" }
+        val stored = "$id.txt"
+        val temp = File(sources(context), "$stored.partial")
+        val destination = File(sources(context), stored)
+        val receiptFile = File(metadata(context), "$id.json")
+        val receiptTemp = File(metadata(context), "$id.json.partial")
+        val sha = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { byte -> "%02x".format(byte) }
+        try {
+            temp.writeBytes(bytes)
+            check(temp.renameTo(destination)) { "Could not save research source." }
+            val receipt = JSONObject()
+                .put("id", id).put("name", safeTitle).put("mime_type", "text/plain")
+                .put("stored_name", stored).put("size_bytes", bytes.size)
+                .put("sha256", sha).put("imported_at", System.currentTimeMillis())
+                .put("searchable", true).put("origin_type", "explicit_research")
+                .put("origin_url", sourceUrl).put("source_adapter", adapter)
+                .put("fetched_at", fetchedAtMillis).put("tainted", true)
+            receiptTemp.writeText(receipt.toString())
+            check(receiptTemp.renameTo(receiptFile)) { "Could not save research provenance." }
+            KnowledgeSource(id, safeTitle, "text/plain", bytes.size.toLong(), sha,
+                receipt.optLong("imported_at"), true)
+        } catch (error: Throwable) {
+            temp.delete()
+            destination.delete()
+            receiptTemp.delete()
+            receiptFile.delete()
+            throw error
+        }
+    }
+
     suspend fun search(context: Context, query: String): List<KnowledgeMatch> = withContext(Dispatchers.IO) {
         val term = query.trim()
         if (term.length < 2) return@withContext emptyList()
