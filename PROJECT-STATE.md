@@ -186,3 +186,8 @@ Extracted the app-facing OnDeviceInferenceRuntime interface and retained LiteRT-
 ## 2026-11-23 — Offline speech output
 
 Added user-triggered Android TextToSpeech output. The app selects an installed voice only when Android reports that it does not require a network connection, provides stop control, and does not request a new permission. Manifest package visibility includes the TTS service query. Available voices depend on the device and installed speech data. This source has not been built or run on-device; the Android build remains unverified.
+
+
+## 2026-11-23 — Google AI Edge Gallery adoption and offline TTS
+
+Recorded the full Gallery capability map as an additive appendix to ROADMAP.md, preserving the preceding V10 text. The appendix pins the inspected Gallery source snapshot and maps model discovery/transfers, inference, benchmarking, multimodal media, speech, embeddings, agent tooling, Prompt Lab, WorkManager, Firebase, XR, video, and media cards to Zalmoxis requirements and current source state. Added offline Android TTS and documented retry behavior and the app inventory. Latest implementation source commit before this checkpoint: f697819c039b1e7ee51f56015122db76c55adec5. Android source remains unbuilt and unvalidated.
