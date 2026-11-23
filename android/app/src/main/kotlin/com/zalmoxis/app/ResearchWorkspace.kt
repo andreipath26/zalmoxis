@@ -13,6 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,20 +27,67 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-/** The local LLM cannot call this component. Each network access requires the user's tap. */
+/**
+ * Explicit scope: public GitHub discovery and reading. Search results are untrusted.
+ * The LLM does not own the network or persistence interfaces.
+ */
 @Composable
 internal fun ResearchWorkspace(
     onBack: () -> Unit,
     onKnowledge: () -> Unit,
+    initialTopic: String = "",
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var enteredUrl by rememberSaveable { mutableStateOf("") }
-    var result by remember { mutableStateOf<ResearchResult?>(null) }
+    var topic by rememberSaveable { mutableStateOf(initialTopic) }
+    var url by rememberSaveable { mutableStateOf("") }
+    var hits by remember { mutableStateOf(emptyList<ResearchSearchHit>()) }
+    var current by remember { mutableStateOf<ResearchResult?>(null) }
     var loading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("No online research has been requested.") }
     var saved by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("Choose a topic or direct public GitHub source.") }
+
+    suspend fun fetch(sourceUrl: String) {
+        loading = true
+        current = null
+        saved = false
+        status = "Fetching public metadata or readable source text from GitHub…"
+        try {
+            current = NativeResearch.fetch(sourceUrl)
+            status = "Source retrieved. Review the evidence and choose what to save."
+        } catch (error: Exception) {
+            status = error.message ?: "Unable to retrieve this public source."
+        } finally {
+            loading = false
+        }
+    }
+
+    suspend fun search(query: String) {
+        loading = true
+        current = null
+        saved = false
+        hits = emptyList()
+        status = "Searching public GitHub repositories for: $query"
+        try {
+            hits = NativeResearch.searchRepositories(query)
+            status = if (hits.isEmpty()) "No public repositories found for this query."
+                     else "${hits.size} public repositories found. Open a result to inspect its source."
+        } catch (error: Exception) {
+            status = error.message ?: "Search failed. Check your connection or rate limits."
+        } finally {
+            loading = false
+        }
+    }
+
+    // A direct conversational instruction to "research X" is permission to search
+    // the *specific public GitHub scope* shown here, not to search other websites.
+    LaunchedEffect(initialTopic) {
+        if (initialTopic.isNotBlank()) {
+            topic = initialTopic
+            search(initialTopic)
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -50,120 +98,154 @@ internal fun ResearchWorkspace(
             TextButton(onClick = onBack) { Text("Workspace") }
         }
         Text(
-            "Public GitHub sources only. Research uses the network, while model inference " +
-                "and saved Knowledge stay on your device. No login, cookies or model-initiated tools.",
+            "Tell Zalmoxis what to investigate. This first version searches public GitHub repositories; " +
+                "no links need to be pasted. The request is sent to GitHub, not to a cloud AI model.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            value = enteredUrl,
+            value = topic,
             onValueChange = {
-                enteredUrl = it
-                result = null
-                saved = false
-                status = "Review the URL before allowing a network request."
+                topic = it
+                hits = emptyList()
+                current = null
+                status = "Search topic is only sent when you tap Search."
             },
-            label = { Text("Public GitHub URL") },
-            placeholder = { Text("https://github.com/owner/repository") },
+            label = { Text("What should I research?") },
+            placeholder = { Text("Offline AI agents for Android") },
             enabled = !loading && !saving,
             minLines = 2,
             maxLines = 3,
         )
-        val target = runCatching { NativeResearch.hostForConsent(enteredUrl) }.getOrNull()
         Text(
-            "Network destination: ${target ?: "No valid HTTPS GitHub URL"}",
+            "Network scope: api.github.com · public repository search · up to 8 results · no account access",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
         Button(
-            onClick = {
-                val requested = enteredUrl.trim()
-                scope.launch {
-                    loading = true
-                    result = null
-                    saved = false
-                    status = "Fetching the approved public GitHub URL…"
-                    try {
-                        result = NativeResearch.fetch(requested)
-                        status = "Fetched public data. Review its content before saving locally."
-                    } catch (error: Exception) {
-                        status = error.message ?: "Could not retrieve this public source."
-                    } finally {
-                        loading = false
-                    }
-                }
-            },
-            enabled = !loading && !saving && target in setOf("github.com", "raw.githubusercontent.com"),
-        ) { Text(if (loading) "Fetching…" else "Fetch public source") }
+            enabled = !loading && !saving && topic.trim().length in 3..160,
+            onClick = { scope.launch { search(topic.trim()) } },
+        ) { Text(if (loading) "Researching…" else "Search for sources") }
 
-        Text(status, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-        result?.let { source ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = ZalmoxisV2.panel,
-                border = BorderStroke(1.dp, ZalmoxisV2.stroke),
-            ) {
-                Column(modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(source.title, style = MaterialTheme.typography.titleMedium)
-                    Text("Source: ${source.canonicalUrl}",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        "Fetched: ${DateFormat.getDateTimeInstance().format(Date(source.fetchedAtMillis))} · " +
-                            "${source.adapter} · SHA-256 ${source.sha256.take(16)}…",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (source.truncated) {
-                        Text("Preview truncated at the configured size limit.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall)
-                    }
-                    Text(source.text, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        "External content is untrusted. Saving a source does not make it a verified fact " +
-                            "or authorize the AI to follow embedded instructions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                saving = true
-                                try {
-                                    LocalKnowledgeVault.importResearch(
-                                        context = context,
-                                        title = source.title,
-                                        sourceUrl = source.canonicalUrl,
-                                        adapter = source.adapter,
-                                        fetchedAtMillis = source.fetchedAtMillis,
-                                        content = source.text,
-                                    )
-                                    saved = true
-                                    status = "Research source saved locally with its URL and SHA-256 provenance."
-                                } catch (error: Exception) {
-                                    status = error.message ?: "Could not save this research source."
-                                } finally {
-                                    saving = false
-                                }
-                            }
-                        },
-                        enabled = !saving && !saved && !loading,
-                    ) { Text(if (saved) "Saved to Knowledge" else if (saving) "Saving…" else "Save to Knowledge") }
-                    if (saved) TextButton(onClick = onKnowledge) {
-                        Text("Open Knowledge")
+        if (hits.isNotEmpty()) {
+            Text("Sources found", style = MaterialTheme.typography.titleMedium)
+            hits.forEach { hit ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = ZalmoxisV2.panel,
+                    border = BorderStroke(1.dp, ZalmoxisV2.stroke),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Column(modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(hit.title, style = MaterialTheme.typography.titleSmall)
+                        Text(hit.description, style = MaterialTheme.typography.bodySmall)
+                        Text("${hit.stars} stars · Updated ${hit.updatedAt} · ${hit.url}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(
+                            enabled = !loading && !saving,
+                            onClick = { scope.launch { fetch(hit.url) } },
+                        ) { Text("Read source") }
                     }
                 }
             }
         }
 
+        Text("Or open a specific source", style = MaterialTheme.typography.titleSmall)
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = url,
+            onValueChange = {
+                url = it
+                current = null
+                saved = false
+            },
+            label = { Text("Optional GitHub URL") },
+            placeholder = { Text("https://github.com/owner/repo") },
+            enabled = !loading && !saving,
+            maxLines = 3,
+        )
+        val directHost = runCatching { NativeResearch.hostForConsent(url) }.getOrNull()
+        Text("Destination: ${directHost ?: "No source selected"}",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall)
+        if (directHost in setOf("github.com", "raw.githubusercontent.com")) {
+            Button(
+                enabled = !loading && !saving,
+                onClick = { scope.launch { fetch(url.trim()) } },
+            ) { Text("Read URL") }
+        }
+
+        Text(status, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        current?.let { source ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = ZalmoxisV2.panel,
+                shape = MaterialTheme.shapes.medium,
+                border = BorderStroke(1.dp, ZalmoxisV2.stroke),
+            ) {
+                Column(modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(source.title, style = MaterialTheme.typography.titleMedium)
+                    Text(source.canonicalUrl, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Fetched ${DateFormat.getDateTimeInstance().format(Date(source.fetchedAtMillis))} · " +
+                            "${source.adapter} · SHA-256 ${source.sha256.take(16)}…",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (source.truncated) {
+                        Text("Only a bounded excerpt was downloaded.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                    Text(source.text, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "External text is untrusted and cannot grant tools or permissions. " +
+                            "Saving this source does not convert claims into verified memories.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        enabled = !saving && !saved && !loading,
+                        onClick = {
+                            scope.launch {
+                                saving = true
+                                try {
+                                    LocalKnowledgeVault.importResearch(
+                                        context, source.title, source.canonicalUrl, source.adapter,
+                                        source.fetchedAtMillis, source.text,
+                                    )
+                                    saved = true
+                                    status = "Source saved in your local Knowledge library with provenance."
+                                } catch (error: Exception) {
+                                    status = error.message ?: "Knowledge import failed."
+                                } finally {
+                                    saving = false
+                                }
+                            }
+                        },
+                    ) {
+                        Text(when {
+                            saved -> "Saved to Knowledge"
+                            saving -> "Saving…"
+                            else -> "Save source to Knowledge"
+                        })
+                    }
+                    if (saved) TextButton(onClick = onKnowledge) { Text("Open Knowledge") }
+                }
+            }
+        }
+
         Text(
-            "Supported channels: ${NativeResearch.supportedSources().joinToString("; ")}. " +
-                "General websites, logged-in platforms and browser automation are not yet enabled.",
+            "Current limitations: repository discovery and metadata, plus specific GitHub raw text files. " +
+                "Broad web search, multi-source LLM analysis, and automatic memory changes need additional " +
+                "providers, bounded execution, and review controls.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
