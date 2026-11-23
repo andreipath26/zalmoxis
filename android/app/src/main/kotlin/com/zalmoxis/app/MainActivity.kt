@@ -44,6 +44,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -174,6 +177,8 @@ private fun ZalmoxisHome() {
             } catch (error: Exception) {
                 session?.close()
                 session = null
+                modelName = null
+                modelSha256 = null
                 status = error.message ?: "Could not restore the local model."
             } finally {
                 busy = false
@@ -249,7 +254,10 @@ private fun ZalmoxisHome() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "${model.name} · ${formatBytes(model.sizeBytes)}\nSHA-256 ${model.sha256.take(12)}… · ${model.licenseStatus}",
+                        "${model.name} · ${formatBytes(model.sizeBytes)}\n" +
+                            "SHA-256 ${model.sha256.take(16)}…\n" +
+                            "${model.sourceDescription} · Imported ${formatTimestamp(model.importedAtEpochMs)}\n" +
+                            "License: ${model.licenseStatus}",
                         modifier = Modifier.weight(1f).padding(top = 10.dp),
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -496,6 +504,9 @@ private fun ZalmoxisHome() {
         )
     }
 }
+
+private fun formatTimestamp(epochMs: Long): String =
+    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(epochMs))
 
 private fun formatBytes(size: Long): String = when {
     size >= (1L shl 30) -> String.format("%.1f GiB", size / (1L shl 30).toDouble())

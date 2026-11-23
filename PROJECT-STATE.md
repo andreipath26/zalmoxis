@@ -196,3 +196,8 @@ Recorded the full Gallery capability map as an additive appendix to ROADMAP.md, 
 ## 2026-11-23 — Local model provenance and benchmark identity
 
 Local model imports now receive a private provenance receipt with SHA-256, file size, import time, selected-file source label, an explicit unknown-license value, and publisher-authenticity=false. The app verifies the recorded digest before loading and shows the digest and license status in the model shelf. This detects local changes; it is not a publisher signature or license verification. Benchmark JSON now identifies the exact local model file by SHA-256. Source remains unbuilt and unvalidated.
+
+
+## 2026-11-23 — Provenance visible in model shelf
+
+The Android model shelf now shows the local SHA-256 prefix, selected-file source label, import timestamp, and license status. A malformed provenance receipt blocks automatic restore and requests a reimport for review. This checkpoint follows model provenance and benchmark identity commit e36205788713a39c6a507d856776bc4708592cb2. Android source remains unbuilt and unvalidated.
