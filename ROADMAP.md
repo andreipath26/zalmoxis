@@ -521,6 +521,29 @@ Core [RESEARCHED/DESIGNED]
 
 Dream Cycle (Agent Brain). Conservative, inspectable memory consolidation first. Defer open-ended self-improvement. Knowledge Pages (Hindsight). Memory Tree (openhuman). Hermes Skill Extraction. Derived Personas (Viv Vision). Sub-Agent Divergence (Victor Mancha). Affective Continuity. Temporal Graph Reasoning. Inspectable Memory. FSRS-Weighted Retention. Generative UI Artifacts (Avibe). jñāpakaṁ Continuity. RGMem Trait Consolidation.
 
+#### AI Memory reference: akitaonrails/ai-memory (reviewed 2026-11-23)
+
+Repository reviewed: https://github.com/akitaonrails/ai-memory (MIT-licensed Rust workspace, release v3.5.1 at review). This is a reference implementation for coding-agent continuity, not an Android library or a direct Zamolxis dependency.
+
+Its canonical knowledge store is an editable, Git-versioned Markdown wiki. SQLite is a derived, rebuildable index that supports FTS5, entity and link retrieval, sessions, observations, handoffs, audit records, and optional embeddings. Search can combine lexical, entity, graph-neighbor, and vector results. Its retention design decays cold episodic records while protecting pages that are revisited, and it preserves superseded history rather than silently overwriting prior knowledge.
+
+The default workflow does not require an LLM provider. If an LLM provider is configured, provider-backed consolidation, lint, bootstrap, dream, profile, and auto-improvement paths can send session observations and page text to it. The scheduled auto-improvement loop applies validated proposals through the wiki write path by default; operators can stop the scheduler or require approval. The LLM dream pass is separately opt-in, off by default, and requires a configured provider and embedder. LLM reranking is a separate explicit `AI_MEMORY_RERANKER=llm` path. The local embedding path uses Candle with all-MiniLM-L6-v2 on CPU; it downloads an approximately 87 MB model from Hugging Face on first use and verifies its SHA-256. The local embedding path keeps text processing on-device, but the initial model fetch still requires network access.
+
+**Patterns to evaluate for Zamolxis**
+
+- Keep canonical memories user-inspectable and exportable in a simple format; compare Markdown-backed records with the Phase 0 structured storage contract before choosing a canonical source of truth.
+- Treat search indexes and embeddings as derived, rebuildable data. Never let a stale index become the only copy of a memory.
+- Combine local lexical search with entity, relationship, and temporal-neighbor retrieval. Add embeddings only after device benchmarks show acceptable retrieval quality, latency, storage, and battery use.
+- Preserve provenance, timestamps, supersession history, correction, restore, and deletion receipts. Make retention decay visible and user-controlled; pin or protect information the user confirms as important.
+- Keep the zero-LLM memory path useful. For Zamolxis, require explicit user opt-in to provider-backed memory processing, identify whether a selected provider is local or remote, and stage every proposed memory edit for approval. Do not inherit ai-memory's default auto-approval for validated proposals. Keep those flows inspectable, reversible, and unable to change permissions or memory ownership.
+- Preserve source trust labels and quarantine untrusted imported content before it can influence durable memories.
+
+**Adaptation boundary**
+
+The repository’s Rust server and CLI, MCP integration, editor hooks, multi-agent handoff lifecycle, team console, and cloud-provider reranking target coding-agent workflows and do not transfer directly to the Android product. Its v1 storage also provides no encryption at rest and relies on operating-system file permissions; that security model must not be copied into Zamolxis without a separate threat-model decision. Reuse design lessons only after checking Android storage, app lifecycle, background-work, and offline constraints. The project is MIT licensed; if any code is later copied, preserve its license and notices and review each dependency’s separate license. No code or model is adopted by this roadmap entry.
+
+Status: [RESEARCHED] reference; adaptation decisions remain [DESIGNED] until Phase 0/5 benchmarks and privacy review pass.
+
 #### Cross-Session Continuity
 
 The lifecycle model for how the agent's identity, skills and policy change over time while maintaining continuity. jñāpakaṁ generation workflow handles identity. Hermes handles skills. Memory evolution handles policy.
@@ -693,6 +716,7 @@ Externally: Assist, Act, Delegate. Do not make the customer learn the internal n
 | Semantic memory | Mem0 + H-MEM | 0, 5 | [RESEARCHED] |
 | Emotional retrieval | CAMA | 0 | DEFERRED |
 | Memory evolution | RGMem | 0, 5 | [RESEARCHED] |
+| Memory design reference | akitaonrails/ai-memory (Markdown source, rebuildable SQLite/FTS5 index, hybrid retrieval) | 0, 5 | [RESEARCHED] |
 | Bi-temporal storage | AletheiaDB | 0 | [RESEARCHED] |
 | Multimodal memory | EmbeddingGemma 2 | 0, 5 | [RESEARCHED] |
 | Active Memory | Interference-aware retrieval | 0 | [DESIGNED] |
@@ -1119,6 +1143,50 @@ Recommendation: Approve the proof phase, narrow the MVP further, formalize the a
 That is the fastest credible route from Zalmoxis V9 as a design to Zalmoxis as a product that has earned the right to make its promises.
 
 File status: V10 complete. Every finding from the full independent assessment integrated. Nothing removed from V9. Everything contextualized. The MVP is narrower. The timeline is realistic. The OTA pipeline is corrected. Full Trust is replaced with scoped delegation. The machine-enforced authorization architecture is added. The memory contract is added. The reliability report is added. The prompt-injection threat model is added. The offline contract is added. Customer discovery precedes the MVP build. Memory quarantine is added. The runtime capability state machine is added. give me o a one liner to write all to disk
+
+## Addendum — Google AI Edge Gallery integration record (2026-11-23)
+
+This addendum is appended to the complete V10 roadmap. It preserves every preceding roadmap line and adds the implementation and technical mapping from Google AI Edge Gallery to Zalmoxis. The source review used the Gallery repository at commit `eb832659e79c42629cee202b103717c91adf51b4` and its Apache-2.0 license. Gallery is an application reference, not a library to copy wholesale; its reusable model, runtime, media, evaluation, and transfer patterns are mapped below to Zalmoxis's memory, permission, provenance, and audit contracts.
+
+### Implemented Android foundation
+
+On branch `codex/gallery-android-foundation`, the Android source now contains:
+
+- A Jetpack Compose shell with an `OnDeviceInferenceRuntime` app contract and LiteRT-LM 0.18.1 CPU adapter.
+- Local `.litertlm` import into app-private storage; model list, load, delete, and last-model restoration.
+- Streaming text generation and optional image input through Android's document picker. Images are placed in private temporary storage and removed after the request.
+- A fixed-prompt benchmark with one discarded warm-up and three measured runs; raw device/model/runtime/backend, first-text, elapsed-time, and stream-event data are saved locally. Stream events are not token counts.
+- Push-to-dictate using Android's on-device recognizer when available; microphone access is requested only on user action, with no network recognition fallback.
+- User-triggered Android speech output that selects only an installed voice reporting no network requirement, with a stop control.
+- A branch-scoped Android build workflow. The source has not yet been build-validated: local Gradle distribution access failed and the prior GitHub Actions attempts ended before runner assignment.
+
+The Android INTERNET permission is limited to allowlisted public Hugging Face model downloads; prompts, inference, and benchmark reports remain on-device. The foundation has no account sign-in, analytics SDK, model-provided tools, MCP execution, JavaScript execution, or AccessibilityService. The runtime interface provides a seam for a future KILN/llama.cpp adapter; that Android backend is not implemented. These statements record the current code state and do not change the requirements or capabilities elsewhere in this roadmap.
+
+### Gallery capability-to-Zalmoxis map
+
+| Gallery capability | Zalmoxis integration and engineering requirements | Current state |
+|---|---|---|
+| LiteRT-LM local inference | Retain as a runtime adapter behind the app-owned inference contract. Add device-specific accelerator selection only with supported-model checks and measurements; keep a measured CPU fallback. | CPU text and optional compatible-model image path implemented; unbuilt. |
+| Model discovery and downloads | Reuse Gallery's catalog, transfer progress, retry/resume, and model details UX. Each artifact record must bind repository/source, immutable revision, file size, SHA-256, model task/format, license and terms, and deletion state. Verify to a temporary file before atomic install. Keep any required account token out of logs and persistent plaintext. | Pinned public Qwen 2.5 1.5B and Gemma 4 E2B entries, shared verified transfer engine, API 34+ User-Initiated Data Transfer / API 26–33 WorkManager coordinator, and Compose controls are implemented in source. Transfers show progress and allow cancel/retry; exact size and SHA-256 are verified before atomic private install with provenance. Android build and device transfer remain unverified. |
+| Benchmark and device metrics | Keep repeatable warm-up and raw records. Extend the report with runtime-reported token counts, prefill/decode timing, peak memory, thermal state, and battery only when the runtime/device exposes them. Preserve successful and failed runs; never infer tokens per second from UI stream events. | Warm benchmark records first-text latency, elapsed time, events, device, model file SHA-256, runtime, and backend in local JSON; the report can be exported by user action. |
+| Image, audio, and video input | Reuse document-picker and private-temporary-file patterns. Check model capability before offering each modality; tie extraction to user-visible source, retention, and deletion controls. Evaluate gallery/video summarization and media-card interactions against the ingestion and memory-provenance contract. | Optional image input implemented for compatible multimodal models. Direct audio-to-model and video ingestion are not implemented. |
+| Speech recognition and synthesis | Preserve explicit microphone request, on-device availability checks, and visible failure state. Compare Android system speech with bundled model-based ASR/TTS providers for offline quality, size, latency, and supported languages. | On-device Android ASR and filtered offline Android TTS source implemented; device voice inventory varies. |
+| Embeddings and semantic media search | Reuse on-device embeddings, local index construction, and retrieval evaluation as inputs to the provenance-aware memory provider. Retrieval results must retain source/time/confidence; deletion and identity isolation must update all indexes. | Not connected to the memory store; the provenance memory contract remains authoritative. |
+| Agent skills, MCP, JavaScript, and Android intents | Reuse typed argument schemas, task/status presentation, and explicit consent UX. Route every proposal through deterministic exact-parameter authorization, capability checks, and an append-only audit record. Platform permission remains separate from model/tool consent. | Inference has no registered tools or action execution. |
+| Mobile Actions and FunctionGemma demos | Use as controlled proposal-quality and malformed-argument evaluation workloads. Measure action selection and argument fidelity without granting demo tools authority to act on Android. | Not wired into inference or Android actions. |
+| Prompt Lab | Reuse prompt/model comparison and reproducible evaluation patterns. Store versioned cases, exact prompt and model/runtime revision, raw output, latency, and explicit privacy/memory assertions locally. | Fixed-prompt warm benchmark exists; prompt-suite UI and versioned cases are not implemented. |
+| DataStore, WorkManager, and transfer workers | Use durable settings and user-visible, cancellable work for long transfers; include progress, storage preflight, retry/resume, integrity verification, and cleanup after partial/cancelled downloads. Keep inference and consequential actions user-visible. | Pinned Qwen 2.5 1.5B and Gemma 4 E2B catalog entries, coordinator, and Compose controls are implemented in source. The coordinator uses native User-Initiated Data Transfer on API 34+ and WorkManager on API 26–33. It validates size and SHA-256 before atomic private installation and records provenance. Android build and device transfer remain unverified. |
+| Firebase analytics and messaging | Review Gallery's instrumentation and message-driven update patterns as implementation references. Any Zalmoxis use must preserve the roadmap's local-first trust model with explicit data inventory, consent, minimization, retention, and inspectable network behavior. | No Firebase SDK, telemetry, or messaging is present. Android INTERNET permission is limited to allowlisted public model downloads; prompts, inference, and benchmark reports remain on-device. |
+| XR experiences, video moments, and media cards | Evaluate Gallery's media interaction patterns against concrete Zalmoxis tasks, accessibility, retention, and provenance. The mapping is recorded so these source capabilities are considered alongside the existing roadmap. | No XR/video/media-card implementation in the current Android foundation. |
+
+### Sources and implementation reference
+
+- Google AI Edge Gallery source snapshot: https://github.com/google-ai-edge/gallery/tree/eb832659e79c42629cee202b103717c91adf51b4
+- Gallery Android build: https://github.com/google-ai-edge/gallery/blob/eb832659e79c42629cee202b103717c91adf51b4/Android/src/app/build.gradle.kts
+- LiteRT-LM Kotlin guide: https://github.com/google-ai-edge/LiteRT-LM/blob/main/docs/api/kotlin/getting_started.md
+- LiteRT-LM Android artifacts: https://maven.google.com/web/index.html#com.google.ai.edge.litertlm:litertlm-android
+- Detailed adoption record in this repository: `docs/decisions/GOOGLE-AI-EDGE-GALLERY-ADOPTION.md`
+
 
 
 ---
