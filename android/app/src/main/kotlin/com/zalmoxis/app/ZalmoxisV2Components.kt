@@ -239,7 +239,7 @@ internal fun V2VoicePanel(isListening: Boolean, feedback: String, onToggle: () -
 }
 
 @Composable
-internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit, onResearch: () -> Unit) {
+internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit, onResearch: () -> Unit, onAgentBridge: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Workspace", style = MaterialTheme.typography.headlineMedium)
         Text(
@@ -286,6 +286,7 @@ internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit, onResear
         V2QuickAction("Knowledge library", "▤", onKnowledge)
         V2QuickAction("Manage local AI models", "⬡", onModels)
         V2QuickAction("Research public GitHub sources", "⌕", onResearch)
+        V2QuickAction("Agent Bridge · keyless handoff", "◇", onAgentBridge)
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
