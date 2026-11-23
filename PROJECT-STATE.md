@@ -143,7 +143,7 @@ Commits: roadmap `0a3bfe9`; tracking rule `e7a075f`.
 
 ## 2026-11-23 — Google AI Edge Gallery foundation started
 
-A reviewable Android foundation was added on branch codex/gallery-android-foundation. The initial app uses Jetpack Compose and the LiteRT-LM Android runtime (0.18.1), imports a local .litertlm file into app-private storage, and streams CPU inference. No network permission, telemetry SDK, MCP, model-driven tools, or AccessibilityService is wired into inference. The source has not been built because the implementation environment did not include Android SDK 36; do not mark this as validated or deployment-ready.
+A reviewable Android foundation was added on branch codex/gallery-android-foundation. The initial app uses Jetpack Compose and the LiteRT-LM Android runtime (0.18.1), imports a local .litertlm file into app-private storage, and streams CPU inference. Prompts and inference remain on-device; the Android INTERNET permission is scoped to allowlisted public model downloads. No telemetry SDK, MCP, model-driven tools, or AccessibilityService is wired into inference. The source has not been built because the implementation environment did not include Android SDK 36; do not mark this as validated or deployment-ready.
 
 See android/README.md and docs/decisions/GOOGLE-AI-EDGE-GALLERY-ADOPTION.md for the adopted Gallery patterns and boundaries. The tracked ROADMAP.md remains the project roadmap; this implementation does not change or truncate it.
 
