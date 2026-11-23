@@ -194,16 +194,16 @@ internal object LocalKnowledgeVault {
             "The current research draft requires canonical GitHub source URLs."
         }
         val content = buildString {
-            append("# AI-generated research draft — verify before relying on it\\n")
-            append("This is a model-generated interpretation, not a confirmed memory.\\n\\n")
+            append("# AI-generated research draft — verify before relying on it\n")
+            append("This is a model-generated interpretation, not a confirmed memory.\n\n")
             append(draftText.trim())
-            append("\\n\\n## Public source links\\n")
+            append("\n\n## Public source links\n")
             sourceUrls.distinct().forEachIndexed { index, url ->
                 append("[")
                 append(index + 1)
                 append("] ")
                 append(url)
-                append("\\n")
+                append("\n")
             }
         }
         val bytes = content.toByteArray(Charsets.UTF_8)
