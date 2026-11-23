@@ -93,7 +93,7 @@ internal fun AgentBridgeWorkspace(
             }
         }
 
-        LocalMcpPanel(hostedConnected = connection != null)
+        LocalMcpPanel(hostedConnected = connection != null, localRuntime = localRuntime, inferenceBusy = inferenceBusy)
 
         if (connection == null) {
             Text("Pair your phone for internet-hosted mode", style = MaterialTheme.typography.titleMedium)
