@@ -85,7 +85,11 @@ class LocalInferenceSession {
 
             try {
                 runOnce(0) // Warm-up is excluded from the reported measurements.
-                (1..measuredRuns).map { runOnce(it) }
+                val samples = mutableListOf<InferenceSample>()
+                for (run in 1..measuredRuns) {
+                    samples += runOnce(run)
+                }
+                samples
             } finally {
                 conversation?.close()
                 conversation = createConversation(activeEngine)

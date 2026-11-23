@@ -163,3 +163,6 @@ Implementation branch at the start of this batch: codex/gallery-android-foundati
 ## 2026-11-23 — Remote build path
 
 Added a GitHub Actions workflow scoped to the Android foundation branch and Android file changes. It installs JDK 17 and Android SDK 36, runs the Gradle wrapper to assemble a debug APK, and uploads the APK artifact. The local wrapper attempt was blocked before Gradle could start because the sandbox could not reach services.gradle.org. CI status must be checked before treating the source as build-validated.
+
+
+The branch-scoped workflow was triggered and retried. Both GitHub Actions attempts ended before a runner was assigned (runner ID 0, no job steps); no APK artifact was produced. The failure is currently an Actions runner allocation issue, not a compiler result. Local build is still blocked by the unavailable Gradle distribution and Android SDK 36.

@@ -317,7 +317,7 @@ The Android app imports local .litertlm models into app-private storage, lists/s
 
 ### 10.5 What is not built
 
-The memory schema and storage, identity layer, deterministic policy engine, audit trail, document ingestion, voice pipeline, OTA pipeline, tests, and benchmarks remain unimplemented.
+The memory schema and storage, identity layer, deterministic policy engine, audit trail, document ingestion, voice pipeline, OTA pipeline, test suite, and target-device benchmark suite remain unimplemented.
 
 ---
 
@@ -378,7 +378,7 @@ The Android application source is under android/. With JDK 17 and Android SDK 36
     cd android
     ./gradlew :app:assembleDebug
 
-Local build verification was blocked by network restrictions while fetching Gradle; Android SDK 36 is also unavailable in this workspace. A branch-scoped GitHub Actions workflow now assembles the debug APK. No deployment claim is recorded.
+Local build verification was blocked by network restrictions while fetching Gradle; Android SDK 36 is also unavailable in this workspace. A branch-scoped GitHub Actions workflow is configured to assemble the debug APK. Its first two attempts failed before a runner was assigned; no CI build has completed. No deployment claim is recorded.
 
 ---
 

@@ -13,7 +13,7 @@
 
 ## Build and measurement
 
-The app includes a fixed-prompt warm benchmark that saves raw local JSON samples and device metadata. A branch-scoped GitHub Actions workflow installs Android SDK 36, assembles a debug APK, and uploads it as an artifact.
+The app includes a fixed-prompt warm benchmark that saves raw local JSON samples and device metadata. A branch-scoped GitHub Actions workflow is configured to install Android SDK 36, assemble a debug APK, and upload it as an artifact. The first two attempts failed before a runner was assigned, so the build remains unverified.
 
 ## Security boundary
 
