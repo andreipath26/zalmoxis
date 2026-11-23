@@ -59,6 +59,7 @@ internal fun ResearchWorkspace(
     var aiDraft by remember { mutableStateOf("") }
     var drafting by remember { mutableStateOf(false) }
     var draftSaved by remember { mutableStateOf(false) }
+    var draftSourceUrls by remember { mutableStateOf(emptyList<String>()) }
     var status by remember { mutableStateOf("Choose a topic or direct public GitHub source.") }
 
     suspend fun fetch(sourceUrl: String) {
@@ -83,6 +84,7 @@ internal fun ResearchWorkspace(
         hits = emptyList()
         selectedUrls = emptySet()
         aiDraft = ""
+        draftSourceUrls = emptyList()
         draftSaved = false
         status = "Searching public GitHub repositories for: $query"
         try {
@@ -206,6 +208,7 @@ internal fun ResearchWorkspace(
                 onValueChange = {
                     researchInstruction = it
                     draftSaved = false
+                    aiDraft = ""
                 },
                 label = { Text("What should Zalmoxis extract or compare?") },
                 minLines = 2,
@@ -217,6 +220,7 @@ internal fun ResearchWorkspace(
                 onClick = {
                     val selected = hits.filter { it.url in selectedUrls }.take(8)
                     scope.launch {
+                        draftSourceUrls = selected.map { it.url }
                         drafting = true
                         aiDraft = ""
                         draftSaved = false
@@ -247,6 +251,7 @@ internal fun ResearchWorkspace(
                                 }
                             status = "Draft ready. Edit and review it before saving."
                         } catch (error: Exception) {
+                            aiDraft = ""
                             status = error.message ?: "Local research analysis failed."
                         } finally {
                             drafting = false
@@ -282,7 +287,7 @@ internal fun ResearchWorkspace(
             Button(
                 enabled = !drafting && !draftSaved && !saving,
                 onClick = {
-                    val links = hits.filter { it.url in selectedUrls }.map { it.url }.take(8)
+                    val links = draftSourceUrls
                     scope.launch {
                         saving = true
                         try {
