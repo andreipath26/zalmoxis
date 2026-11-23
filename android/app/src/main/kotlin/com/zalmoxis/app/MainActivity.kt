@@ -433,7 +433,7 @@ private fun ZalmoxisHome() {
                 }
                 if (submitted.isNotEmpty()) {
                     if (activePrompt.isNotBlank()) {
-                        priorTurns = priorTurns + (activePrompt to response)
+                        priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
                     }
                     activePrompt = submitted
                     prompt = ""
@@ -775,8 +775,8 @@ private fun CatalogDownloadCard(
         onDispose { liveData.removeObserver(observer) }
     }
 
-    LaunchedEffect(downloadState?.status) {
-        if (downloadState?.status == ModelDownloadStatus.SUCCEEDED) onInstalled()
+    LaunchedEffect(downloadState?.status, installed) {
+        if (downloadState?.status == ModelDownloadStatus.SUCCEEDED && !installed) onInstalled()
     }
 
     val transferStatus = downloadState?.status
