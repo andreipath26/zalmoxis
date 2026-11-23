@@ -1,0 +1,15 @@
+{
+  "name": "zalmoxis-auth",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-23",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "vars": {
+    "ISSUER": "https://YOUR-AUTH.WORKERS.DEV",
+    "MCP_SERVER_URL": "https://YOUR-MCP.WORKERS.DEV/mcp",
+    "ACCESS_TEAM_DOMAIN": "YOUR-TEAM.cloudflareaccess.com",
+    "ACCESS_AUD": "CLOUDFLARE-ACCESS-APP-AUDIENCE"
+  },
+  "kv_namespaces": [
+    { "binding": "OAUTH_KV", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+  ]
+}
