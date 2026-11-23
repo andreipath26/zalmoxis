@@ -13,21 +13,55 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.text.DateFormat
+import java.util.Date
 
-/** Honest no-key fallback: Android shares messages, but ChatGPT is not connected in-app. */
+/** Bidirectional, opt-in agent messaging. Inbound tasks never execute automatically. */
 @Composable
 internal fun AgentBridgeWorkspace(onBack: () -> Unit) {
     val context = LocalContext.current
-    var draft by rememberSaveable { mutableStateOf("") }
-    var status by remember { mutableStateOf("Not connected to ChatGPT. Use the Android share sheet to hand off a message.") }
+    val scope = rememberCoroutineScope()
+    var connection by remember { mutableStateOf(AgentBridgeClient.load(context)) }
+    var relayUrl by rememberSaveable { mutableStateOf("") }
+    var pairingCode by rememberSaveable { mutableStateOf("") }
+    var outgoing by rememberSaveable { mutableStateOf("") }
+    var response by rememberSaveable { mutableStateOf("") }
+    var selectedId by remember { mutableStateOf<String?>(null) }
+    var inbox by remember { mutableStateOf(emptyList<BridgeMessage>()) }
+    var outbox by remember { mutableStateOf(emptyList<BridgeReply>()) }
+    var working by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("Agent messaging is disabled until you pair this phone.") }
+
+    suspend fun refresh(bridge: BridgeConnection) {
+        try {
+            inbox = AgentBridgeClient.inbox(bridge)
+            outbox = AgentBridgeClient.outbox(bridge)
+            message = "Connected to ${bridge.provider}. ${inbox.size} task(s) awaiting your review."
+        } catch (error: Exception) {
+            message = error.message ?: "Could not reach relay."
+        }
+    }
+
+    // Only poll while this screen is present: no background device activity.
+    LaunchedEffect(connection) {
+        val bridge = connection ?: return@LaunchedEffect
+        while (true) {
+            refresh(bridge)
+            delay(15_000)
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -39,47 +73,201 @@ internal fun AgentBridgeWorkspace(onBack: () -> Unit) {
             border = BorderStroke(1.dp, ZalmoxisV2.stroke),
             shape = MaterialTheme.shapes.medium,
         ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("User-mediated connection", style = MaterialTheme.typography.titleMedium)
+            Column(modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (connection == null) "Not connected" else "Paired · ${connection?.provider}",
+                    style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "No OpenAI API key needed. Android lets you choose ChatGPT or another app as a share target. " +
-                        "A share does not deliver a message directly to an assistant, generate a response, or sync automatically.",
+                    "No model API key. Messages travel through your HTTPS relay. " +
+                        "A connected provider can send tasks, but this app never runs them or reads Knowledge automatically.",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Text(
-                    "Remote live MCP connection: not connected. Two-way automatic delivery requires a secure " +
-                        "relay, compatible ChatGPT connector access, and device pairing.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
             }
         }
-        OutlinedTextField(
-            value = draft,
-            onValueChange = { draft = it.take(AgentBridgeHandoff.MAX_MESSAGE_LENGTH) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Message to send to ChatGPT") },
-            minLines = 4,
-            maxLines = 10,
-        )
+
+        if (connection == null) {
+            Text("Pair your phone", style = MaterialTheme.typography.titleMedium)
+            Text("Get a one-time code from the authorized provider's create_pairing_code MCP tool. " +
+                "The relay must be deployed and accessible from this phone.",
+                style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(
+                value = relayUrl,
+                onValueChange = { relayUrl = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("HTTPS relay origin") },
+                placeholder = { Text("https://your-bridge.workers.dev") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = pairingCode,
+                onValueChange = { pairingCode = it.take(16).uppercase() },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("One-time pairing code") },
+                singleLine = true,
+            )
+            Button(
+                enabled = !working && pairingCode.length == 16 && relayUrl.startsWith("https://"),
+                onClick = {
+                    scope.launch {
+                        working = true
+                        try {
+                            val paired = AgentBridgeClient.pair(context, relayUrl, pairingCode)
+                            connection = paired
+                            pairingCode = ""
+                            message = "Paired securely with ${paired.provider}."
+                        } catch (error: Exception) {
+                            message = error.message ?: "Pairing failed."
+                        } finally { working = false }
+                    }
+                },
+            ) { Text(if (working) "Pairing…" else "Pair phone") }
+        } else {
+            val bridge = checkNotNull(connection)
+            Text("Ask ${bridge.provider}", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = outgoing,
+                onValueChange = { outgoing = it.take(12_000) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Message to connected agent") },
+                minLines = 3,
+                maxLines = 6,
+                enabled = !working,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = !working && outgoing.isNotBlank(),
+                    onClick = {
+                        scope.launch {
+                            working = true
+                            try {
+                                AgentBridgeClient.send(bridge, outgoing)
+                                outgoing = ""
+                                refresh(bridge)
+                                message = "Message queued for the provider. A reply requires an active provider agent session."
+                            } catch (error: Exception) {
+                                message = error.message ?: "Could not send message."
+                            } finally { working = false }
+                        }
+                    },
+                ) { Text("Send to agent") }
+                TextButton(
+                    enabled = !working,
+                    onClick = { scope.launch { refresh(bridge) } },
+                ) { Text("Refresh") }
+            }
+
+            Text("Incoming tasks · ${inbox.size}", style = MaterialTheme.typography.titleMedium)
+            if (inbox.isEmpty()) Text("No tasks awaiting your approval.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall)
+            inbox.forEach { task ->
+                Surface(
+                    color = ZalmoxisV2.panel,
+                    border = BorderStroke(1.dp, ZalmoxisV2.stroke),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Column(modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("From ${bridge.provider} · ${DateFormat.getDateTimeInstance().format(Date(task.created * 1000))}",
+                            style = MaterialTheme.typography.labelSmall)
+                        Text(task.body, style = MaterialTheme.typography.bodyMedium)
+                        Text("Untrusted agent content. This message cannot execute tools.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (selectedId == task.id) {
+                            OutlinedTextField(
+                                value = response,
+                                onValueChange = { response = it.take(12_000) },
+                                label = { Text("Reply to this task") },
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 6,
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                enabled = !working,
+                                onClick = {
+                                    if (selectedId != task.id) {
+                                        selectedId = task.id
+                                        response = ""
+                                    } else {
+                                        scope.launch {
+                                            working = true
+                                            try {
+                                                AgentBridgeClient.answer(bridge, task.id, response)
+                                                selectedId = null
+                                                response = ""
+                                                refresh(bridge)
+                                            } catch (error: Exception) {
+                                                message = error.message ?: "Could not reply."
+                                            } finally { working = false }
+                                        }
+                                    }
+                                },
+                            ) { Text(if (selectedId == task.id) "Send reply" else "Reply") }
+                            TextButton(
+                                enabled = !working,
+                                onClick = {
+                                    scope.launch {
+                                        working = true
+                                        try {
+                                            AgentBridgeClient.answer(bridge, task.id, null, reject = true)
+                                            refresh(bridge)
+                                        } catch (error: Exception) {
+                                            message = error.message ?: "Could not reject task."
+                                        } finally { working = false }
+                                    }
+                                },
+                            ) { Text("Reject") }
+                        }
+                    }
+                }
+            }
+
+            Text("Replies from provider", style = MaterialTheme.typography.titleMedium)
+            outbox.filter { !it.reply.isNullOrBlank() }.forEach { reply ->
+                Surface(color = ZalmoxisV2.panel, shape = MaterialTheme.shapes.medium) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Reply · ${reply.status}", style = MaterialTheme.typography.labelSmall)
+                        Text(reply.reply.orEmpty())
+                    }
+                }
+            }
+            TextButton(
+                enabled = !working,
+                onClick = {
+                    scope.launch {
+                        working = true
+                        try { AgentBridgeClient.disconnect(context, bridge) }
+                        catch (error: Exception) {
+                            message = error.message ?: "Disconnect failed; local token cleared."
+                        } finally {
+                            AgentBridgeClient.clearLocal(context)
+                            connection = null
+                            inbox = emptyList()
+                            outbox = emptyList()
+                            working = false
+                        }
+                    }
+                },
+            ) { Text("Disconnect and revoke") }
+        }
+
+        Text("Manual fallback (without an online relay)",
+            style = MaterialTheme.typography.titleSmall)
         Button(
+            enabled = outgoing.isNotBlank() || connection == null,
             onClick = {
                 try {
-                    AgentBridgeHandoff.share(context, draft)
-                    status = "Android share sheet opened. Choose a target and review before sending."
+                    AgentBridgeHandoff.share(context,
+                        outgoing.ifBlank { "Message from Zalmoxis" })
+                    message = "Android share sheet opened; a human must complete the handoff."
                 } catch (error: Exception) {
-                    status = error.message ?: "Could not open Android share sheet."
+                    message = error.message ?: "Android sharing unavailable."
                 }
             },
-            enabled = draft.isNotBlank(),
-        ) { Text("Share message…") }
-        Text(status, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            "To send a reply back, use Share → Zalmoxis on your phone and review the incoming text. " +
-                "Nothing is imported into Knowledge or executed as a tool without a separate approval.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        ) { Text("Share via Android…") }
     }
 }
