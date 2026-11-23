@@ -100,12 +100,18 @@ internal fun ResearchWorkspace(
     // the *specific public GitHub scope* shown here, not to search other websites.
     LaunchedEffect(initialTopic) {
         if (initialTopic.isNotBlank()) {
-            topic = initialTopic
-            onInitialTopicConsumed()
-            search(initialTopic)
-            if (initialSaveProposal) {
-                selectedUrls = hits.map { it.url }.toSet()
-                status += " Sources preselected for your review; nothing has been saved."
+            val requestedTopic = initialTopic
+            val saveProposal = initialSaveProposal
+            topic = requestedTopic
+            try {
+                search(requestedTopic)
+                if (saveProposal) {
+                    selectedUrls = hits.map { it.url }.toSet()
+                    status += " Sources preselected for your review; nothing has been saved."
+                }
+            } finally {
+                // Consume only after search completes; changing the key earlier cancels the request.
+                onInitialTopicConsumed()
             }
         }
     }
