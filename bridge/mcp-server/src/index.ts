@@ -66,7 +66,8 @@ function createServer() {
   server.registerTool("send_task", {
     description: "Queue one message for explicit review in the paired Zalmoxis phone; cannot execute commands or change Knowledge.",
     inputSchema: { message: z.string().trim().min(1).max(12000) },
-  }, async ({ message }) => {
+  }, async ({ message }, context) => {
+    if (!context.http?.authInfo?.scopes?.includes("mcp:write")) return fail("OAuth mcp:write scope required.");
     const id = await authorizedBridge();
     if (!id) return fail("Phone is not paired or access has been revoked.");
     const msgId = uuid();
@@ -106,7 +107,8 @@ function createServer() {
       message_id: z.string().uuid(),
       reply: z.string().trim().min(1).max(12000),
     },
-  }, async ({ message_id, reply }) => {
+  }, async ({ message_id, reply }, context) => {
+    if (!context.http?.authInfo?.scopes?.includes("mcp:write")) return fail("OAuth mcp:write scope required.");
     const id = await authorizedBridge();
     if (!id) return fail("Not paired.");
     const result = await env.DB.prepare(
@@ -132,8 +134,8 @@ export default new OAuthResourceServer<Env, AuthProps>({
       if (!scopes.includes("mcp:read")) {
         return insufficientScope(ctx.auth, ["mcp:read"]);
       }
-      // Read-only status/list tools and message writes are distinguished by
-      // mcp:write; the tool handlers check grants before mutations.
+      // Read-only status/list tools need mcp:read. Message mutations also
+      // require mcp:write; enforced inside the registered tool handlers.
       return mcpHandler(request, e, ctx);
     },
   },
