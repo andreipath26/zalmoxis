@@ -82,8 +82,8 @@ internal object LocalKnowledgeVault {
         val destination = File(directory, stored)
         try {
             resolver.openInputStream(uri).use { input ->
-                requireNotNull(input) { "Could not read the selected source." }
-                temp.outputStream().buffered().use { output -> input.copyTo(output) }
+                val stream = requireNotNull(input) { "Could not read the selected source." }
+                temp.outputStream().buffered().use { output -> stream.copyTo(output) }
             }
             require(temp.isFile && temp.length() > 0L) { "The selected source is empty." }
             val digest = MessageDigest.getInstance("SHA-256")
