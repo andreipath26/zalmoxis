@@ -88,13 +88,24 @@ class MainActivity : ComponentActivity() {
 }
 
 /** Explicit user research commands route to scoped research; ordinary chat stays local. */
+private val RESEARCH_SAVE_DIRECTIVE = Regex(
+    "\\s+and\\s+(?:save|add|store)\\s+(?:the\\s+)?(?:findings|results|sources|relevant\\s+information)" +
+        "(?:\\s+(?:to|in|into)\\s+(?:my\\s+)?(?:knowledge|database))?[.!]?\\s*$",
+    RegexOption.IGNORE_CASE,
+)
+
 internal fun researchTopicFromChat(message: String): String? {
     val match = Regex(
         "^(?:research|search(?: the web)? for|find (?:github )?repositories (?:for|about)|look up)\\s+(.{3,160})$",
         RegexOption.IGNORE_CASE,
     ).matchEntire(message.trim()) ?: return null
-    return match.groupValues[1].trim().takeIf { it.length >= 3 }
+    return match.groupValues[1].replace(RESEARCH_SAVE_DIRECTIVE, "").trim()
+        .takeIf { it.length in 3..160 }
 }
+
+internal fun researchSaveRequested(message: String): Boolean =
+    researchTopicFromChat(message) != null && RESEARCH_SAVE_DIRECTIVE.containsMatchIn(message)
+
 
 private enum class HomeTab(val title: String) {
     CHAT("Chat"),
@@ -133,6 +144,7 @@ private fun ZalmoxisHome() {
     var busy by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.CHAT) }
     var researchTopic by rememberSaveable { mutableStateOf("") }
+    var researchSaveRequested by rememberSaveable { mutableStateOf(false) }
     var availableAppUpdate by remember { mutableStateOf<AppUpdate?>(null) }
     val chatScrollState = rememberScrollState()
     val knowledgeScrollState = rememberScrollState()
@@ -612,7 +624,8 @@ private fun ZalmoxisHome() {
                         onBack = { selectedTab = HomeTab.WORKSPACE },
                         onKnowledge = { selectedTab = HomeTab.KNOWLEDGE },
                         initialTopic = researchTopic,
-                        onInitialTopicConsumed = { researchTopic = "" },
+                        onInitialTopicConsumed = { researchTopic = ""; researchSaveRequested = false },
+                        initialSaveProposal = researchSaveRequested,
                         localRuntime = session,
                     )
                 }
@@ -759,6 +772,7 @@ private fun ZalmoxisHome() {
                                                 researchTopicFromChat(submitted) else null
                                             if (researchRequest != null) {
                                                 researchTopic = researchRequest
+                                                researchSaveRequested = researchSaveRequested(submitted)
                                                 prompt = ""
                                                 selectedTab = HomeTab.RESEARCH
                                             } else {
