@@ -11,7 +11,6 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import org.json.JSONObject
-import java.util.UUID
 
 enum class ModelDownloadStatus { IDLE, ENQUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED }
 
@@ -101,15 +100,17 @@ object ModelDownloadCoordinator {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             StoredStateLiveData(app, catalogId, empty)
         } else {
-            val requestId = prefs(app).getString(workIdKey(catalogId), null)
-                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-            if (requestId == null) {
-                MediatorLiveData<ModelDownloadState>().apply { value = empty }
-            } else {
-                val source = WorkManager.getInstance(app).getWorkInfoByIdLiveData(requestId)
-                MediatorLiveData<ModelDownloadState>().apply {
-                    value = empty
-                    addSource(source) { info -> value = info?.let { mapWorkInfo(it, empty) } ?: empty }
+            // Observe the unique work chain, not a fixed request ID: retries create new IDs.
+            val source = ModelDownloadWorker.workInfo(app, catalogId)
+            MediatorLiveData<ModelDownloadState>().apply {
+                value = empty
+                addSource(source) { infos ->
+                    val active = infos.orEmpty().firstOrNull { it.state == WorkInfo.State.RUNNING }
+                        ?: infos.orEmpty().firstOrNull {
+                            it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED
+                        }
+                    val latest = active ?: infos.orEmpty().lastOrNull()
+                    value = latest?.let { mapWorkInfo(it, empty) } ?: empty
                 }
             }
         }
