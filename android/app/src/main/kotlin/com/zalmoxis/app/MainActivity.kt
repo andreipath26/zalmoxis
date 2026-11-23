@@ -68,6 +68,8 @@ private fun ZalmoxisHome() {
     var imageFile by remember { mutableStateOf<File?>(null) }
     var speechInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
     var speechActive by remember { mutableStateOf(false) }
+    var speechOutput by remember { mutableStateOf<OfflineSpeechOutput?>(null) }
+    var speechOutputReady by remember { mutableStateOf(false) }
     var response by remember { mutableStateOf("") }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
@@ -77,6 +79,7 @@ private fun ZalmoxisHome() {
         onDispose {
             session?.close()
             speechInput?.close()
+            speechOutput?.close()
         }
     }
 
@@ -425,6 +428,48 @@ private fun ZalmoxisHome() {
         if (response.isNotBlank()) {
             Text("Response", style = MaterialTheme.typography.titleMedium)
             Text(response, style = MaterialTheme.typography.bodyLarge)
+        }
+
+        if (response.isNotBlank()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val output = speechOutput
+                        if (output == null) {
+                            speechOutput = OfflineSpeechOutput(context) { ready, message ->
+                                speechOutputReady = ready
+                                status = message
+                            }
+                            status = "Preparing installed offline speech voices…"
+                        } else if (speechOutputReady) {
+                            output.speak(response)
+                            status = "Speaking with an installed voice that reports no network requirement."
+                        }
+                    },
+                    enabled = !busy && (speechOutput == null || speechOutputReady),
+                ) {
+                    Text(
+                        when {
+                            speechOutput == null -> "Prepare offline speech"
+                            speechOutputReady -> "Speak response offline"
+                            else -> "Preparing offline speech…"
+                        }
+                    )
+                }
+                if (speechOutputReady) {
+                    Button(
+                        onClick = {
+                            speechOutput?.stop()
+                            status = "Speech stopped."
+                        },
+                        enabled = !busy,
+                    ) { Text("Stop speech") }
+                }
+            }
+            Text(
+                "Speech synthesis is user-triggered and selects an installed voice that reports no network requirement.",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
 
         Spacer(Modifier.height(8.dp))

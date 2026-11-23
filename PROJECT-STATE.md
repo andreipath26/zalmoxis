@@ -181,3 +181,8 @@ Added push-to-dictate using Android SpeechRecognizer's on-device instance (Andro
 ## 2026-11-23 — Runtime adapter boundary
 
 Extracted the app-facing OnDeviceInferenceRuntime interface and retained LiteRT-LM as its first CPU adapter. Model loading now selects the registered runtime by file format and rejects unregistered formats explicitly. Benchmark reports record runtime and backend identifiers. This creates the integration seam for KILN/llama.cpp while making no claim that its Android backend is implemented.
+
+
+## 2026-11-23 — Offline speech output
+
+Added user-triggered Android TextToSpeech output. The app selects an installed voice only when Android reports that it does not require a network connection, provides stop control, and does not request a new permission. Manifest package visibility includes the TTS service query. Available voices depend on the device and installed speech data. This source has not been built or run on-device; the Android build remains unverified.
