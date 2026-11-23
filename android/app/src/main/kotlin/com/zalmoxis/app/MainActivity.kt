@@ -63,6 +63,7 @@ private fun ZalmoxisHome() {
     var session by remember { mutableStateOf<OnDeviceInferenceRuntime?>(null) }
     var models by remember { mutableStateOf(emptyList<LocalModel>()) }
     var modelName by remember { mutableStateOf<String?>(null) }
+    var modelSha256 by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf("Choose a compatible .litertlm file stored on this device.") }
     var prompt by remember { mutableStateOf("") }
     var imageFile by remember { mutableStateOf<File?>(null) }
@@ -124,13 +125,17 @@ private fun ZalmoxisHome() {
         val newRuntime = LocalInferenceRuntimeFactory.createFor(file)
         scope.launch {
             busy = true
-            status = "Loading model on CPU…"
+            status = "Verifying local model digest and loading on CPU…"
             try {
+                val verifiedSha256 = withContext(Dispatchers.IO) {
+                    LocalModelCatalog.verify(context, file)
+                }
                 newRuntime.load(context, file)
                 val previousRuntime = session
                 session = newRuntime
                 previousRuntime?.close()
                 modelName = file.name
+                modelSha256 = verifiedSha256
                 context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
                     .edit().putString("last_model_name", file.name).apply()
                 response = ""
@@ -159,6 +164,9 @@ private fun ZalmoxisHome() {
             status = "Restoring the last local model…"
             try {
                 val restoredRuntime = LocalInferenceRuntimeFactory.createFor(savedFile)
+                modelSha256 = withContext(Dispatchers.IO) {
+                    LocalModelCatalog.verify(context, savedFile)
+                }
                 restoredRuntime.load(context, savedFile)
                 session = restoredRuntime
                 modelName = savedFile.name
@@ -241,7 +249,7 @@ private fun ZalmoxisHome() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "${model.name} · ${formatBytes(model.sizeBytes)}",
+                        "${model.name} · ${formatBytes(model.sizeBytes)}\nSHA-256 ${model.sha256.take(12)}… · ${model.licenseStatus}",
                         modifier = Modifier.weight(1f).padding(top = 10.dp),
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -258,6 +266,7 @@ private fun ZalmoxisHome() {
                                         session?.close()
                                         session = null
                                         modelName = null
+                                        modelSha256 = null
                                         context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
                                             .edit().remove("last_model_name").apply()
                                     }
@@ -316,6 +325,7 @@ private fun ZalmoxisHome() {
                                 saveBenchmarkReport(
                                     context,
                                     modelName!!,
+                                    checkNotNull(modelSha256),
                                     activeRuntime.runtimeName,
                                     activeRuntime.backendName,
                                     samples,
@@ -496,6 +506,7 @@ private fun formatBytes(size: Long): String = when {
 private suspend fun saveBenchmarkReport(
     context: Context,
     modelName: String,
+    modelSha256: String,
     runtimeName: String,
     backendName: String,
     samples: List<InferenceSample>,
@@ -516,6 +527,7 @@ private suspend fun saveBenchmarkReport(
         .put("schema_version", 1)
         .put("created_at_epoch_ms", createdAt)
         .put("model_file", modelName)
+        .put("model_sha256", modelSha256)
         .put("runtime", runtimeName)
         .put("backend", backendName)
         .put("device_manufacturer", Build.MANUFACTURER)

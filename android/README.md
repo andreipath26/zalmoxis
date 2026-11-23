@@ -9,7 +9,7 @@ interface; LiteRT-LM is the first runtime adapter.
 - A Jetpack Compose Android shell.
 - Local model import through Android's document picker into private app storage.
 - An OnDeviceInferenceRuntime contract and LiteRT-LM CPU adapter with streaming text and optional image input for compatible multimodal models.
-- A private local model shelf with size display, selection, deletion, and last-model restoration.
+- A private local model shelf with size and SHA-256 display, selection, deletion, last-model restoration, local digest verification before loading, and explicit unknown-license labeling for local imports. The digest identifies the local file but does not authenticate its publisher.
 - Image selection through Android's document picker, copied to private cache and deleted after the request; no broad photo permission.
 - On-device speech dictation through Android's on-device recognizer where available; microphone permission is requested only when dictation starts, with no network recognizer fallback.
 - User-triggered speech output using an installed Android TTS voice that reports no network requirement; network-required voices are never selected.

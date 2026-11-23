@@ -3,14 +3,21 @@ package com.zalmoxis.app
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.util.UUID
 
 data class LocalModel(
     val name: String,
     val file: File,
     val sizeBytes: Long,
+    val sha256: String,
+    val sourceDescription: String,
+    val licenseStatus: String,
+    val importedAtEpochMs: Long,
 )
 
 object LocalModelCatalog {
@@ -22,7 +29,16 @@ object LocalModelCatalog {
             .orEmpty()
             .filter { it.isFile && it.name.endsWith(MODEL_EXTENSION, ignoreCase = true) }
             .sortedBy { it.name.lowercase() }
-            .map { LocalModel(it.name, it, it.length()) }
+            .map { file ->
+                val metadata = receiptFile(file)
+                if (metadata.exists()) {
+                    requireNotNull(readReceipt(file)) {
+                        "The provenance record for ${file.name} is invalid. Reimport the model to review it."
+                    }
+                } else {
+                    createLegacyReceipt(file).also { writeReceipt(file, it) }
+                }
+            }
     }
 
     fun importFile(context: Context, uri: Uri): File {
@@ -39,31 +55,173 @@ object LocalModelCatalog {
         val destination = File(directory, safeName)
         val temporary = File(directory, ".import-${UUID.randomUUID()}.partial")
         val backup = File(directory, ".backup-${UUID.randomUUID()}.partial")
+        val receipt = receiptFile(destination)
+        val receiptTemporary = File(directory, ".receipt-${UUID.randomUUID()}.partial")
+        val receiptBackup = File(directory, ".receipt-backup-${UUID.randomUUID()}.partial")
         try {
             context.contentResolver.openInputStream(uri).use { input ->
                 requireNotNull(input) { "Could not open the selected model file." }
                 FileOutputStream(temporary).use { output -> input.copyTo(output) }
             }
             require(temporary.length() > 0L) { "The selected file is empty." }
+            val digest = sha256(temporary)
+            val receiptContent = receiptJson(
+                name = safeName,
+                file = temporary,
+                digest = digest,
+                sourceDescription = "Selected through Android document picker",
+                importedAtEpochMs = System.currentTimeMillis(),
+            )
 
             val hadDestination = destination.exists()
             if (hadDestination) {
                 check(destination.renameTo(backup)) { "Could not safely replace the existing model." }
             }
+            val hadReceipt = receipt.exists()
+            if (hadReceipt && !receipt.renameTo(receiptBackup)) {
+                if (hadDestination) backup.renameTo(destination)
+                error("Could not safely replace the model provenance record.")
+            }
             if (!temporary.renameTo(destination)) {
                 if (hadDestination) backup.renameTo(destination)
+                if (hadReceipt) receiptBackup.renameTo(receipt)
                 error("Could not finish importing the model.")
             }
+
+            try {
+                writeJsonAtomically(receipt, receiptTemporary, receiptContent)
+            } catch (error: Exception) {
+                destination.delete()
+                if (hadDestination) backup.renameTo(destination)
+                if (hadReceipt) receiptBackup.renameTo(receipt)
+                throw error
+            }
             backup.delete()
+            receiptBackup.delete()
             return destination
         } finally {
             temporary.delete()
+            receiptTemporary.delete()
             if (backup.exists() && !destination.exists()) backup.renameTo(destination)
+            if (receiptBackup.exists() && !receipt.exists()) receiptBackup.renameTo(receipt)
             backup.delete()
+            receiptBackup.delete()
         }
     }
 
-    fun delete(model: LocalModel): Boolean = model.file.delete()
+    /**
+     * Detects local changes since import. A local SHA-256 receipt does not authenticate a publisher.
+     */
+    fun verify(context: Context, file: File): String {
+        val metadata = receiptFile(file)
+        val receipt = if (metadata.exists()) {
+            requireNotNull(readReceipt(file)) {
+                "The model provenance record is invalid. Reimport the model to review it."
+            }
+        } else {
+            createLegacyReceipt(file).also { writeReceipt(file, it) }
+        }
+        val actual = sha256(file)
+        check(actual.equals(receipt.sha256, ignoreCase = true)) {
+            "Model file changed since its provenance record was created. Reimport the file to review it."
+        }
+        return actual
+    }
+
+    fun delete(model: LocalModel): Boolean {
+        if (!model.file.delete() && model.file.exists()) return false
+        val receipt = receiptFile(model.file)
+        if (!receipt.delete() && receipt.exists()) return false
+        return true
+    }
+
+    private fun createLegacyReceipt(file: File): LocalModel =
+        LocalModel(
+            name = file.name,
+            file = file,
+            sizeBytes = file.length(),
+            sha256 = sha256(file),
+            sourceDescription = "Existing local model; original source not recorded",
+            licenseStatus = "Unknown; check the publisher's terms",
+            importedAtEpochMs = file.lastModified(),
+        )
+
+    private fun readReceipt(file: File): LocalModel? = runCatching {
+        val json = JSONObject(receiptFile(file).readText())
+        val digest = json.optString("sha256")
+        require(digest.matches(Regex("[a-fA-F0-9]{64}")))
+        LocalModel(
+            name = file.name,
+            file = file,
+            sizeBytes = file.length(),
+            sha256 = digest.lowercase(),
+            sourceDescription = json.optString("source_description", "Source not recorded"),
+            licenseStatus = json.optString(
+                "license_status",
+                "Unknown; check the publisher's terms",
+            ),
+            importedAtEpochMs = json.optLong("imported_at_epoch_ms", 0L),
+        )
+    }.getOrNull()
+
+    private fun writeReceipt(file: File, model: LocalModel) {
+        val temporary = File(file.parentFile, ".receipt-${UUID.randomUUID()}.partial")
+        writeJsonAtomically(
+            receiptFile(file),
+            temporary,
+            receiptJson(
+                name = model.name,
+                file = file,
+                digest = model.sha256,
+                sourceDescription = model.sourceDescription,
+                importedAtEpochMs = model.importedAtEpochMs,
+                licenseStatus = model.licenseStatus,
+            ),
+        )
+    }
+
+    private fun receiptJson(
+        name: String,
+        file: File,
+        digest: String,
+        sourceDescription: String,
+        importedAtEpochMs: Long,
+        licenseStatus: String = "Unknown; check the publisher's terms",
+    ): JSONObject = JSONObject()
+        .put("schema_version", 1)
+        .put("file_name", name)
+        .put("file_size_bytes", file.length())
+        .put("sha256", digest.lowercase())
+        .put("source_description", sourceDescription)
+        .put("license_status", licenseStatus)
+        .put("imported_at_epoch_ms", importedAtEpochMs)
+        .put("publisher_authenticity_verified", false)
+
+    private fun writeJsonAtomically(destination: File, temporary: File, json: JSONObject) {
+        FileOutputStream(temporary).use { output ->
+            output.write(json.toString(2).toByteArray(Charsets.UTF_8))
+            output.fd.sync()
+        }
+        check(temporary.renameTo(destination)) { "Could not save model provenance." }
+    }
+
+    private fun receiptFile(file: File): File =
+        File(file.parentFile, ".${file.name}.provenance.json")
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        FileInputStream(file).buffered(128 * 1024).use { input ->
+            val buffer = ByteArray(128 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                if (read > 0) digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { byte ->
+            "%02x".format(byte.toInt() and 0xff)
+        }
+    }
 
     private fun queryDisplayName(context: Context, uri: Uri): String? {
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
