@@ -1362,3 +1362,40 @@ The comparison is a technology map, not an exhaustive security or licensing audi
 **Next batches [DESIGNED]:** provider interface for broad web search (user-configured SearXNG/Brave or another privacy-reviewed service), independent extraction adapters, multi-step local research planning, title/content citation validation, per-source selection policies, deduplication, search caching, source quote alignment, safe handling of conflicting sources, persistent permission grants with expiry, research progress/cancellation, full integration tests, and real APK/device tests.
 
 **Required checks before shipping:** user can request search without a URL; no implicit network on ordinary chat; no unapproved search on navigation or recomposition; rate-limited provider errors are visible; bulk save is reviewable and never overwrites existing data; drafts remain labeled unverified; fetched text cannot execute tools; all source URLs and hashes survive save/export/delete; offline knowledge operations continue working.
+
+
+---
+
+# ADDENDUM (2026-11-23): BIDIRECTIONAL CHATGPT ↔ ZALMOXIS AGENT BRIDGE
+
+**User requirement:** ChatGPT must be able to send tasks/messages directly to the on-device Zalmoxis agent and receive responses; Zalmoxis must be able to initiate a request to ChatGPT and receive a response. Ordinary copy/paste is a fallback, not the destination architecture. This preserves all earlier memory, privacy, scoped delegation, security, agent, and launch constraints. **Status: architecture [DESIGNED]; portable handoff and bridge protocol source may be implemented incrementally; remotely connected real-world two-way operation is NOT verified.**
+
+## Supported paths, distinctly labeled
+
+1. **Local Android handoff [first Android slice]:** explicit Send to ChatGPT via Android Sharesheet, and Receive from ChatGPT via Android ACTION_SEND, with a visible, editable pending message and an acceptance step. This is *user-mediated, not autonomous or live connectivity* and needs no server account, OAuth, tokens, or broad privileges.
+2. **Direct secure bridge [target]:** a hosted remote Model Context Protocol (MCP) server registered by the owner in ChatGPT, plus an Android-side authenticated client/polling/WebSocket channel through a secure relay. Public internet is used only when the bridge is explicitly connected; local inference stays local. The bridge is a broker of messages and **approval requests**, never raw device control.
+3. **App-initiated cloud assistant requests [optional]:** Zalmoxis can call an authorized, user-configured OpenAI API integration via a backend-protected credential when explicitly enabled. Consumer ChatGPT sign-in is **not** equivalent to an OpenAI API key. Never ship an API credential in the APK, GitHub, or the message body. Respect cloud model costs, privacy disclosures, quotas and clear off switches.
+
+## Requirements
+
+- **Pairing and identity:** explicit pairing from Zalmoxis Settings; OAuth on remote MCP side; per-device short-lived enrollment; scoped access tokens bound to a user/device; local secret held in Android Keystore; revocation from phone and server. No unauthenticated or publicly writable MCP tools. A static public token in README, app code, query string, or source link is prohibited.
+- **Message envelope:** immutable UUID, protocol version, direction, sender, recipient, conversation/task ID, creation/expiry timestamp, message type, content, correlation/reply-to ID, capability scopes, source references, digest and delivery/approval/acknowledgement state. Validate max lengths and total sizes. Replay IDs must be rejected; outbox retries idempotent. Display chronological messages and failures.
+- **Capabilities:** `send_message`, `fetch_agent_status`, `get_reply`, `propose_knowledge_change`, `request_user_approval` are separately declared. No default filesystem, contact, microphone, app control, shell, accessibility, account tokens, or arbitrary network execution. All tool proposals are routed through existing deterministic permission/policy logic.
+- **Human approval:** incoming content is untrusted agent output. Zalmoxis must not treat ChatGPT-generated text as a privileged command, and ChatGPT must not treat retrieved local documents as untrusted instructions to execute. UI shows sender, intent, target, data crossing device boundary and specific action. Allow approve once, grant bounded permission with expiry, reject, or revoke. No silent promotion to confirmed memory.
+- **Device privacy:** message sharing is explicit; disabled bridge means zero background transfer. Encrypted network only; logs redact message bodies; local history deletion/export, server retention TTL and remote-deletion contract. Never transmit personal model context or Knowledge corpus automatically.
+- **Connectivity:** offline queue limited by size and age; backoff, metered-network preferences, battery/foreground behavior, delivery acknowledgement and conflict handling; no claim of remote reachability if phone is offline.
+- **Conversation UX:** a dedicated **Agent Bridge** workspace/settings surface with ChatGPT status, pending inbox, sent history, scoped grant management, share/handoff, and explicit task submission. Distinguish "Shared via Android" from "Connected (MCP relay)".
+- **Security testing:** forged shares, exported component attacks, intent spoofing, replay, token theft, malicious messages, prompt injection, scope escalation, SSRF, relay compromise, host verification, leak/noise testing, device offline and account disconnect. Require a working APK/device test before saying the bridge is operational.
+
+## Phases and delivery gates
+
+- **Phase 0 / Memory:** messages, approvals, revocation, provenance and deletions with stable IDs, no conflation with memory.
+- **Phase 2 / Android:** implement portable two-way human-mediated Android share/handoff and approval inbox, then authenticated secure transport with a connection toggle and offline queue.
+- **Phase 3 / Monitor:** connector status, per-direction message trace, delivery receipts, latency and rejection statistics without content leakage.
+- **Phase 5 / Knowledge:** source-linked research requests and drafts; reversible, reviewed import only; conflict-aware reconciliation.
+- **Phase 6 / Security:** OAuth/MCP access control, signed/short-lived pairing, origin binding, replay resistance, tainted content, emergency disconnect and adversarial tests.
+- **Phase 7 / Delivery:** working hosted MCP endpoint connected in ChatGPT, Android client paired on phone, successful 10+ bidirectional round trips across online/offline transitions, revocation and malicious-message tests, latency and battery validation.
+
+**Specific connection requirements:** the ChatGPT product must have an eligible custom remote MCP plugin connected by the user; the secure bridge server must be deployed and reachable; the phone must have installed an APK containing the client and be paired. Neither source-code commits nor an Android Sharesheet alone establishes live two-way ChatGPT communication.
+
+References: https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt ; https://developers.openai.com/api/docs/guides/custom-mcp-server ; https://developers.openai.com/api/docs/guides/tools-connectors-mcp ; https://developer.android.com/training/app-links/about .
