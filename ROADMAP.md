@@ -527,7 +527,7 @@ Repository reviewed: https://github.com/akitaonrails/ai-memory (MIT-licensed Rus
 
 Its canonical knowledge store is an editable, Git-versioned Markdown wiki. SQLite is a derived, rebuildable index that supports FTS5, entity and link retrieval, sessions, observations, handoffs, audit records, and optional embeddings. Search can combine lexical, entity, graph-neighbor, and vector results. Its retention design decays cold episodic records while protecting pages that are revisited, and it preserves superseded history rather than silently overwriting prior knowledge.
 
-The default workflow does not require an LLM. Optional consolidation, dream-cycle, and reranking operations can use configured providers. The local embedding path uses Candle with all-MiniLM-L6-v2 on CPU; it downloads an approximately 87 MB model from Hugging Face on first use and verifies its SHA-256. The local embedding path keeps text processing on-device, but the initial model fetch still requires network access.
+The default workflow does not require an LLM provider. If an LLM provider is configured, provider-backed consolidation, lint, bootstrap, dream, profile, and auto-improvement paths can send session observations and page text to it. The scheduled auto-improvement loop applies validated proposals through the wiki write path by default; operators can stop the scheduler or require approval. The LLM dream pass is separately opt-in, off by default, and requires a configured provider and embedder. LLM reranking is a separate explicit `AI_MEMORY_RERANKER=llm` path. The local embedding path uses Candle with all-MiniLM-L6-v2 on CPU; it downloads an approximately 87 MB model from Hugging Face on first use and verifies its SHA-256. The local embedding path keeps text processing on-device, but the initial model fetch still requires network access.
 
 **Patterns to evaluate for Zamolxis**
 
@@ -535,12 +535,12 @@ The default workflow does not require an LLM. Optional consolidation, dream-cycl
 - Treat search indexes and embeddings as derived, rebuildable data. Never let a stale index become the only copy of a memory.
 - Combine local lexical search with entity, relationship, and temporal-neighbor retrieval. Add embeddings only after device benchmarks show acceptable retrieval quality, latency, storage, and battery use.
 - Preserve provenance, timestamps, supersession history, correction, restore, and deletion receipts. Make retention decay visible and user-controlled; pin or protect information the user confirms as important.
-- Keep the zero-LLM memory path useful. Any LLM-based consolidation or reranking must be opt-in, on-device by default, inspectable, reversible, and prevented from changing permissions or memory ownership.
+- Keep the zero-LLM memory path useful. For Zamolxis, require explicit user opt-in to provider-backed memory processing, identify whether a selected provider is local or remote, and stage every proposed memory edit for approval. Do not inherit ai-memory's default auto-approval for validated proposals. Keep those flows inspectable, reversible, and unable to change permissions or memory ownership.
 - Preserve source trust labels and quarantine untrusted imported content before it can influence durable memories.
 
 **Adaptation boundary**
 
-The repository’s Rust server and CLI, MCP integration, editor hooks, multi-agent handoff lifecycle, team console, and cloud-provider reranking target coding-agent workflows and do not transfer directly to the Android product. Reuse the design lessons only after checking Android storage, app lifecycle, background-work, and offline constraints. The project is MIT licensed; if any code is later copied, preserve its license and notices and review each dependency’s separate license. No code or model is adopted by this roadmap entry.
+The repository’s Rust server and CLI, MCP integration, editor hooks, multi-agent handoff lifecycle, team console, and cloud-provider reranking target coding-agent workflows and do not transfer directly to the Android product. Its v1 storage also provides no encryption at rest and relies on operating-system file permissions; that security model must not be copied into Zamolxis without a separate threat-model decision. Reuse design lessons only after checking Android storage, app lifecycle, background-work, and offline constraints. The project is MIT licensed; if any code is later copied, preserve its license and notices and review each dependency’s separate license. No code or model is adopted by this roadmap entry.
 
 Status: [RESEARCHED] reference; adaptation decisions remain [DESIGNED] until Phase 0/5 benchmarks and privacy review pass.
 
