@@ -139,7 +139,7 @@ internal object GitHubAppUpdates {
                 if (signingInfo.hasMultipleSigners()) signingInfo.apkContentsSigners.toList()
                 else signingInfo.signingCertificateHistory.toList()
             } else {
-                info.signatures.toList()
+                info.signatures?.toList() ?: error("Package signature information is missing.")
             }
             return signatures.map { signature ->
                 val bytes = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
