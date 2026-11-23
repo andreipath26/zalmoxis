@@ -318,6 +318,17 @@ private fun ZalmoxisHome() {
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
         V2Header(onSettings = { selectedTab = HomeTab.SETTINGS })
+        if (busy || status != "Choose a compatible .litertlm file stored on this device.") {
+            Text(
+                status,
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+            )
+        }
         val activeScroll = when (selectedTab) {
             HomeTab.CHAT, HomeTab.VOICE -> chatScrollState
             HomeTab.KNOWLEDGE -> knowledgeScrollState
