@@ -1258,3 +1258,85 @@ This connects existing phases; it does not replace them.
 10. Performance and battery are measured on target devices before marking the feature `[VALIDATED]`.
 
 **Evidence status:** `[DESIGNED]`. This roadmap entry does not claim the Knowledge workspace is implemented or validated.
+
+
+---
+
+# ADDENDUM (2026-11-23): AGENT REACH–INSPIRED RESEARCH CONNECTORS AND COMPETITOR LANDSCAPE
+
+**Change control:** Append-only extension of the V10 roadmap. All existing phases, acceptance gates, Knowledge rules, and security constraints are retained. These are design and research findings, not claims of deployment.
+
+## Product goal
+
+Build an Android-native **Research** capability that lets a user explicitly request public information, understand which online sources will be contacted, read source-attributed excerpts, and deliberately save selected results in the existing local Knowledge vault. The local LLM must **not** gain direct network, process, browser, credential, cookie, MCP, or tool-execution authority. Deterministic Kotlin code owns the request and its audit/provenance record.
+
+**First vertical slice:** a human enters an HTTPS URL or a public GitHub repository, reviews the target, taps Fetch, reads the extracted text with original URL, fetch time, content digest and truncation notice, and explicitly chooses whether to save the excerpt to the local Knowledge vault. A cancelled or failed request creates no Knowledge entry. No implicit background crawling.
+
+## Agent Reach: adopt architectural ideas, not its desktop runtime
+
+Upstream: https://github.com/Panniantong/Agent-Reach (MIT license; verify current source/license before copying any files).
+
+| Agent Reach concept | Zalmoxis decision | Rationale |
+| --- | --- | --- |
+| Source-specific channel adapters | **ADAPT** to a Kotlin `ResearchSourceAdapter` interface | Keep platform differences isolated and testable |
+| Capability discovery / 'doctor' checks | **ADAPT** as user-visible supported/unsupported capabilities | Do not promise access the device cannot provide |
+| Consistent structured output | **ADOPT DESIGN** with URL, host, title, fetched-at, MIME, SHA-256, truncation and taint | Enables citation, safe import and diagnostics |
+| Backend fallback | **DEFER** until privacy and provenance policies cover each alternative | Never silently switch from direct retrieval to an external extractor |
+| Simple public website and GitHub access | **BUILD NATIVE** via bounded HTTPS requests, safe redirects and JSON parsing | No embedded Python/CLI or backend requirement |
+| Jina Reader / Exa / remote extraction | **OPTIONAL, OPT-IN LATER** | Content and targets reach third-party providers |
+| YouTube subtitles and RSS | **EVALUATE** after public pages/GitHub validation | Terms, localization and output provenance vary |
+| Twitter/X, Reddit, LinkedIn, Bilibili, Xiaohongshu, authenticated platforms | **DEFER** for separate adapter/legal/security review | No scraping credentials or unrestricted account access |
+| Browser-cookie/session copying, auto-login, arbitrary shell/tool invocation | **REJECT** | Violates local-first secrets isolation and deterministic authorization |
+
+## Comparable software due diligence (as of 2026-11-23)
+
+The comparison is a technology map, not an exhaustive security or licensing audit. These project references are distinct capabilities, not interchangeable drop-in Android libraries.
+
+| Project | URL | Strength | Decision / limitation |
+| --- | --- | --- | --- |
+| Agent Reach | https://github.com/Panniantong/Agent-Reach | Source/channel routing, health checks, fallback | Primary **architecture reference**; no desktop CLI bundling |
+| Crawl4AI | https://github.com/unclecode/crawl4ai | Web extraction, crawling, Markdown, browser rendering | **Study extraction**; Python/Chromium too heavy for core Android; check license/attribution carefully |
+| Jina Reader | https://github.com/jina-ai/reader | Hosted URL-to-readable-content extraction | **Future explicit opt-in**; sends URL/content to external service; evaluate model/content licensing |
+| GPT Researcher | https://github.com/assafelovic/gpt-researcher | Source synthesis, research reports, citations | **Study citation/report pipeline**; do not copy server orchestration into app |
+| Playwright MCP | https://github.com/microsoft/playwright-mcp | Browser automation through agent tools | **Future isolated backend** with explicit scope and human approval, never implicit on-device automation |
+| Browser Use | https://github.com/browser-use/browser-use | Agent-assisted browser interactions | **Future reviewed capabilities**; actions require deterministic permission gate |
+| SearXNG | https://github.com/searxng/searxng | Self-hostable metasearch backend | **Optional provider**; copyleft/server deployment implications; no default public instance tracking |
+| Firecrawl | https://github.com/firecrawl/firecrawl | Full-page extraction, crawling and hosted/self-hosted APIs | **Future optional service**; licensing, network/privacy, reliability and rate limits require review |
+| searxNcrawl | https://github.com/DasDigitaleMomentum/searxNcrawl | Search-to-crawl MCP service | **Alternative backend study**, not on-device dependency |
+| pi-web-search | https://github.com/recynie/pi-web-search | Multi-provider search fallback and reading | **Study provider contract**, do not import credentials or shell-based setup |
+| agent-search | https://github.com/cedarsaam/agent-search | SearXNG, RAG citations, MCP and GitHub search | **Study citations and search ranking**; server deployment required |
+
+**Selection principle:** smallest safe native adapter first, optional provider plugins second. Hosted services are never called without their own separate consent, and retrieved content must never enter an instruction or authorization channel.
+
+## Architecture and contracts
+
+1. **Transport / egress:** HTTPS only; refuse IP literals, loopback, private/link-local addresses, user-info URLs, unusual ports, disallowed schemes, and DNS resolutions to non-public IPs; revalidate on redirects. Set strict connection/read timeouts, maximum bytes/redirects and accepted content types. No POST, cookies, Authorization headers, JavaScript execution, browser sessions, tracking SDKs, or platform credentials. Defend against DNS rebinding and redirect-based SSRF. Unknown or binary formats fail visibly.
+2. **Adapters:** `ResearchSourceAdapter` plus explicit public webpage and GitHub repository adapters. GitHub API public repository metadata is preferable to scraping the GitHub HTML; article reading starts with direct bounded HTML/text retrieval. Adapter selection must be deterministic by validated host/URL.
+3. **Output:** standardized immutable `ResearchResult` with requested URL, final canonical URL, adapter ID, timestamp, MIME, page title, plain-text excerpt, source SHA-256, byte count, truncation and link identity. Anything extracted from the page is untrusted; displayed citations do not imply endorsement or accuracy.
+4. **Permissions/UI:** always require a deliberate fetch button in the first slice, with the destination host clearly displayed. Treat entering or pasting a URL as non-consent. Never execute URLs proposed by model output; no broad network entitlement implied by Android INTERNET permission.
+5. **Knowledge:** use existing `LocalKnowledgeVault` import contract for explicit, user-reviewed save. Preserve canonical URL and fetched-at provenance in metadata; don't silently overwrite existing sources or promote source text to remembered facts. Source deletion and export remain in scope.
+6. **Trust:** page text is tainted data. Strip scripts/styles and dangerous markup; cap memory/CPU usage; use no embedded browser for research; deny model-proposed tool commands and credentials. Record fetch errors with safe messages without leaking tokens or user secrets.
+7. **Privacy:** no background searches, network fallback, telemetry, automatic account access, cookies or cloud inference. The UI must distinguish offline Knowledge search from an explicitly online Research fetch.
+
+## Phase placement
+
+- **Phase 0 / Memory Core:** canonical URL/origin, content digest, fetch time, taint, immutable import receipt, source ID and deletion behavior.
+- **Phase 1 / Local Brain:** local-only summarization of reviewed fetched text after verification; no model-controlled network requests.
+- **Phase 2 / Android Layer:** implement a Research surface, native source adapters, consent UX, safe bounded transport, failure states and opt-in Knowledge import. This is the **current implementation batch**.
+- **Phase 3 / Observation:** user-visible adapter health, sources reached, failures, latency, and policy denials without logging fetched private content.
+- **Phase 5 / Knowledge Evolution:** deduplication, cited multi-source retrieval, contradiction checks, FTS/vector indexing, user-reviewed filing.
+- **Phase 6 / Security:** SSRF/DNS/redirect adversarial tests, HTML injection and resource-exhaustion tests, identity isolation, egress authorization regression, malicious tool text handling.
+- **Phase 7 / Delivery:** Android build and on-device tests; measured extraction quality, network costs, battery, UI accessibility, accessibility under airplane mode, citation fidelity, content deletion, and app-update safety.
+
+## Implementation batches and gates
+
+- **A — Source contracts and transport:** native bounded retrieval, typed results, allowlist rules, redirect and size caps, readable diagnostics. `[DESIGNED]`
+- **B — First native adapters:** direct public HTTPS text/HTML and public GitHub repository metadata. `[DESIGNED]`
+- **C — User research workflow:** enter URL, show actual host, confirm fetch, see result/provenance, explicitly save in Knowledge. `[DESIGNED]`
+- **D — Safe extraction and tests:** script/style isolation, HTML entities, HTML/plain-text, misleading links, invalid content types, redirects, private/localhost/DNS cases; unit tests with deterministic local fixtures. `[DESIGNED]`
+- **E — Provider expansion:** configurable SearXNG or hosted reader only after privacy notice, provider-specific consent, network cost review, auth/secret vault, and provenance tests. `[DESIGNED]`
+- **F — Full research reports:** multi-source planning, cited answers, synthesis review and export. `[DESIGNED]`
+
+**Acceptance checklist:** no unapproved network activity; every result has a source and digest; no arbitrary third-party redirects; no cookie/header leakage; no unauthorized model-tool bridge; bounded downloads and extraction; Knowledge save is explicit and deletion works; UI handles offline/errors and keyboard; tests and a real signed APK run successfully before marking `[BUILT]` or `[VALIDATED]`.
+
+**Evidence note:** research/design review complete for this addendum; code and actual Android acceptance remain separately tracked. Research links: https://github.com/Panniantong/Agent-Reach, https://github.com/unclecode/crawl4ai, https://github.com/jina-ai/reader, https://github.com/assafelovic/gpt-researcher, https://github.com/microsoft/playwright-mcp, https://github.com/browser-use/browser-use, https://github.com/searxng/searxng, https://github.com/firecrawl/firecrawl.
