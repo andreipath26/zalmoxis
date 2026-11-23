@@ -138,9 +138,14 @@ jobs:
           apk="signed-update/zalmoxis-update.apk"
           test -s "$apk"
           sha256sum "$apk"
-          gh release create "android-build-$GITHUB_RUN_NUMBER" "$apk" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "Zalmoxis Android build $GITHUB_RUN_NUMBER" \
-            --notes "Signed Android update from successful main build. Installation requires explicit Android user approval and matching signing identity." \
-            --prerelease
+          tag="android-build-$GITHUB_RUN_NUMBER"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" "$apk" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Zalmoxis Android build $GITHUB_RUN_NUMBER" \
+              --notes "Signed Android update from successful main build. Installation requires explicit Android user approval and matching signing identity." \
+              --prerelease
+          fi
