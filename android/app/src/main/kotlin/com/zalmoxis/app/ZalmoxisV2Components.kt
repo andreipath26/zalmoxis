@@ -239,7 +239,7 @@ internal fun V2VoicePanel(isListening: Boolean, feedback: String, onToggle: () -
 }
 
 @Composable
-internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit) {
+internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit, onResearch: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Workspace", style = MaterialTheme.typography.headlineMedium)
         Text(
@@ -250,7 +250,7 @@ internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit) {
         val tiles = listOf(
             Triple("▤", "Summarize documents", false),
             Triple("◫", "Analyze information", false),
-            Triple("⌕", "Research assistant", false),
+            Triple("⌕", "Public-source research", true),
             Triple("✎", "Writing assistant", false),
             Triple("▦", "Plan & organize", false),
             Triple("◇", "Custom workflows", false),
@@ -259,6 +259,8 @@ internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 pair.forEach { (glyph, label, available) ->
                     Surface(
+                        onClick = if (available) onResearch else ({ }),
+                        enabled = available,
                         modifier = Modifier.weight(1f).height(122.dp),
                         color = ZalmoxisV2.panel,
                         shape = RoundedCornerShape(18.dp),
@@ -283,6 +285,7 @@ internal fun V2Workspace(onKnowledge: () -> Unit, onModels: () -> Unit) {
         Text("Available now", style = MaterialTheme.typography.titleMedium)
         V2QuickAction("Knowledge library", "▤", onKnowledge)
         V2QuickAction("Manage local AI models", "⬡", onModels)
+        V2QuickAction("Research public GitHub sources", "⌕", onResearch)
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
