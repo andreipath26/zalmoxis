@@ -274,7 +274,19 @@ private fun ZalmoxisHome() {
                     val newFile = withContext(Dispatchers.IO) { copyImage(context, uri) }
                     imageFile?.let { old ->
                         withContext(Dispatchers.IO) { old.delete() }
-                 
+                    }
+                    imageFile = newFile
+                    status = "Image attached. It will be removed after this request."
+                } catch (error: Exception) {
+                    status = error.message ?: "Could not attach this image."
+                } finally {
+                    busy = false
+                }
+            }
+        }
+    }
+
+
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
@@ -305,7 +317,6 @@ private fun ZalmoxisHome() {
                 }
             }
         }
-
         val activeScroll = when (selectedTab) {
             HomeTab.CHAT -> chatScrollState
             HomeTab.KNOWLEDGE -> knowledgeScrollState
@@ -653,7 +664,6 @@ private fun ZalmoxisHome() {
                 ) { Text("Export JSON") }
             }
         }
-                    Text("PRIVACY & PERMISSIONS", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         Text(
             "Models are stored in Zalmoxis private storage. Catalog downloads contact Hugging Face; " +
@@ -665,15 +675,7 @@ private fun ZalmoxisHome() {
             }
         }
     }
-}
-t(8.dp))
-        Text(
-            "Models are stored in Zalmoxis private storage. Catalog downloads contact Hugging Face; " +
-                "prompts, inference, and benchmark reports stay local. No account, analytics, or " +
-                "model-provided tool execution is enabled.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-    }
+
 }
 
 private fun CatalogDownloadCard(
