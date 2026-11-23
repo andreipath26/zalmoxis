@@ -38,6 +38,14 @@ To get the APK, open the repository’s **Actions** tab, select a successful **A
 
 The app is not yet a complete autonomous agent. Long-term memory reconciliation, policy-gated actions, audit-chain verification, broader document extraction, and the roadmap’s remaining phases are not represented as shipped features merely because they appear in project documents.
 
+## Agent Bridge: no API key handoff and direct-connection roadmap
+
+**Available in source (not yet APK-tested):** Open **Workspace → Agent Bridge** to prepare a message and share it through Android's Sharesheet. Choose ChatGPT as the destination if Android offers it. From another app, use Android's **Share → Zalmoxis** to bring text back; Zalmoxis displays an explicit acceptance dialog and fills a chat draft only if you approve. The sender's identity cannot be authenticated from Android Sharesheet metadata. Messages are not executed as commands and are not imported into the Knowledge database. Sharing is **manual and user-mediated**, not a persistent agent-to-agent connection or a guarantee that ChatGPT automatically processes the shared message.
+
+**No OpenAI API key is required** for this feature. A future direct connection would use a secure remote MCP relay, per-device pairing, scoped authorization, expiry and revocation, and eligible ChatGPT plugin access. That may require a hosted service and its own credentials/OAuth but does not inherently require an OpenAI model API key. ChatGPT does not automatically wake up or respond to unsolicited messages from the phone; its MCP tools run in supported ChatGPT sessions when invoked.
+
+**Feature availability:** As described in [OpenAI's current custom MCP documentation](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt), custom MCP connection setup is web-only and full MCP write access is currently for Business and Enterprise/Edu workspaces. Connecting a relay from a consumer mobile account should not be represented as supported or deployed before the account's actual capabilities are confirmed.
+
 ## Conversational research and Knowledge drafts
 
 The **Research** workspace no longer requires a pasted URL for its primary flow. Type a topic to search public GitHub repositories. Explicit Chat requests such as **“Research offline AI agents for Android”** open the scoped GitHub search. If the message includes **“and save findings to Knowledge”**, discovered sources are preselected for review—not imported automatically.
