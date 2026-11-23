@@ -465,10 +465,11 @@ private fun ZalmoxisHome() {
                             speechOutputReady = false
                             speechOutputInitializing = true
                             speechOutput = OfflineSpeechOutput(context) { ready, message ->
+                                val shouldStartPlayback = ready && speechOutputInitializing
                                 speechOutputReady = ready
                                 speechOutputInitializing = false
                                 status = message
-                                if (ready) speechOutput?.speak(response)
+                                if (shouldStartPlayback) speechOutput?.speak(response)
                             }
                             status = "Preparing installed offline speech voices…"
                         } else {
