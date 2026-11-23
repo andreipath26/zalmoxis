@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
@@ -673,7 +674,7 @@ private fun ZalmoxisHome() {
                             onClick = { imagePicker.launch(arrayOf("image/*")) },
                             enabled = modelName != null && !busy,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
-                        ) { Text("＋") }
+                        ) { V2Icon("Attach", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimary) }
                         Button(
                             onClick = {
                                 if (speechActive) {
@@ -691,7 +692,13 @@ private fun ZalmoxisHome() {
                             },
                             enabled = !busy,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
-                        ) { Text(if (speechActive) "■" else "♩") }
+                        ) {
+                            V2Icon(
+                                if (speechActive) "Stop" else "Microphone",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
                         OutlinedTextField(
                             value = prompt,
                             onValueChange = { prompt = it },
@@ -745,7 +752,9 @@ private fun ZalmoxisHome() {
                                         }
                                     },
                                     enabled = modelName != null && (prompt.isNotBlank() || imageFile != null) && !busy,
-                                ) { Text(if (busy) "…" else "➜") }
+                                ) {
+                                    V2Icon("Send", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                                }
                         
                         
                     }
