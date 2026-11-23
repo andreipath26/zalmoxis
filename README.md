@@ -38,6 +38,16 @@ To get the APK, open the repository’s **Actions** tab, select a successful **A
 
 The app is not yet a complete autonomous agent. Long-term memory reconciliation, policy-gated actions, audit-chain verification, broader document extraction, and the roadmap’s remaining phases are not represented as shipped features merely because they appear in project documents.
 
+## Local MCP server inside Zalmoxis (no hosting required)
+
+**Implementation added in Android source; physical-device testing remains outstanding.** In **Workspace → Agent Bridge**, the local server panel offers **Start local server** / **Stop local server**, the endpoint `http://127.0.0.1:8765/mcp`, token display and an approval inbox. Starting it launches an opt-in Android foreground service with a visible notification; the official [Kotlin MCP SDK](https://github.com/modelcontextprotocol/kotlin-sdk) supplies the Streamable HTTP protocol, with Ktor CIO.
+
+The server **only listens on loopback**, never `0.0.0.0`. Other apps on the same device must supply `Authorization: Bearer <your-local-access-token>`. Do not share or publish this token. The first tools are `status`, `submit_task` (queues a message), and `read_reply` (retrieves a user-written answer). Nothing invokes the local model, imports Knowledge, changes device state, or executes commands without your explicit action. Pending tasks are held in memory while the app process lives and will be lost on process death in this first version.
+
+**Connection modes:** Off (neither active), Local (phone server running), Hosted (phone paired to the OAuth-hosted bridge), and Hybrid (both active). The hosted service is independent from the local server: you can start the local server without Cloudflare. When a provider is outside the phone or LAN, `127.0.0.1` is not reachable; use the hosted bridge or a future opt-in, authenticated HTTPS tunnel. Hybrid currently means both channels can run simultaneously, **not automatic task forwarding or failover**.
+
+Android may restrict or stop foreground services depending on device settings. The use of a `specialUse` foreground service also requires compliance review for Google Play distribution.
+
 ## Real multi-agent bridge — SDK implementation status
 
 The bridge now has an **Android messaging client and UI** plus two source implementations of Cloudflare Workers:
