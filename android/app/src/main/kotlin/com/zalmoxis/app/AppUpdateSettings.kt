@@ -124,6 +124,8 @@ internal fun AppUpdateSettings() {
                 Button(onClick = {
                     scope.launch {
                         try {
+                            message = "Rechecking APK integrity and signing certificate…"
+                            GitHubAppUpdates.verifyStaged(context, ready, requireNotNull(candidate))
                             GitHubAppUpdates.install(context, ready)
                             message = "Follow Android's installation confirmation. If prompted, allow installation from this app, then tap Install again."
                         } catch (error: Exception) {
