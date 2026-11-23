@@ -151,3 +151,10 @@ See android/README.md and docs/decisions/GOOGLE-AI-EDGE-GALLERY-ADOPTION.md for 
 ## 2026-11-23 — Gallery-based model shelf batch
 
 The Android foundation now includes a private local model catalog: import, list, select, delete, and restore the last-used .litertlm model. Model copying runs on an IO dispatcher and replaces an existing model through a temporary-file/backup sequence. The chat view records first-text latency, total elapsed time, and stream-event count; it does not label stream events as token throughput. A Gradle 8.13 wrapper is included. Android SDK 36 is unavailable in this workspace, so the app remains unbuilt and unvalidated.
+
+
+## 2026-11-23 — Repeatable local inference benchmark
+
+Added a controlled local benchmark: one warm-up is excluded, then three fresh-conversation runs use the same prompt. Each run records first-text latency, total elapsed time, and runtime stream-event count. Device/API level, model filename, backend, protocol, and raw samples are written to a JSON report in app-private storage. Stream events are explicitly not treated as token counts. Build attempt was blocked because the workspace could not download the Gradle 8.13 distribution; Android SDK 36 is also unavailable. No test suite was added or run.
+
+Implementation branch at the start of this batch: codex/gallery-android-foundation (e91d88ab8eadf425b9ae58f4f38669988b1176f2).

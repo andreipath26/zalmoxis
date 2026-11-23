@@ -25,7 +25,7 @@ object LocalModelCatalog {
             .map { LocalModel(it.name, it, it.length()) }
     }
 
-    fun import(context: Context, uri: Uri): File {
+    fun importFile(context: Context, uri: Uri): File {
         val directory = File(context.filesDir, "models").apply { mkdirs() }
         val sourceName = queryDisplayName(context, uri) ?: "local-model.litertlm"
         require(sourceName.endsWith(MODEL_EXTENSION, ignoreCase = true)) {

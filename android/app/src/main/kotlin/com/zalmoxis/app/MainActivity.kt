@@ -1,6 +1,7 @@
 package com.zalmoxis.app
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -59,6 +62,7 @@ private fun ZalmoxisHome() {
     var prompt by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
     var metrics by remember { mutableStateOf("") }
+    var benchmarkSummary by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
 
     DisposableEffect(session) { onDispose { session.close() } }
@@ -74,6 +78,7 @@ private fun ZalmoxisHome() {
                     .edit().putString("last_model_name", file.name).apply()
                 response = ""
                 metrics = ""
+                benchmarkSummary = ""
                 status = "Ready. Inference stays on this device."
             } catch (error: Exception) {
                 status = error.message ?: "Could not load this model."
@@ -113,7 +118,7 @@ private fun ZalmoxisHome() {
                 busy = true
                 status = "Importing model into private app storage…"
                 try {
-                    val file = withContext(Dispatchers.IO) { LocalModelCatalog.import(context, uri) }
+                    val file = withContext(Dispatchers.IO) { LocalModelCatalog.importFile(context, uri) }
                     models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
                     loadModel(file)
                 } catch (error: Exception) {
@@ -185,6 +190,49 @@ private fun ZalmoxisHome() {
             }
         }
 
+        if (modelName != null) {
+            Button(
+                onClick = {
+                    scope.launch {
+                        busy = true
+                        benchmarkSummary = ""
+                        status = "Running one warm-up and three measured CPU runs…"
+                        try {
+                            val samples = session.runWarmBenchmark(
+                                prompt = "Reply with exactly OK.",
+                                measuredRuns = 3,
+                            )
+                            val file = withContext(Dispatchers.IO) {
+                                saveBenchmarkReport(context, modelName!!, samples)
+                            }
+                            val averageTotal = samples.map { it.totalMs }.average().toLong()
+                            val firstTextTimes = samples.mapNotNull { it.firstTextMs }
+                            val averageFirstText =
+                                if (firstTextTimes.isEmpty()) null else firstTextTimes.average().toLong()
+                            benchmarkSummary =
+                                "3 measured runs · average first text: " +
+                                    (averageFirstText?.let { "$it ms" } ?: "unavailable") +
+                                    " · average total: $averageTotal ms"
+                            status = "Benchmark saved in private app storage: ${file.name}"
+                        } catch (error: Exception) {
+                            status = error.message ?: "Benchmark failed."
+                        } finally {
+                            busy = false
+                        }
+                    }
+                },
+                enabled = !busy,
+            ) { Text("Run 3-run benchmark") }
+            Text(
+                "Runs a fixed prompt after one unreported warm-up. Reports latency and stream events; " +
+                    "it does not claim token throughput.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (benchmarkSummary.isNotBlank()) {
+            Text(benchmarkSummary, style = MaterialTheme.typography.bodyMedium)
+        }
+
         OutlinedTextField(
             value = prompt,
             onValueChange = { prompt = it },
@@ -247,4 +295,38 @@ private fun formatBytes(size: Long): String = when {
     size >= (1L shl 30) -> String.format("%.1f GiB", size / (1L shl 30).toDouble())
     size >= (1L shl 20) -> String.format("%.0f MiB", size / (1L shl 20).toDouble())
     else -> String.format("%.0f KiB", size / 1024.0)
+}
+
+private suspend fun saveBenchmarkReport(
+    context: Context,
+    modelName: String,
+    samples: List<InferenceSample>,
+): File {
+    val directory = File(context.filesDir, "benchmarks").apply { mkdirs() }
+    val createdAt = System.currentTimeMillis()
+    val runs = JSONArray()
+    samples.forEach { sample ->
+        runs.put(
+            JSONObject()
+                .put("run", sample.run)
+                .put("first_text_ms", sample.firstTextMs ?: JSONObject.NULL)
+                .put("total_ms", sample.totalMs)
+                .put("stream_events", sample.streamEvents)
+        )
+    }
+    val report = JSONObject()
+        .put("schema_version", 1)
+        .put("created_at_epoch_ms", createdAt)
+        .put("model_file", modelName)
+        .put("backend", "CPU")
+        .put("device_manufacturer", Build.MANUFACTURER)
+        .put("device_model", Build.MODEL)
+        .put("android_api", Build.VERSION.SDK_INT)
+        .put("protocol", "one warm-up excluded; three fresh-conversation runs; fixed prompt")
+        .put("prompt", "Reply with exactly OK.")
+        .put("unit_note", "stream_events are runtime events, not token counts")
+        .put("runs", runs)
+    return File(directory, "benchmark-$createdAt.json").apply {
+        writeText(report.toString(2))
+    }
 }

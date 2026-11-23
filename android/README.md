@@ -10,7 +10,8 @@ inference engine.
 - Local model import through Android's document picker into private app storage.
 - A LiteRT-LM CPU backend with streaming text responses.
 - A private local model shelf with size display, selection, deletion, and last-model restoration.
-- Basic per-turn first-text latency, elapsed time, and stream-event measurements.
+- Basic per-turn first-text latency and elapsed-time measurements.
+- A fixed-prompt benchmark with one warm-up and three measured runs; raw results are saved as JSON with device and model metadata.
 - No network permission, account sign-in, analytics SDK, MCP client, or model-provided tool execution.
 - The model is instructed that it can propose actions but has no tools.
 
@@ -20,8 +21,7 @@ Use JDK 17 and Android SDK 36. From this directory run:
 
     ./gradlew :app:assembleDebug
 
-The Android SDK was not available in the implementation workspace, so this
-initial source has not been built here. Select a compatible LiteRT-LM model
+Android SDK 36 was unavailable and the Gradle distribution could not be fetched in the implementation workspace, so this source has not been built here. Select a compatible LiteRT-LM model
 file on-device to use the chat screen. Model architecture, hardware support,
 licensing, and redistribution rights are model-specific; inspect those before
 packaging model weights.
