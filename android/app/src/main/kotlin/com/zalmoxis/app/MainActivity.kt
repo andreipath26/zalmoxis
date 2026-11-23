@@ -28,6 +28,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -39,12 +42,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -102,6 +109,9 @@ private fun ZalmoxisHome() {
     var speechOutputReady by remember { mutableStateOf(false) }
     var speechOutputInitializing by remember { mutableStateOf(false) }
     var response by remember { mutableStateOf("") }
+    var activePrompt by remember { mutableStateOf("") }
+    var priorTurns by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
+    var pendingDeleteModel by remember { mutableStateOf<LocalModel?>(null) }
     var metrics by remember { mutableStateOf("") }
     var benchmarkSummary by remember { mutableStateOf("") }
     var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
@@ -112,11 +122,16 @@ private fun ZalmoxisHome() {
     val downloadsScrollState = rememberScrollState()
     val settingsScrollState = rememberScrollState()
 
+    val currentSession by rememberUpdatedState(session)
+    val currentSpeechInput by rememberUpdatedState(speechInput)
+    val currentSpeechOutput by rememberUpdatedState(speechOutput)
+    val currentImageFile by rememberUpdatedState(imageFile)
     DisposableEffect(Unit) {
         onDispose {
-            session?.close()
-            speechInput?.close()
-            speechOutput?.close()
+            currentSession?.close()
+            currentSpeechInput?.close()
+            currentSpeechOutput?.close()
+            currentImageFile?.delete()
         }
     }
 
@@ -157,9 +172,15 @@ private fun ZalmoxisHome() {
     }
 
     fun loadModel(file: File) {
-        val newRuntime = LocalInferenceRuntimeFactory.createFor(file)
         scope.launch {
             busy = true
+            val newRuntime = try {
+                LocalInferenceRuntimeFactory.createFor(file)
+            } catch (error: Exception) {
+                status = error.message ?: "Unsupported model format."
+                busy = false
+                return@launch
+            }
             status = "Verifying local model digest and loading on CPU…"
             try {
                 val verifiedSha256 = withContext(Dispatchers.IO) {
@@ -174,6 +195,8 @@ private fun ZalmoxisHome() {
                 context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
                     .edit().putString("last_model_name", file.name).apply()
                 response = ""
+                activePrompt = ""
+                priorTurns = emptyList()
                 metrics = ""
                 benchmarkSummary = ""
                 latestBenchmarkFile = null
@@ -256,6 +279,7 @@ private fun ZalmoxisHome() {
                 try {
                     val file = withContext(Dispatchers.IO) { LocalModelCatalog.importFile(context, uri) }
                     models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
+                    busy = false
                     loadModel(file)
                 } catch (error: Exception) {
                     status = error.message ?: "Could not import this model."
@@ -302,6 +326,7 @@ private fun ZalmoxisHome() {
             )
             Text(
                 status,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 4,
@@ -407,6 +432,10 @@ private fun ZalmoxisHome() {
                     if (selectedImage != null) "Describe this image." else ""
                 }
                 if (submitted.isNotEmpty()) {
+                    if (activePrompt.isNotBlank()) {
+                        priorTurns = priorTurns + (activePrompt to response)
+                    }
+                    activePrompt = submitted
                     prompt = ""
                     imageFile = null
                     response = ""
@@ -440,6 +469,22 @@ private fun ZalmoxisHome() {
             enabled = modelName != null && (prompt.isNotBlank() || imageFile != null) && !busy,
         ) { Text(if (busy) "Working…" else "Send") }
 
+        if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        priorTurns.forEach { (question, answer) ->
+            Text(question, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            if (answer.isNotBlank()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                ) {
+                    Text(answer, modifier = Modifier.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+        if (activePrompt.isNotBlank()) {
+            Text(activePrompt, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        }
         if (metrics.isNotBlank()) Text(metrics, style = MaterialTheme.typography.bodySmall)
         if (response.isNotBlank()) {
             Text("Response", style = MaterialTheme.typography.titleMedium)
@@ -557,30 +602,7 @@ private fun ZalmoxisHome() {
                             enabled = !busy && model.name != modelName && model.provenanceValid,
                         ) { Text(if (model.name == modelName) "Loaded" else "Load") }
                         Button(
-                            onClick = {
-                                scope.launch {
-                                    busy = true
-                                    try {
-                                        if (model.name == modelName) {
-                                            session?.close()
-                                            session = null
-                                            modelName = null
-                                            modelSha256 = null
-                                            context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
-                                                .edit().remove("last_model_name").apply()
-                                        }
-                                        val deleted = withContext(Dispatchers.IO) {
-                                            LocalModelCatalog.delete(model)
-                                        }
-                                        models = withContext(Dispatchers.IO) {
-                                            LocalModelCatalog.list(context)
-                                        }
-                                        status = if (deleted) "Model deleted from app storage." else "Could not delete model."
-                                    } finally {
-                                        busy = false
-                                    }
-                                }
-                            },
+                            onClick = { pendingDeleteModel = model },
                             enabled = !busy,
                         ) { Text("Delete") }
                         }
@@ -588,6 +610,7 @@ private fun ZalmoxisHome() {
                 }
             }
         }
+
 
         Text("Download a model", style = MaterialTheme.typography.titleMedium)
         Text(
@@ -685,6 +708,51 @@ private fun ZalmoxisHome() {
                 }
             }
         }
+    }
+
+
+    pendingDeleteModel?.let { model ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteModel = null },
+            title = { Text("Delete local model?") },
+            text = { Text("Remove ${model.name} from this device? You may need to import or download it again.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDeleteModel = null
+                        scope.launch {
+                            busy = true
+                            try {
+                                val removed = withContext(Dispatchers.IO) { LocalModelCatalog.delete(model) }
+                                if (removed) {
+                                    if (model.name == modelName) {
+                                        session?.close()
+                                        session = null
+                                        modelName = null
+                                        modelSha256 = null
+                                        response = ""
+                                        activePrompt = ""
+                                        priorTurns = emptyList()
+                                        context.getSharedPreferences("model_state", Context.MODE_PRIVATE)
+                                            .edit().remove("last_model_name").apply()
+                                    }
+                                    models = withContext(Dispatchers.IO) { LocalModelCatalog.list(context) }
+                                }
+                                status = if (removed) "Model deleted." else "Could not verify model deletion."
+                            } catch (error: Exception) {
+                                status = error.message ?: "Could not delete the model."
+                            } finally {
+                                busy = false
+                            }
+                        }
+                    },
+                    enabled = !busy,
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteModel = null }) { Text("Cancel") }
+            },
+        )
     }
 
 }
