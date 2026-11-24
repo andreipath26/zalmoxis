@@ -1,0 +1,31 @@
+name: Roadmap progress ledger integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ROADMAP.md"
+      - "docs/progress/**"
+      - "scripts/validate-roadmap-ledger.mjs"
+      - ".github/workflows/roadmap-ledger-check.yml"
+  pull_request:
+    paths:
+      - "ROADMAP.md"
+      - "docs/progress/**"
+      - "scripts/validate-roadmap-ledger.mjs"
+      - ".github/workflows/roadmap-ledger-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Verify roadmap ledger schema and frozen baseline
+        run: node scripts/validate-roadmap-ledger.mjs
