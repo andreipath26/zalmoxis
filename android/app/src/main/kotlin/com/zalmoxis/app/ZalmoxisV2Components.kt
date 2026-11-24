@@ -106,9 +106,9 @@ internal fun V2Navigation(
 ) {
     val items = listOf(
         Triple("Chat", "Chat", "CHAT"),
+        Triple("Workspace", "Workspace", "WORKSPACE"),
         Triple("Knowledge", "Knowledge", "KNOWLEDGE"),
         Triple("Models", "Models", "DOWNLOADS"),
-        Triple("Workspace", "Workspace", "WORKSPACE"),
     )
     Surface(
         modifier = Modifier.fillMaxWidth(),
