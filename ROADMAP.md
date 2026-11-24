@@ -1678,3 +1678,595 @@ Canonical machine-readable progress: **[`docs/progress/roadmap-ledger.json`](doc
 The ledger is a **measurement baseline, not an automation that can determine software correctness from GitHub activity**. An independent verifier must still inspect test logs and check release gates. Future reporting must show baseline and current side-by-side with their delta, never replace the dated original values.
 
 **Priority order after baseline:** P0 Android reliability and real-device tests; persistent local memory + document ingestion; source/identity scoping and isolation tests; deterministic policy engine + tamper-evident audit; then completing MCP provider connectivity, KILN runtime, proactivity and later phases. Preserve the original post-PMF deferral of defense-specific work.
+
+
+---
+
+# COMPLETE SCORED BASELINE REGISTER — 2026-11-24 (ALL 415 ITEMS)
+
+> This appendix is generated from the canonical machine-readable ledger, and preserves every percentage from the 2026-11-24 audit. **Baseline** is frozen; **Current** tracks later evidence-based work. These are subjective estimates, not test-certified completion. Section percentages intentionally overlap and must never be summed.
+
+## foundation
+
+**Group baseline:** 28%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `foundation.001` | Product thesis and technical architecture | 90% | 90% |
+| `foundation.002` | Threat model | 80% | 80% |
+| `foundation.003` | Recovery plan | 70% | 70% |
+| `foundation.004` | Kill criteria | 85% | 85% |
+| `foundation.005` | Assist Act Delegate autonomy modes | 10% | 10% |
+| `foundation.006` | Permission presets and progressive disclosure | 15% | 15% |
+| `foundation.007` | Runtime capability-state machine | 10% | 10% |
+| `foundation.008` | Privacy and offline-capability contract | 40% | 40% |
+| `foundation.009` | Android debug build pipeline | 95% | 95% |
+| `foundation.010` | Persistent signing and signed-update pipeline | 55% | 55% |
+| `foundation.011` | In-app GitHub update checker and installer | 65% | 65% |
+| `foundation.012` | TUF or equivalent advanced update security | 5% | 5% |
+| `foundation.013` | Rollback recovery and key-compromise procedures | 15% | 15% |
+| `foundation.014` | Licensing and contributor agreements | 5% | 5% |
+| `foundation.015` | Customer discovery and market validation | 0% | 0% |
+| `foundation.016` | Revenue and pricing validation | 0% | 0% |
+| `foundation.017` | Public engineering documentation | 70% | 70% |
+
+## phase-0-memory
+
+**Group baseline:** 12% · **Current:** 14%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-0-memory.001` | Episodic memory Graphiti GAM | 0% | 0% |
+| `phase-0-memory.002` | Semantic fact memory Mem0 H-MEM | 5% | 5% |
+| `phase-0-memory.003` | Persistent identity jnapakam | 0% | 0% |
+| `phase-0-memory.004` | Emotional retrieval CAMA | 0% | 0% |
+| `phase-0-memory.005` | Memory evolution RGMem | 0% | 0% |
+| `phase-0-memory.006` | Active interference-aware retrieval | 5% | 5% |
+| `phase-0-memory.007` | Explicit instruction persistence | 0% | 0% |
+| `phase-0-memory.008` | Conflict detection and memory quarantine | 5% | 5% |
+| `phase-0-memory.009` | Temporal validity and supersession history | 5% | 5% |
+| `phase-0-memory.010` | Per-user and per-client isolation | 5% | 5% |
+| `phase-0-memory.011` | Canonical SQLite memory database | 0% | 25% |
+| `phase-0-memory.012` | Semantic embeddings and vector retrieval | 0% | 0% |
+| `phase-0-memory.013` | Memory inspection and correction | 10% | 25% |
+| `phase-0-memory.014` | Memory import export contract | 15% | 15% |
+| `phase-0-memory.015` | Hard deletion across all memory layers | 10% | 12% |
+| `phase-0-memory.016` | Deletion verification certificates | 0% | 0% |
+| `phase-0-memory.017` | Memory integrity and audit history | 5% | 5% |
+| `phase-0-memory.018` | LongMemEval-M and memory reliability tests | 0% | 0% |
+| `phase-0-memory.019` | Cross-session identity and context continuity | 5% | 5% |
+| `phase-0-memory.020` | User-owned Knowledge source storage | 80% | 80% |
+
+## phase-1-brain
+
+**Group baseline:** 30%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-1-brain.001` | On-device model runtime | 80% | 80% |
+| `phase-1-brain.002` | Streaming text inference | 85% | 85% |
+| `phase-1-brain.003` | Runtime abstraction backend interface | 75% | 75% |
+| `phase-1-brain.004` | KILN runtime integration | 0% | 0% |
+| `phase-1-brain.005` | llama.cpp backend | 0% | 0% |
+| `phase-1-brain.006` | Maple Preview primary model | 0% | 0% |
+| `phase-1-brain.007` | Gemma LiteRT-LM compatibility path | 55% | 55% |
+| `phase-1-brain.008` | FunctionGemma tool calling | 0% | 0% |
+| `phase-1-brain.009` | Needle 2 micro tool calling | 0% | 0% |
+| `phase-1-brain.010` | Zero-LLM instant skills | 5% | 5% |
+| `phase-1-brain.011` | Deterministic YAML workflows | 0% | 0% |
+| `phase-1-brain.012` | Full multi-step agent reasoning loop | 0% | 0% |
+| `phase-1-brain.013` | On-device speech recognition | 70% | 70% |
+| `phase-1-brain.014` | Offline speech synthesis | 75% | 75% |
+| `phase-1-brain.015` | OpenWakeWord integration | 0% | 0% |
+| `phase-1-brain.016` | Whisper local ASR | 0% | 0% |
+| `phase-1-brain.017` | Piper local TTS | 0% | 0% |
+| `phase-1-brain.018` | Silero VAD and HuBERT prosody | 0% | 0% |
+| `phase-1-brain.019` | Image-capable model input | 65% | 65% |
+| `phase-1-brain.020` | Performance benchmark recording | 65% | 65% |
+| `phase-1-brain.021` | Full performance acceptance gate | 10% | 10% |
+| `phase-1-brain.022` | Battery memory and thermal profiling | 5% | 5% |
+
+## phase-2-android
+
+**Group baseline:** 35% · **Current:** 36%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-2-android.001` | Native Kotlin Compose app | 90% | 90% |
+| `phase-2-android.002` | Main Chat interface | 80% | 80% |
+| `phase-2-android.003` | Voice interface | 70% | 70% |
+| `phase-2-android.004` | Models interface | 80% | 80% |
+| `phase-2-android.005` | Knowledge interface | 65% | 68% |
+| `phase-2-android.006` | Workspace interface | 45% | 45% |
+| `phase-2-android.007` | V2 navigation and visual design | 70% | 70% |
+| `phase-2-android.008` | Accessibility and visual QA | 20% | 20% |
+| `phase-2-android.009` | PDF text extraction | 0% | 0% |
+| `phase-2-android.010` | DOCX extraction | 0% | 0% |
+| `phase-2-android.011` | Email ingestion | 0% | 0% |
+| `phase-2-android.012` | Image OCR | 0% | 0% |
+| `phase-2-android.013` | Document classification | 0% | 0% |
+| `phase-2-android.014` | Entity extraction | 0% | 0% |
+| `phase-2-android.015` | SQLite FTS5 and vector indexing | 0% | 0% |
+| `phase-2-android.016` | Client-specific document partitions | 0% | 0% |
+| `phase-2-android.017` | Task dashboard recent activity feed | 15% | 15% |
+| `phase-2-android.018` | Native calendar skills | 0% | 0% |
+| `phase-2-android.019` | Alarms reminders skills | 0% | 0% |
+| `phase-2-android.020` | File-management skills | 0% | 0% |
+| `phase-2-android.021` | Email-drafting action skills | 0% | 0% |
+| `phase-2-android.022` | Accessibility-based UI automation | 0% | 0% |
+| `phase-2-android.023` | Skill routing and composition | 0% | 0% |
+| `phase-2-android.024` | Scoped skill personas | 0% | 0% |
+| `phase-2-android.025` | Permissions dashboard | 10% | 10% |
+| `phase-2-android.026` | Exportable tamper-evident audit log | 0% | 0% |
+| `phase-2-android.027` | On-device MCP server | 65% | 65% |
+| `phase-2-android.028` | Signed app updates | 55% | 55% |
+
+## phase-2.5-device
+
+**Group baseline:** 3%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-2.5-device.001` | Scoped delegation model | 10% | 10% |
+| `phase-2.5-device.002` | Deterministic authorization engine | 5% | 5% |
+| `phase-2.5-device.003` | Time-limited permissions and grants | 0% | 0% |
+| `phase-2.5-device.004` | Read selected notifications | 0% | 0% |
+| `phase-2.5-device.005` | Summarize approved folders automatically | 0% | 0% |
+| `phase-2.5-device.006` | Organize local notes through actions | 0% | 0% |
+| `phase-2.5-device.007` | Execute preapproved workflows | 0% | 0% |
+| `phase-2.5-device.008` | Send authorized messages | 0% | 0% |
+| `phase-2.5-device.009` | Interact with other Android apps | 0% | 0% |
+| `phase-2.5-device.010` | Spending and high-impact action controls | 0% | 0% |
+| `phase-2.5-device.011` | Biometric confirmation for sensitive actions | 0% | 0% |
+| `phase-2.5-device.012` | Panic button and emergency revocation | 0% | 0% |
+| `phase-2.5-device.013` | Action parameter verification | 0% | 0% |
+| `phase-2.5-device.014` | Execution-result verification | 0% | 0% |
+| `phase-2.5-device.015` | Full pre-ship safety checklist | 0% | 0% |
+
+## phase-3-proactivity
+
+**Group baseline:** 3%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-3-proactivity.001` | Project Sue heartbeat | 0% | 0% |
+| `phase-3-proactivity.002` | Sentinel Watch background event monitor | 0% | 0% |
+| `phase-3-proactivity.003` | Dual-pulse proactive scheduling | 0% | 0% |
+| `phase-3-proactivity.004` | Context-aware initiative | 0% | 0% |
+| `phase-3-proactivity.005` | Knowledge-gap detection PROPER | 0% | 0% |
+| `phase-3-proactivity.006` | Active Focus and obstacle handling | 0% | 0% |
+| `phase-3-proactivity.007` | Mode posture transitions | 0% | 0% |
+| `phase-3-proactivity.008` | Conditional escalation Veronica | 0% | 0% |
+| `phase-3-proactivity.009` | Relevance filtering | 0% | 0% |
+| `phase-3-proactivity.010` | Battery-budgeted monitoring | 5% | 5% |
+| `phase-3-proactivity.011` | External research capability | 35% | 35% |
+| `phase-3-proactivity.012` | Agent Reach connector architecture | 20% | 20% |
+| `phase-3-proactivity.013` | Proactivity evaluation KnowU-Bench | 0% | 0% |
+
+## phase-4-bridge
+
+**Group baseline:** 18%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-4-bridge.001` | Cloud offline separation | 60% | 60% |
+| `phase-4-bridge.002` | Hosted MCP message transport | 65% | 65% |
+| `phase-4-bridge.003` | OAuth authentication source | 65% | 65% |
+| `phase-4-bridge.004` | Android remote pairing client | 70% | 70% |
+| `phase-4-bridge.005` | Verified live cloud deployment | 0% | 0% |
+| `phase-4-bridge.006` | EcoAgent cloud planning local execution | 0% | 0% |
+| `phase-4-bridge.007` | Pre-understanding module | 0% | 0% |
+| `phase-4-bridge.008` | Intelligent provider selection | 0% | 0% |
+| `phase-4-bridge.009` | Provider fallback Mercury | 0% | 0% |
+| `phase-4-bridge.010` | User-visible cloud escalation | 15% | 15% |
+| `phase-4-bridge.011` | Token budgeting | 0% | 0% |
+| `phase-4-bridge.012` | Prompt caching | 0% | 0% |
+| `phase-4-bridge.013` | Offline fallback for remote tasks | 10% | 10% |
+| `phase-4-bridge.014` | Remote routing log and observability | 10% | 10% |
+| `phase-4-bridge.015` | Headless server mode Tealkit | 0% | 0% |
+| `phase-4-bridge.016` | Outbound-only remote connection | 15% | 15% |
+| `phase-4-bridge.017` | Channel-agnostic interface | 10% | 10% |
+| `phase-4-bridge.018` | Durable cross-device messages | 25% | 25% |
+| `phase-4-bridge.019` | Encrypted end-to-end message payloads | 0% | 0% |
+
+## phase-5-knowledge-evolution
+
+**Group baseline:** 9%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-5-knowledge-evolution.001` | Inspectable Knowledge sources | 75% | 75% |
+| `phase-5-knowledge-evolution.002` | Reviewed AI research drafts | 55% | 55% |
+| `phase-5-knowledge-evolution.003` | Linked Markdown wiki | 15% | 15% |
+| `phase-5-knowledge-evolution.004` | Source-to-concept relationships | 5% | 5% |
+| `phase-5-knowledge-evolution.005` | Temporal knowledge graph | 0% | 0% |
+| `phase-5-knowledge-evolution.006` | Incremental memory consolidation | 0% | 0% |
+| `phase-5-knowledge-evolution.007` | Dream Cycle | 0% | 0% |
+| `phase-5-knowledge-evolution.008` | Hindsight Knowledge Pages | 0% | 0% |
+| `phase-5-knowledge-evolution.009` | Memory Tree openhuman patterns | 0% | 0% |
+| `phase-5-knowledge-evolution.010` | Hermes skill extraction | 0% | 0% |
+| `phase-5-knowledge-evolution.011` | Skill composition Taku | 0% | 0% |
+| `phase-5-knowledge-evolution.012` | Derived personas Viv Vision | 0% | 0% |
+| `phase-5-knowledge-evolution.013` | Sub-agent divergence monitoring | 0% | 0% |
+| `phase-5-knowledge-evolution.014` | Affective emotional continuity | 0% | 0% |
+| `phase-5-knowledge-evolution.015` | FSRS-weighted retention | 0% | 0% |
+| `phase-5-knowledge-evolution.016` | Contradiction and staleness detection | 0% | 0% |
+| `phase-5-knowledge-evolution.017` | Graph-based Knowledge exploration | 0% | 0% |
+| `phase-5-knowledge-evolution.018` | Knowledge linting | 0% | 0% |
+| `phase-5-knowledge-evolution.019` | Generative UI artifacts | 0% | 0% |
+| `phase-5-knowledge-evolution.020` | ai-memory architectural evaluation | 70% | 70% |
+| `phase-5-knowledge-evolution.021` | ai-memory techniques integrated | 0% | 0% |
+
+## phase-6-security
+
+**Group baseline:** 12%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-6-security.001` | Written threat model | 80% | 80% |
+| `phase-6-security.002` | App-private file storage | 85% | 85% |
+| `phase-6-security.003` | Local MCP bearer authentication | 65% | 65% |
+| `phase-6-security.004` | Hosted OAuth implementation | 65% | 65% |
+| `phase-6-security.005` | Android Keystore credential protection | 75% | 75% |
+| `phase-6-security.006` | Bridge permission scopes | 55% | 55% |
+| `phase-6-security.007` | User-reviewed external messages | 65% | 65% |
+| `phase-6-security.008` | Secrets vault | 5% | 5% |
+| `phase-6-security.009` | Deterministic device-action authorization | 5% | 5% |
+| `phase-6-security.010` | Sasana hash-chain audit log | 0% | 0% |
+| `phase-6-security.011` | Aletheia Truth Compiler | 0% | 0% |
+| `phase-6-security.012` | Prompt-injection scanning at ingestion | 10% | 10% |
+| `phase-6-security.013` | End-to-end taint tracking | 5% | 5% |
+| `phase-6-security.014` | Biometric approval | 0% | 0% |
+| `phase-6-security.015` | Security dashboard | 0% | 0% |
+| `phase-6-security.016` | Machine-enforced permission revocation | 10% | 10% |
+| `phase-6-security.017` | Full anti-pattern runtime test suite | 0% | 0% |
+| `phase-6-security.018` | Sub-agent isolation and divergence guards | 0% | 0% |
+| `phase-6-security.019` | OTA supply-chain hardening | 30% | 30% |
+| `phase-6-security.020` | OWASP MASVS assessment | 0% | 0% |
+| `phase-6-security.021` | Penetration and adversarial security tests | 5% | 5% |
+| `phase-6-security.022` | Formal security acceptance report | 0% | 0% |
+
+## phase-7-launch
+
+**Group baseline:** 12%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-7-launch.001` | Public GitHub repository | 100% | 100% |
+| `phase-7-launch.002` | Professional public README | 90% | 90% |
+| `phase-7-launch.003` | Android CI builds | 95% | 95% |
+| `phase-7-launch.004` | Debug APK artifacts | 95% | 95% |
+| `phase-7-launch.005` | Persistent release signing | 55% | 55% |
+| `phase-7-launch.006` | Working app update distribution | 40% | 40% |
+| `phase-7-launch.007` | Public beta program | 0% | 0% |
+| `phase-7-launch.008` | Structured feedback pipeline | 0% | 0% |
+| `phase-7-launch.009` | Multi-device test matrix | 0% | 0% |
+| `phase-7-launch.010` | Performance and reliability report | 0% | 0% |
+| `phase-7-launch.011` | Security and abuse evaluation | 0% | 0% |
+| `phase-7-launch.012` | Task success-rate measurements | 0% | 0% |
+| `phase-7-launch.013` | Correct-target measurements | 0% | 0% |
+| `phase-7-launch.014` | Unauthorized-action measurements | 0% | 0% |
+| `phase-7-launch.015` | Memory reliability measurements | 0% | 0% |
+| `phase-7-launch.016` | Latency energy and battery testing | 5% | 5% |
+| `phase-7-launch.017` | Staged production OTA rollout | 0% | 0% |
+| `phase-7-launch.018` | Skills ecosystem | 0% | 0% |
+| `phase-7-launch.019` | Monetization and paying users | 0% | 0% |
+| `phase-7-launch.020` | Product-market fit evidence | 0% | 0% |
+
+## phase-8-cross-platform
+
+**Group baseline:** 1%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-8-cross-platform.001` | Kotlin Multiplatform architecture | 0% | 0% |
+| `phase-8-cross-platform.002` | Desktop application | 0% | 0% |
+| `phase-8-cross-platform.003` | Linux backend | 0% | 0% |
+| `phase-8-cross-platform.004` | Web PWA application | 0% | 0% |
+| `phase-8-cross-platform.005` | Cross-platform UI | 0% | 0% |
+| `phase-8-cross-platform.006` | Dual KILN llama.cpp inference runtime | 0% | 0% |
+| `phase-8-cross-platform.007` | Hardware-adaptive backend selection | 0% | 0% |
+| `phase-8-cross-platform.008` | Cross-device memory federation | 0% | 0% |
+| `phase-8-cross-platform.009` | Storage-agnostic memory architecture | 0% | 0% |
+| `phase-8-cross-platform.010` | Headless home server deployment | 0% | 0% |
+| `phase-8-cross-platform.011` | Home Assistant Wyoming integration | 0% | 0% |
+| `phase-8-cross-platform.012` | Browser workbench | 0% | 0% |
+| `phase-8-cross-platform.013` | Cross-platform skills | 0% | 0% |
+| `phase-8-cross-platform.014` | Compact deployment personas | 0% | 0% |
+| `phase-8-cross-platform.015` | Team and enterprise deployment management | 0% | 0% |
+| `phase-8-cross-platform.016` | Multi-client update server | 0% | 0% |
+
+## phase-9-defense
+
+**Group baseline:** 0%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `phase-9-defense.001` | Defense-relevant use-case definition | 10% | 10% |
+| `phase-9-defense.002` | Identified integration partners | 0% | 0% |
+| `phase-9-defense.003` | Formal partnership agreements | 0% | 0% |
+| `phase-9-defense.004` | Funded demonstration project | 0% | 0% |
+| `phase-9-defense.005` | Defense-specific product validation | 0% | 0% |
+| `phase-9-defense.006` | Procurement and compliance preparation | 0% | 0% |
+| `phase-9-defense.007` | Qualified deployment environment | 0% | 0% |
+
+## addendum-gallery
+
+**Group baseline:** 58%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `addendum-gallery.001` | LiteRT-LM inference integration | 80% | 80% |
+| `addendum-gallery.002` | Model discovery and verified downloads | 75% | 75% |
+| `addendum-gallery.003` | Performance benchmarks | 65% | 65% |
+| `addendum-gallery.004` | Image input | 65% | 65% |
+| `addendum-gallery.005` | Audio video model input | 0% | 0% |
+| `addendum-gallery.006` | Offline speech recognition and synthesis | 70% | 70% |
+| `addendum-gallery.007` | Embeddings and semantic media search | 0% | 0% |
+| `addendum-gallery.008` | MCP agent skill integration | 35% | 35% |
+| `addendum-gallery.009` | FunctionGemma Mobile Actions | 0% | 0% |
+| `addendum-gallery.010` | Prompt Lab | 10% | 10% |
+| `addendum-gallery.011` | Background model transfers | 70% | 70% |
+| `addendum-gallery.012` | Firebase analytics messaging evaluation | 0% | 0% |
+| `addendum-gallery.013` | XR and video media experiences | 0% | 0% |
+
+## addendum-knowledge-wiki
+
+**Group baseline:** 30%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `addendum-knowledge-wiki.001` | Local Knowledge Workspace LLM Wiki overall | 30% | 30% |
+
+## addendum-research
+
+**Group baseline:** 35%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `addendum-research.001` | Public GitHub repository discovery | 75% | 75% |
+| `addendum-research.002` | Public GitHub raw-text fetch | 75% | 75% |
+| `addendum-research.003` | Source metadata SHA-256 and provenance | 80% | 80% |
+| `addendum-research.004` | Explicit research-to-Knowledge import | 75% | 75% |
+| `addendum-research.005` | AI-generated research drafts | 55% | 55% |
+| `addendum-research.006` | Arbitrary public website extraction | 0% | 0% |
+| `addendum-research.007` | RSS feeds | 0% | 0% |
+| `addendum-research.008` | YouTube subtitles | 0% | 0% |
+| `addendum-research.009` | Jina Reader external extraction | 0% | 0% |
+| `addendum-research.010` | Search-engine aggregation | 0% | 0% |
+| `addendum-research.011` | Reddit research adapter | 0% | 0% |
+| `addendum-research.012` | LinkedIn X authenticated social sources | 0% | 0% |
+| `addendum-research.013` | Browser automation | 0% | 0% |
+| `addendum-research.014` | Research connector capability diagnostics | 10% | 10% |
+| `addendum-research.015` | Research audit and network permission controls | 25% | 25% |
+
+## addendum-chatgpt-bridge
+
+**Group baseline:** 35%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `addendum-chatgpt-bridge.001` | Bidirectional ChatGPT Zalmoxis bridge overall | 35% | 35% |
+
+## addendum-multi-provider
+
+**Group baseline:** 25%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `addendum-multi-provider.001` | DeepSeek Harness source preparation | 65% | 65% |
+| `addendum-multi-provider.002` | DeepSeek Harness verified live connection | 0% | 0% |
+| `addendum-multi-provider.003` | ChatGPT source preparation | 45% | 45% |
+| `addendum-multi-provider.004` | ChatGPT verified live connection | 0% | 0% |
+| `addendum-multi-provider.005` | Claude source preparation | 35% | 35% |
+| `addendum-multi-provider.006` | Claude verified live connection | 0% | 0% |
+| `addendum-multi-provider.007` | Mistral source preparation | 30% | 30% |
+| `addendum-multi-provider.008` | Mistral verified live connection | 0% | 0% |
+| `addendum-multi-provider.009` | Perplexity source preparation | 15% | 15% |
+| `addendum-multi-provider.010` | Perplexity verified live connection | 0% | 0% |
+| `addendum-multi-provider.011` | Grok source preparation | 10% | 10% |
+| `addendum-multi-provider.012` | Grok verified live connection | 0% | 0% |
+| `addendum-multi-provider.013` | Gemini source preparation | 10% | 10% |
+| `addendum-multi-provider.014` | Gemini verified live connection | 0% | 0% |
+| `addendum-multi-provider.015` | Copilot Studio source preparation | 10% | 10% |
+| `addendum-multi-provider.016` | Copilot Studio verified live connection | 0% | 0% |
+| `addendum-multi-provider.017` | Locally hosted open-weight agent preparation | 20% | 20% |
+| `addendum-multi-provider.018` | Locally hosted agent verified connection | 0% | 0% |
+
+## addendum-dual-mcp
+
+**Group baseline:** 40%
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `addendum-dual-mcp.001` | MCP-L1 SDK feasibility and selection | 80% | 80% |
+| `addendum-dual-mcp.002` | MCP-L2 Embedded Android MCP server | 75% | 75% |
+| `addendum-dual-mcp.003` | MCP-L3 Shared authentication and permissions | 30% | 30% |
+| `addendum-dual-mcp.004` | MCP-L4 Secure remote tunnel | 0% | 0% |
+| `addendum-dual-mcp.005` | MCP-H1 Hosted service deployment | 35% | 35% |
+| `addendum-dual-mcp.006` | MCP-H2 True hybrid routing | 15% | 15% |
+| `addendum-dual-mcp.007` | MCP-P Provider acceptance | 0% | 0% |
+| `addendum-dual-mcp.008` | MCP-D End-to-end deployment evidence | 10% | 10% |
+
+## proof-gates
+
+**Group baseline:** Not separately scored
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `proof-gates.001` | Gate 1 Define the proof | 55% | 55% |
+| `proof-gates.002` | Gate 2 Build the core MVP | 30% | 30% |
+| `proof-gates.003` | Gate 3 Validate with a customer | 0% | 0% |
+| `proof-gates.004` | Gate 4 Make investment decision | 0% | 0% |
+
+## mvp-checklist
+
+**Group baseline:** Not separately scored
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `mvp-checklist.001` | PDF DOCX email OCR ingestion | 5% | 5% |
+| `mvp-checklist.002` | Document classification | 0% | 0% |
+| `mvp-checklist.003` | Entity and obligation extraction | 0% | 0% |
+| `mvp-checklist.004` | On-device conversation | 80% | 80% |
+| `mvp-checklist.005` | Persistent provenance-aware memory | 10% | 10% |
+| `mvp-checklist.006` | Identity isolation | 5% | 5% |
+| `mvp-checklist.007` | Android task dashboard | 15% | 15% |
+| `mvp-checklist.008` | Basic audit trail | 10% | 10% |
+| `mvp-checklist.009` | Permission presets | 15% | 15% |
+| `mvp-checklist.010` | Memory reliability tests | 0% | 0% |
+| `mvp-checklist.011` | Verified hard deletion | 15% | 15% |
+| `mvp-checklist.012` | Target-device model performance qualification | 10% | 10% |
+
+## strategic
+
+**Group baseline:** Not separately scored
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `strategic.001` | Product positioning and value proposition | 80% | 80% |
+| `strategic.002` | Competitive landscape research | 60% | 60% |
+| `strategic.003` | Customer profiles and market segmentation | 60% | 60% |
+| `strategic.004` | Individual pricing hypothesis | 70% | 70% |
+| `strategic.005` | Small-team pricing hypothesis | 50% | 50% |
+| `strategic.006` | Enterprise pricing hypothesis | 50% | 50% |
+| `strategic.007` | Actual willingness-to-pay tests | 0% | 0% |
+| `strategic.008` | Customer discovery interviews | 0% | 0% |
+| `strategic.009` | Initial pilot recruitment | 0% | 0% |
+| `strategic.010` | Paying-customer validation | 0% | 0% |
+| `strategic.011` | Product-market fit | 0% | 0% |
+| `strategic.012` | Small-team product offering | 0% | 0% |
+| `strategic.013` | Enterprise product offering | 0% | 0% |
+| `strategic.014` | Defense partnership strategy | 35% | 35% |
+| `strategic.015` | Actual defense-sector partnerships | 0% | 0% |
+| `strategic.016` | Partnership funding and procurement | 0% | 0% |
+| `strategic.017` | Aletheia interoperability specification | 20% | 20% |
+| `strategic.018` | Operational Aletheia interoperability | 0% | 0% |
+
+## requirements
+
+**Group baseline:** Not separately scored
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `requirements.001` | Audit before consequential automation | 10% | 10% |
+| `requirements.002` | Explicit approval of irreversible actions | 20% | 20% |
+| `requirements.003` | No silent installation or permission expansion | 65% | 65% |
+| `requirements.004` | Explain-before-act behavior | 20% | 20% |
+| `requirements.005` | Permission presets and progressive upgrade | 10% | 10% |
+| `requirements.006` | Scoped delegation instead of global full trust | 5% | 5% |
+| `requirements.007` | Emergency revoke panic button | 10% | 10% |
+| `requirements.008` | Capability availability checks | 20% | 20% |
+| `requirements.009` | User-controlled app updates | 65% | 65% |
+| `requirements.010` | Release-signing continuity | 55% | 55% |
+| `requirements.011` | Memory validity windows | 0% | 0% |
+| `requirements.012` | Memory inspection and correction | 10% | 10% |
+| `requirements.013` | Memory integrity hash chain | 0% | 0% |
+| `requirements.014` | Memory quarantine and conflict handling | 5% | 5% |
+| `requirements.015` | Explicit instruction persistence | 0% | 0% |
+| `requirements.016` | Deletion verification | 15% | 15% |
+| `requirements.017` | Permanent identity URN | 0% | 0% |
+| `requirements.018` | Generation workflow and safe rollback | 0% | 0% |
+| `requirements.019` | Epistemic labels and justification | 5% | 5% |
+| `requirements.020` | Taint tracking for untrusted information | 10% | 10% |
+| `requirements.021` | Sensitive data access controls | 15% | 15% |
+| `requirements.022` | Provider isolation | 30% | 30% |
+| `requirements.023` | Provider cost transparency | 5% | 5% |
+| `requirements.024` | Offline local inference | 75% | 75% |
+| `requirements.025` | Deterministic-first task execution | 5% | 5% |
+| `requirements.026` | Tool skill isolation | 10% | 10% |
+| `requirements.027` | Sub-agent fail-closed controls | 0% | 0% |
+| `requirements.028` | Proactive non-action relevance selection | 0% | 0% |
+| `requirements.029` | Battery-aware scheduling | 5% | 5% |
+| `requirements.030` | Runtime anti-pattern tests | 0% | 0% |
+| `requirements.031` | Mode transition logging | 0% | 0% |
+| `requirements.032` | Mode rollback | 0% | 0% |
+| `requirements.033` | Exportable user-owned data | 15% | 15% |
+| `requirements.034` | Customer-facing proof evidence tags | 55% | 55% |
+| `requirements.035` | Vendor device-specific testing | 5% | 5% |
+| `requirements.036` | Published reliability report | 0% | 0% |
+| `requirements.037` | Customer discovery and pilot evidence | 0% | 0% |
+
+## marvel-patterns
+
+**Group baseline:** Not separately scored
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `marvel-patterns.001` | JARVIS Assist-oriented interaction | 25% | 25% |
+| `marvel-patterns.002` | FRIDAY local-first assistant behavior | 35% | 35% |
+| `marvel-patterns.003` | EDITH high-capability governed agent | 0% | 0% |
+| `marvel-patterns.004` | Karen scoped skill personas | 0% | 0% |
+| `marvel-patterns.005` | DUME deterministic instant skills | 5% | 5% |
+| `marvel-patterns.006` | Veronica conditional escalation | 0% | 0% |
+| `marvel-patterns.007` | NATALIE specialist skills | 0% | 0% |
+| `marvel-patterns.008` | HERBIE compact deployment | 0% | 0% |
+| `marvel-patterns.009` | Mainframe headless server mode | 0% | 0% |
+| `marvel-patterns.010` | Jocasta alternate configurations | 0% | 0% |
+| `marvel-patterns.011` | Viv Vision derived personas | 0% | 0% |
+| `marvel-patterns.012` | Victor Mancha divergence controls | 0% | 0% |
+| `marvel-patterns.013` | Ultron unbounded action prevention | 15% | 15% |
+| `marvel-patterns.014` | Phalanx unsafe federation prevention | 15% | 15% |
+| `marvel-patterns.015` | Supreme Intelligence memory mixing prevention | 5% | 5% |
+| `marvel-patterns.016` | Nimrod Bastion unsafe evolution prevention | 0% | 0% |
+
+## technology-catalog
+
+**Group baseline:** Not separately scored
+
+| ID | Requirement | Baseline | Current |
+| --- | --- | ---: | ---: |
+| `technology-catalog.001` | Kotlin Jetpack Compose | 90% | 90% |
+| `technology-catalog.002` | Google LiteRT-LM | 80% | 80% |
+| `technology-catalog.003` | Ktor embedded HTTP | 75% | 75% |
+| `technology-catalog.004` | Official MCP Kotlin SDK | 75% | 75% |
+| `technology-catalog.005` | Official MCP TypeScript SDK | 80% | 80% |
+| `technology-catalog.006` | Cloudflare Workers Agents | 65% | 65% |
+| `technology-catalog.007` | Cloudflare OAuth Provider | 65% | 65% |
+| `technology-catalog.008` | Cloudflare D1 message storage | 60% | 60% |
+| `technology-catalog.009` | Android Keystore integration | 75% | 75% |
+| `technology-catalog.010` | Android WorkManager transfers | 75% | 75% |
+| `technology-catalog.011` | GitHub Actions Android CI | 95% | 95% |
+| `technology-catalog.012` | KILN integration | 0% | 0% |
+| `technology-catalog.013` | llama.cpp integration | 0% | 0% |
+| `technology-catalog.014` | Maple Preview | 0% | 0% |
+| `technology-catalog.015` | FunctionGemma | 0% | 0% |
+| `technology-catalog.016` | Needle 2 | 0% | 0% |
+| `technology-catalog.017` | ML Drift | 0% | 0% |
+| `technology-catalog.018` | Graphiti GAM | 0% | 0% |
+| `technology-catalog.019` | Mem0 H-MEM | 0% | 0% |
+| `technology-catalog.020` | AletheiaDB | 0% | 0% |
+| `technology-catalog.021` | EmbeddingGemma 2 | 0% | 0% |
+| `technology-catalog.022` | CAMA | 0% | 0% |
+| `technology-catalog.023` | RGMem | 0% | 0% |
+| `technology-catalog.024` | ai-memory implementation | 0% | 0% |
+| `technology-catalog.025` | DroidRun DroidBridge | 0% | 0% |
+| `technology-catalog.026` | Taku | 0% | 0% |
+| `technology-catalog.027` | Karen personas | 0% | 0% |
+| `technology-catalog.028` | Project Sue | 0% | 0% |
+| `technology-catalog.029` | Sentinel Watch | 0% | 0% |
+| `technology-catalog.030` | Agent Reach design adaptation | 30% | 30% |
+| `technology-catalog.031` | Veronica | 0% | 0% |
+| `technology-catalog.032` | OpenMuse Sasana | 0% | 0% |
+| `technology-catalog.033` | Aletheia Truth Compiler | 0% | 0% |
+| `technology-catalog.034` | Mercury governance patterns | 5% | 5% |
+| `technology-catalog.035` | OpenWakeWord | 0% | 0% |
+| `technology-catalog.036` | Whisper | 0% | 0% |
+| `technology-catalog.037` | Piper | 0% | 0% |
+| `technology-catalog.038` | Silero VAD | 0% | 0% |
+| `technology-catalog.039` | HuBERT | 0% | 0% |
+| `technology-catalog.040` | Home Assistant Wyoming | 0% | 0% |
+| `technology-catalog.041` | Kotlin Multiplatform | 0% | 0% |
+| `technology-catalog.042` | Koog koaks | 0% | 0% |
+| `technology-catalog.043` | Tealkit | 0% | 0% |
+| `technology-catalog.044` | Avibe | 0% | 0% |
+| `technology-catalog.045` | Hermes | 0% | 0% |
+| `technology-catalog.046` | Hindsight Knowledge Pages | 0% | 0% |
+| `technology-catalog.047` | FSRS retention | 0% | 0% |
+| `technology-catalog.048` | The Update Framework TUF | 0% | 0% |
+| `technology-catalog.049` | A2A protocol adapter | 0% | 0% |
+| `technology-catalog.050` | DeepSeek Harness integration | 10% | 10% |
+| `technology-catalog.051` | Cloudflare Tunnel Tailscale Funnel | 0% | 0% |
+| `technology-catalog.052` | Agentgateway MCP Context Forge | 0% | 0% |
+
+**Ongoing updates:** The frozen ledger baseline remains unchanged, and each changed `currentPercent` must link to source, CI, tests or device proof. Future register refreshes must preserve all original baseline values and IDs.
