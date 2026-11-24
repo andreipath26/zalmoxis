@@ -19,7 +19,9 @@
     "validationRule": "CI source compile does not prove live device or production validation",
     "futureUpdates": "Retain immutable baselinePercent. Edit currentPercent only after evidence with links, date, owner, test result and acceptance criteria.",
     "totalImplementationBaselinePercent": 15,
-    "totalReleaseReadinessBaselinePercent": 5
+    "totalReleaseReadinessBaselinePercent": 5,
+    "totalImplementationCurrentPercent": 15,
+    "totalReleaseReadinessCurrentPercent": 5
   },
   "sections": [
     {
@@ -334,11 +336,31 @@
           "name": "Canonical SQLite memory database",
           "baselinePercent": 0,
           "status": "not-implemented",
-          "verification": "not-release-validated",
-          "evidence": [],
-          "blockers": [],
+          "verification": "android-source-compiled;device-not-validated",
+          "evidence": [
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/LocalMemoryCore.kt",
+              "commit": "5aa2dc595c2e5e3ac6b67db200767c075135ab70",
+              "result": "implemented first scoped SQLite fact store"
+            },
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/MemoryFactsPanel.kt",
+              "commit": "add03b9c1d132dd80cb3408c6b77b4e60c4b1520",
+              "result": "explicit user fact entry, correction and delete UI"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
+              "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            }
+          ],
+          "blockers": [
+            "SQLiteOpenHelper stores explicit confirmed facts with user/client SQL scoping, no episodic/semantic/identity model yet"
+          ],
           "lastReviewed": "2026-11-24",
-          "currentPercent": 0
+          "currentPercent": 25
         },
         {
           "id": "phase-0-memory.012",
@@ -356,11 +378,31 @@
           "name": "Memory inspection and correction",
           "baselinePercent": 10,
           "status": "partial",
-          "verification": "not-release-validated",
-          "evidence": [],
-          "blockers": [],
+          "verification": "android-source-compiled;device-not-validated",
+          "evidence": [
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/LocalMemoryCore.kt",
+              "commit": "5aa2dc595c2e5e3ac6b67db200767c075135ab70",
+              "result": "implemented first scoped SQLite fact store"
+            },
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/MemoryFactsPanel.kt",
+              "commit": "add03b9c1d132dd80cb3408c6b77b4e60c4b1520",
+              "result": "explicit user fact entry, correction and delete UI"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
+              "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            }
+          ],
+          "blockers": [
+            "User-visible fact list and optimistic revision correction; no full temporal history"
+          ],
           "lastReviewed": "2026-11-24",
-          "currentPercent": 10
+          "currentPercent": 25
         },
         {
           "id": "phase-0-memory.014",
@@ -378,11 +420,31 @@
           "name": "Hard deletion across all memory layers",
           "baselinePercent": 10,
           "status": "partial",
-          "verification": "not-release-validated",
-          "evidence": [],
-          "blockers": [],
+          "verification": "android-source-compiled;device-not-validated",
+          "evidence": [
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/LocalMemoryCore.kt",
+              "commit": "5aa2dc595c2e5e3ac6b67db200767c075135ab70",
+              "result": "implemented first scoped SQLite fact store"
+            },
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/MemoryFactsPanel.kt",
+              "commit": "add03b9c1d132dd80cb3408c6b77b4e60c4b1520",
+              "result": "explicit user fact entry, correction and delete UI"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
+              "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            }
+          ],
+          "blockers": [
+            "Scope-checked SQLite fact deletion and absence query; other stores and backups not covered"
+          ],
           "lastReviewed": "2026-11-24",
-          "currentPercent": 10
+          "currentPercent": 12
         },
         {
           "id": "phase-0-memory.016",
@@ -439,7 +501,9 @@
           "lastReviewed": "2026-11-24",
           "currentPercent": 80
         }
-      ]
+      ],
+      "currentPercent": 14,
+      "currentEstimateReason": "First user-controlled SQLite memory slice; neither full memory contract nor physical-device acceptance complete."
     },
     {
       "id": "phase-1-brain",
@@ -742,11 +806,31 @@
           "name": "Knowledge interface",
           "baselinePercent": 65,
           "status": "partial",
-          "verification": "not-release-validated",
-          "evidence": [],
-          "blockers": [],
+          "verification": "android-source-compiled;device-not-validated",
+          "evidence": [
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/LocalMemoryCore.kt",
+              "commit": "5aa2dc595c2e5e3ac6b67db200767c075135ab70",
+              "result": "implemented first scoped SQLite fact store"
+            },
+            {
+              "type": "source",
+              "url": "https://github.com/andreipath26/zalmoxis/blob/main/android/app/src/main/kotlin/com/zalmoxis/app/MemoryFactsPanel.kt",
+              "commit": "add03b9c1d132dd80cb3408c6b77b4e60c4b1520",
+              "result": "explicit user fact entry, correction and delete UI"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
+              "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            }
+          ],
+          "blockers": [
+            "Knowledge now exposes explicit confirmed-memory editor beside source shelf"
+          ],
           "lastReviewed": "2026-11-24",
-          "currentPercent": 65
+          "currentPercent": 68
         },
         {
           "id": "phase-2-android.006",
@@ -1001,7 +1085,9 @@
           "lastReviewed": "2026-11-24",
           "currentPercent": 55
         }
-      ]
+      ],
+      "currentPercent": 36,
+      "currentEstimateReason": "First user-controlled SQLite memory slice; neither full memory contract nor physical-device acceptance complete."
     },
     {
       "id": "phase-2.5-device",
@@ -4730,6 +4816,20 @@
           "currentPercent": 0
         }
       ]
+    }
+  ],
+  "updates": [
+    {
+      "date": "2026-11-24",
+      "description": "First explicit SQLite confirmed-memory store with scoped read/write, correction, deletion and Compose Knowledge panel.",
+      "commits": [
+        "5aa2dc595c2e5e3ac6b67db200767c075135ab70",
+        "add03b9c1d132dd80cb3408c6b77b4e60c4b1520",
+        "dccab0a6516b4162636cb3264486ebde2c646305",
+        "a28a295e5ef73f8410308accf581e030ecd0c63c"
+      ],
+      "ci": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
+      "status": "source-and-apk-assembly-passed;unit-tests-pending;device-not-tested"
     }
   ]
 }
