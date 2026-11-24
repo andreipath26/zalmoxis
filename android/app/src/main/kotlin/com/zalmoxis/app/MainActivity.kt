@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -179,6 +180,21 @@ private fun ZalmoxisHome(
     var latestBenchmarkFile by remember { mutableStateOf<File?>(null) }
     var busy by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.CHAT) }
+    var confirmExit by remember { mutableStateOf(false) }
+
+    // Android's back gesture is triggered by swiping inward from either screen edge.
+    // The app uses Compose tabs rather than navigation destinations, so without
+    // this handler Android finishes the Activity even when another tab is visible.
+    BackHandler(enabled = true) {
+        selectedTab = when (selectedTab) {
+            HomeTab.CHAT -> {
+                confirmExit = true
+                HomeTab.CHAT
+            }
+            HomeTab.RESEARCH, HomeTab.AGENT_BRIDGE -> HomeTab.WORKSPACE
+            else -> HomeTab.CHAT
+        }
+    }
     var researchTopic by rememberSaveable { mutableStateOf("") }
     var researchSaveRequested by rememberSaveable { mutableStateOf(false) }
     var availableAppUpdate by remember { mutableStateOf<AppUpdate?>(null) }
@@ -946,6 +962,23 @@ private fun ZalmoxisHome(
         )
     }
 
+
+    if (confirmExit) {
+        AlertDialog(
+            onDismissRequest = { confirmExit = false },
+            title = { Text("Leave Zalmoxis?") },
+            text = { Text("Your current session will close. Cancel to stay in the app.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmExit = false
+                    (context as? android.app.Activity)?.finish()
+                }) { Text("Exit") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmExit = false }) { Text("Stay") }
+            },
+        )
+    }
 
     if (incomingSharedText != null) {
         AlertDialog(
