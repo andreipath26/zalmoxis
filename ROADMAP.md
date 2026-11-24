@@ -1602,3 +1602,79 @@ The official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 - **Limitations**: local task queue lives in process memory and is not an offline-persistent outbox; hosted and local routes are simultaneously usable but lack automated failover, cross-transport deduplication and end-to-end encryption. Tunnel/LAN is not yet enabled. External hosted relay still needs actual deployment and credentials. The signed production APK and on-phone runtime tests remain open.
 
 **Next device gates**: start/stop a foreground server without crashes on a representative Android handset; verify MCP initialization, tools/list, token-denial, submit/task/reply with a same-device MCP client; test orientation changes, notification dismissal, background/battery restrictions, model load, end-to-end hosted connection and E2E privacy requirements. Do not mark full Phase MCP-D deployed without these.
+
+
+---
+
+# BASELINE AUDIT (2026-11-24): VERSIONED ROADMAP PERCENTAGES — DO NOT OVERWRITE
+
+**Immutable baseline:** This entry records the 2026-11-24 audit of Zalmoxis `main` after the Android dictation-language, system back-gesture, and bottom-navigation improvements. It preserves the full preceding V10 roadmap and all addenda. All percentages are **judgment-based engineering estimates**, not measured task counts or evidence that a feature is deployed. Do not silently inflate or overwrite them. Track subsequent changes against the original baseline in [the machine-readable ledger](docs/progress/roadmap-ledger.json), storing evidence and dated updates. The full **415-item** baseline includes workstreams, source technologies, non-negotiable constraints, cross-cutting security items, MVP gates, provider integration and Marvel architecture patterns. Its overlapping sections must **not** be added together as independent work.
+
+## Full-roadmap snapshot
+
+| Scope | Estimated implementation % | Remaining % | Validation caveat |
+| --- | ---: | ---: | --- |
+| **Entire V10 + all addenda** | **15%** | **85%** | Subjective full-scope estimate; no release acceptance |
+| **Production release readiness** | **5%** | **95%** | CI green is not physical-device validation |
+| Foundation | 28% | 72% | Trust policy, licensing, customer proof and release security incomplete |
+| Phase 0 — Memory core | 12% | 88% | No full persistent memory / provenance and isolation engine |
+| Phase 1 — Local brain | 30% | 70% | LiteRT-LM implemented; KILN, full agent loop and model performance gates missing |
+| Phase 2 — Android layer | 35% | 65% | Compose app implemented; ingestion, OCR, actions, audits, security gates missing |
+| Phase 2.5 — Scoped device capability | 3% | 97% | Machine-enforced authorization and safe action execution absent |
+| Phase 3 — Proactivity | 3% | 97% | No proven proactive engine |
+| Phase 4 — Device-cloud bridge | 18% | 82% | MCP source built; live hosted/provider round trips unverified |
+| Phase 5 — Knowledge evolution | 9% | 91% | Wiki/graph/consolidation largely not built |
+| Phase 6 — Security hardening | 12% | 88% | Threat model and some scoped safeguards; full audited policy enforcement missing |
+| Phase 7 — Launch and iteration | 12% | 88% | Debug CI and public repo; no validated beta/reliability report |
+| Phase 8 — Cross-platform/hardware | 1% | 99% | Architecture research primarily |
+| Phase 9 — Defense partnership | 0% | 100% | Post-product-market-fit, deferred |
+
+## Addenda snapshot — overlapping views, never double counted
+
+| Addendum | Implemented | Remaining |
+| --- | ---: | ---: |
+| Google AI Edge Gallery adoption | 58% | 42% |
+| Local Knowledge Workspace / LLM Wiki | 30% | 70% |
+| Agent Reach–inspired research | 35% | 65% |
+| Bidirectional ChatGPT ↔ Zalmoxis bridge | 35% | 65% |
+| API-key-free multi-provider bridge (DeepSeek mandatory) | 25% | 75% |
+| Dual local and internet-hosted MCP | 40% | 60% |
+
+## Proof gates and milestones
+
+| Gate | Estimated completion | Outstanding |
+| --- | ---: | --- |
+| 90-day Gate 1 — Define proof | 55% | Final memory contract, design assumptions, customer discovery |
+| 90-day Gate 2 — Build core MVP | 30% | Persistent memory, document ingestion, isolation, audit, permissions |
+| 90-day Gate 3 — Validate with customer | 0% | Representative customer pilot and measured outcomes |
+| 90-day Gate 4 — Investment decision | 0% | Evidence-backed go/pivot/stop |
+| MCP-L1 — SDK feasibility and selection | 80% | Android/device interoperability |
+| MCP-L2 — Embedded Android server | 75% | Real-client lifecycle, durability and security testing |
+| MCP-L3 — Common permission engine | 30% | Authorization, audit, replay and scope tests |
+| MCP-L4 — Secure outbound tunnel | 0% | Implementation and validation |
+| MCP-H1 — Hosted service deployment | 35% | Live cloud resources and pairing |
+| MCP-H2 — True hybrid routing | 15% | Common envelope, idempotency, encrypted queue and failover |
+| MCP-P — Provider acceptance | 0% | Real provider round trips and revocation |
+| MCP-D — Deployment proof | 10% | Signed physical-device and end-to-end tests |
+
+## Audit evidence and explicit gaps
+
+- **Code reality:** `android/app/src/main/kotlin/com/zalmoxis/app/` contains Compose UI, LiteRT-LM adapter, verified model shelf, Knowledge source vault, GitHub-only research, speech, update client, on-device MCP foreground server and bridge client. `bridge/` contains hosted OAuth, MCP and D1. `core/{memory,identity,ingestion,audit,permissions}/` were scaffolding placeholders at the baseline.
+- **CI evidence:** [Android build #120](https://github.com/andreipath26/zalmoxis/actions/runs/45376029421) passed on the 2026-11-24 baseline commit; [bridge validation #22](https://github.com/andreipath26/zalmoxis/actions/runs/45220379207) passed. These are compilation, source test and artifact signals, **not** real handset or hosted deployment proof.
+- **Hard blockers for core MVP:** PDF/DOCX/email/OCR ingestion; persistent five-layer memory and identity/client isolation; deterministic authorization; audit chain; memory and device reliability acceptance.
+- **Hard blockers for production:** security evaluation, signed-release continuity tests, real handset QA, measured latency/battery/model compatibility, live provider interoperability, hosted service security and end-to-end payload encryption.
+- **Documentation conflicts:** earlier addenda and historical `PROJECT-STATE.md` contain stale source-only or no-build statuses. Preserve historical entries but treat later dated CI evidence and this baseline as the current status at 2026-11-24.
+- **Licensing:** the roadmap proposes an AGPL/commercial license, but a top-level license is not currently published; do not claim a license grant that is not present.
+
+## Ledger contract and update rules
+
+Canonical machine-readable progress: **[`docs/progress/roadmap-ledger.json`](docs/progress/roadmap-ledger.json)**. It contains **24 groups and 415 scored entries**, each with a stable requirement ID, original baseline percentage, current percentage, estimated status, evidence array, blockers, last-reviewed date and release-validation field. Scope-specific percentages are independent estimates, not averages. The baseline stays immutable; future work changes `currentPercent` only, and must attach:
+
+1. Evidence: source commit/file, successful CI/test URL, real-device record when relevant.
+2. The acceptance requirement verified and the exact missing requirements.
+3. A timestamp and reviewer, plus the reason for changing the estimate.
+4. A separate implementation-complete versus deployed-and-validated conclusion.
+
+The ledger is a **measurement baseline, not an automation that can determine software correctness from GitHub activity**. An independent verifier must still inspect test logs and check release gates. Future reporting must show baseline and current side-by-side with their delta, never replace the dated original values.
+
+**Priority order after baseline:** P0 Android reliability and real-device tests; persistent local memory + document ingestion; source/identity scoping and isolation tests; deterministic policy engine + tamper-evident audit; then completing MCP provider connectivity, KILN runtime, proactivity and later phases. Preserve the original post-PMF deferral of defense-specific work.
