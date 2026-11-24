@@ -30,6 +30,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
@@ -146,6 +148,24 @@ private fun ZalmoxisHome(
     var imageFile by remember { mutableStateOf<File?>(null) }
     var speechInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
     var speechActive by remember { mutableStateOf(false) }
+    val speechPreferences = remember(context) {
+        context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
+    }
+    var dictationLanguage by rememberSaveable {
+        mutableStateOf(speechPreferences.getString("dictation_language", "system") ?: "system")
+    }
+    var dictationMenuExpanded by remember { mutableStateOf(false) }
+    val dictationOptions = listOf(
+        "system" to "Device language",
+        "en-US" to "English (US)",
+        "en-GB" to "English (UK)",
+        "fr-FR" to "Français",
+        "ro-RO" to "Română",
+        "es-ES" to "Español",
+        "de-DE" to "Deutsch",
+    )
+    val dictationLanguageLabel = dictationOptions.firstOrNull { it.first == dictationLanguage }?.second
+        ?: dictationLanguage
     var speechOutput by remember { mutableStateOf<OfflineSpeechOutput?>(null) }
     var speechOutputReady by remember { mutableStateOf(false) }
     var speechOutputInitializing by remember { mutableStateOf(false) }
@@ -189,6 +209,7 @@ private fun ZalmoxisHome(
         try {
             val input = OnDeviceSpeechInput(
                 context = context,
+                languageTag = dictationLanguage.takeUnless { it == "system" },
                 onResult = { recognizedText ->
                     prompt = listOfNotNull(prompt.trim().takeIf { it.isNotEmpty() }, recognizedText)
                         .joinToString(" ")
@@ -204,7 +225,7 @@ private fun ZalmoxisHome(
             )
             speechInput = input
             speechActive = true
-            status = "Listening. Speech recognition is on device."
+            status = "Listening offline · $dictationLanguageLabel."
             input.start()
         } catch (error: Exception) {
             speechInput?.close()
@@ -500,6 +521,34 @@ private fun ZalmoxisHome(
         }
                 }
                 HomeTab.VOICE -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Text("Dictation language:", style = MaterialTheme.typography.bodySmall)
+                        androidx.compose.foundation.layout.Box {
+                            TextButton(
+                                enabled = !speechActive,
+                                onClick = { dictationMenuExpanded = true },
+                            ) { Text(dictationLanguageLabel) }
+                            DropdownMenu(
+                                expanded = dictationMenuExpanded,
+                                onDismissRequest = { dictationMenuExpanded = false },
+                            ) {
+                                dictationOptions.forEach { (tag, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            dictationLanguage = tag
+                                            speechPreferences.edit().putString("dictation_language", tag).apply()
+                                            dictationMenuExpanded = false
+                                            status = "Dictation language set to $label. Offline support depends on the installed Android recognizer."
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
                     V2VoicePanel(
                         isListening = speechActive,
                         feedback = status,
@@ -733,6 +782,34 @@ private fun ZalmoxisHome(
             }
         }
         if (selectedTab == HomeTab.CHAT) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Text("Offline dictation:", style = MaterialTheme.typography.labelSmall)
+                androidx.compose.foundation.layout.Box {
+                    TextButton(
+                        enabled = !speechActive,
+                        onClick = { dictationMenuExpanded = true },
+                    ) { Text(dictationLanguageLabel) }
+                    DropdownMenu(
+                        expanded = dictationMenuExpanded,
+                        onDismissRequest = { dictationMenuExpanded = false },
+                    ) {
+                        dictationOptions.forEach { (tag, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    dictationLanguage = tag
+                                    speechPreferences.edit().putString("dictation_language", tag).apply()
+                                    dictationMenuExpanded = false
+                                    status = "Dictation language set to $label. Retry the microphone."
+                                },
+                            )
+                        }
+                    }
+                }
+            }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = ZalmoxisV2.background,
