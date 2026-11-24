@@ -16,10 +16,12 @@ class OnDeviceSpeechInput(
     private val context: Context,
     private val onResult: (String) -> Unit,
     private val onError: (String) -> Unit,
+    private val languageTag: String? = null,
 ) : RecognitionListener, AutoCloseable {
     private var recognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var finished = false
+    private var requestedLanguage = Locale.getDefault().toLanguageTag()
 
     fun start() {
         check(Looper.myLooper() == Looper.getMainLooper()) {
@@ -36,7 +38,8 @@ class OnDeviceSpeechInput(
         val service = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         recognizer = service
         service.setRecognitionListener(this)
-        val locale = Locale.getDefault().toLanguageTag()
+        val locale = languageTag?.takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag()
+        requestedLanguage = locale
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
@@ -81,7 +84,11 @@ class OnDeviceSpeechInput(
                 "The on-device speech service reported a network error; no cloud fallback was started."
             SpeechRecognizer.ERROR_CLIENT -> "The Android speech service stopped unexpectedly. Retry dictation."
             SpeechRecognizer.ERROR_SERVER -> "The installed speech engine failed. Check offline language support."
-            else -> "Offline dictation failed (Android code $error). Check that an offline language is installed."
+            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ->
+                "Offline dictation does not support $requestedLanguage with your installed speech engine (Android code 12). Choose another dictation language in Zalmoxis, or install an engine that supports this language."
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->
+                "Offline speech files for $requestedLanguage are unavailable (Android code 13). Download this language in Android speech recognition settings, then retry."
+            else -> "Offline dictation error $error for $requestedLanguage. Check the installed Android speech service and retry."
         }
         onError(message)
     }
