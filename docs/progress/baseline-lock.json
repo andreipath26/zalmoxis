@@ -1,0 +1,1813 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "baseline-2026-11-24",
+  "baselineDate": "2026-11-24",
+  "primaryImplementationPercent": 15,
+  "primaryReleaseReadinessPercent": 5,
+  "groups": [
+    {
+      "id": "foundation",
+      "baselinePercent": 28,
+      "items": [
+        {
+          "id": "foundation.001",
+          "baselinePercent": 90
+        },
+        {
+          "id": "foundation.002",
+          "baselinePercent": 80
+        },
+        {
+          "id": "foundation.003",
+          "baselinePercent": 70
+        },
+        {
+          "id": "foundation.004",
+          "baselinePercent": 85
+        },
+        {
+          "id": "foundation.005",
+          "baselinePercent": 10
+        },
+        {
+          "id": "foundation.006",
+          "baselinePercent": 15
+        },
+        {
+          "id": "foundation.007",
+          "baselinePercent": 10
+        },
+        {
+          "id": "foundation.008",
+          "baselinePercent": 40
+        },
+        {
+          "id": "foundation.009",
+          "baselinePercent": 95
+        },
+        {
+          "id": "foundation.010",
+          "baselinePercent": 55
+        },
+        {
+          "id": "foundation.011",
+          "baselinePercent": 65
+        },
+        {
+          "id": "foundation.012",
+          "baselinePercent": 5
+        },
+        {
+          "id": "foundation.013",
+          "baselinePercent": 15
+        },
+        {
+          "id": "foundation.014",
+          "baselinePercent": 5
+        },
+        {
+          "id": "foundation.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "foundation.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "foundation.017",
+          "baselinePercent": 70
+        }
+      ]
+    },
+    {
+      "id": "phase-0-memory",
+      "baselinePercent": 12,
+      "items": [
+        {
+          "id": "phase-0-memory.001",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.002",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.006",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.008",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.009",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.010",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.013",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-0-memory.014",
+          "baselinePercent": 15
+        },
+        {
+          "id": "phase-0-memory.015",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-0-memory.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.017",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-0-memory.019",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-0-memory.020",
+          "baselinePercent": 80
+        }
+      ]
+    },
+    {
+      "id": "phase-1-brain",
+      "baselinePercent": 30,
+      "items": [
+        {
+          "id": "phase-1-brain.001",
+          "baselinePercent": 80
+        },
+        {
+          "id": "phase-1-brain.002",
+          "baselinePercent": 85
+        },
+        {
+          "id": "phase-1-brain.003",
+          "baselinePercent": 75
+        },
+        {
+          "id": "phase-1-brain.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.007",
+          "baselinePercent": 55
+        },
+        {
+          "id": "phase-1-brain.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.010",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-1-brain.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.013",
+          "baselinePercent": 70
+        },
+        {
+          "id": "phase-1-brain.014",
+          "baselinePercent": 75
+        },
+        {
+          "id": "phase-1-brain.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.017",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-1-brain.019",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-1-brain.020",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-1-brain.021",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-1-brain.022",
+          "baselinePercent": 5
+        }
+      ]
+    },
+    {
+      "id": "phase-2-android",
+      "baselinePercent": 35,
+      "items": [
+        {
+          "id": "phase-2-android.001",
+          "baselinePercent": 90
+        },
+        {
+          "id": "phase-2-android.002",
+          "baselinePercent": 80
+        },
+        {
+          "id": "phase-2-android.003",
+          "baselinePercent": 70
+        },
+        {
+          "id": "phase-2-android.004",
+          "baselinePercent": 80
+        },
+        {
+          "id": "phase-2-android.005",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-2-android.006",
+          "baselinePercent": 45
+        },
+        {
+          "id": "phase-2-android.007",
+          "baselinePercent": 70
+        },
+        {
+          "id": "phase-2-android.008",
+          "baselinePercent": 20
+        },
+        {
+          "id": "phase-2-android.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.017",
+          "baselinePercent": 15
+        },
+        {
+          "id": "phase-2-android.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.019",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.020",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.021",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.022",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.023",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.024",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.025",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-2-android.026",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2-android.027",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-2-android.028",
+          "baselinePercent": 55
+        }
+      ]
+    },
+    {
+      "id": "phase-2.5-device",
+      "baselinePercent": 3,
+      "items": [
+        {
+          "id": "phase-2.5-device.001",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-2.5-device.002",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-2.5-device.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-2.5-device.015",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-3-proactivity",
+      "baselinePercent": 3,
+      "items": [
+        {
+          "id": "phase-3-proactivity.001",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.002",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-3-proactivity.010",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-3-proactivity.011",
+          "baselinePercent": 35
+        },
+        {
+          "id": "phase-3-proactivity.012",
+          "baselinePercent": 20
+        },
+        {
+          "id": "phase-3-proactivity.013",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-4-bridge",
+      "baselinePercent": 18,
+      "items": [
+        {
+          "id": "phase-4-bridge.001",
+          "baselinePercent": 60
+        },
+        {
+          "id": "phase-4-bridge.002",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-4-bridge.003",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-4-bridge.004",
+          "baselinePercent": 70
+        },
+        {
+          "id": "phase-4-bridge.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.010",
+          "baselinePercent": 15
+        },
+        {
+          "id": "phase-4-bridge.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.013",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-4-bridge.014",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-4-bridge.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-4-bridge.016",
+          "baselinePercent": 15
+        },
+        {
+          "id": "phase-4-bridge.017",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-4-bridge.018",
+          "baselinePercent": 25
+        },
+        {
+          "id": "phase-4-bridge.019",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-5-knowledge-evolution",
+      "baselinePercent": 9,
+      "items": [
+        {
+          "id": "phase-5-knowledge-evolution.001",
+          "baselinePercent": 75
+        },
+        {
+          "id": "phase-5-knowledge-evolution.002",
+          "baselinePercent": 55
+        },
+        {
+          "id": "phase-5-knowledge-evolution.003",
+          "baselinePercent": 15
+        },
+        {
+          "id": "phase-5-knowledge-evolution.004",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-5-knowledge-evolution.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.017",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.019",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-5-knowledge-evolution.020",
+          "baselinePercent": 70
+        },
+        {
+          "id": "phase-5-knowledge-evolution.021",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-6-security",
+      "baselinePercent": 12,
+      "items": [
+        {
+          "id": "phase-6-security.001",
+          "baselinePercent": 80
+        },
+        {
+          "id": "phase-6-security.002",
+          "baselinePercent": 85
+        },
+        {
+          "id": "phase-6-security.003",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-6-security.004",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-6-security.005",
+          "baselinePercent": 75
+        },
+        {
+          "id": "phase-6-security.006",
+          "baselinePercent": 55
+        },
+        {
+          "id": "phase-6-security.007",
+          "baselinePercent": 65
+        },
+        {
+          "id": "phase-6-security.008",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-6-security.009",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-6-security.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.012",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-6-security.013",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-6-security.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.016",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-6-security.017",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.019",
+          "baselinePercent": 30
+        },
+        {
+          "id": "phase-6-security.020",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-6-security.021",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-6-security.022",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-7-launch",
+      "baselinePercent": 12,
+      "items": [
+        {
+          "id": "phase-7-launch.001",
+          "baselinePercent": 100
+        },
+        {
+          "id": "phase-7-launch.002",
+          "baselinePercent": 90
+        },
+        {
+          "id": "phase-7-launch.003",
+          "baselinePercent": 95
+        },
+        {
+          "id": "phase-7-launch.004",
+          "baselinePercent": 95
+        },
+        {
+          "id": "phase-7-launch.005",
+          "baselinePercent": 55
+        },
+        {
+          "id": "phase-7-launch.006",
+          "baselinePercent": 40
+        },
+        {
+          "id": "phase-7-launch.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.016",
+          "baselinePercent": 5
+        },
+        {
+          "id": "phase-7-launch.017",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.019",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-7-launch.020",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-8-cross-platform",
+      "baselinePercent": 1,
+      "items": [
+        {
+          "id": "phase-8-cross-platform.001",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.002",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-8-cross-platform.016",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "phase-9-defense",
+      "baselinePercent": 0,
+      "items": [
+        {
+          "id": "phase-9-defense.001",
+          "baselinePercent": 10
+        },
+        {
+          "id": "phase-9-defense.002",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-9-defense.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-9-defense.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-9-defense.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-9-defense.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "phase-9-defense.007",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "addendum-gallery",
+      "baselinePercent": 58,
+      "items": [
+        {
+          "id": "addendum-gallery.001",
+          "baselinePercent": 80
+        },
+        {
+          "id": "addendum-gallery.002",
+          "baselinePercent": 75
+        },
+        {
+          "id": "addendum-gallery.003",
+          "baselinePercent": 65
+        },
+        {
+          "id": "addendum-gallery.004",
+          "baselinePercent": 65
+        },
+        {
+          "id": "addendum-gallery.005",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-gallery.006",
+          "baselinePercent": 70
+        },
+        {
+          "id": "addendum-gallery.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-gallery.008",
+          "baselinePercent": 35
+        },
+        {
+          "id": "addendum-gallery.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-gallery.010",
+          "baselinePercent": 10
+        },
+        {
+          "id": "addendum-gallery.011",
+          "baselinePercent": 70
+        },
+        {
+          "id": "addendum-gallery.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-gallery.013",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "addendum-knowledge-wiki",
+      "baselinePercent": 30,
+      "items": [
+        {
+          "id": "addendum-knowledge-wiki.001",
+          "baselinePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "addendum-research",
+      "baselinePercent": 35,
+      "items": [
+        {
+          "id": "addendum-research.001",
+          "baselinePercent": 75
+        },
+        {
+          "id": "addendum-research.002",
+          "baselinePercent": 75
+        },
+        {
+          "id": "addendum-research.003",
+          "baselinePercent": 80
+        },
+        {
+          "id": "addendum-research.004",
+          "baselinePercent": 75
+        },
+        {
+          "id": "addendum-research.005",
+          "baselinePercent": 55
+        },
+        {
+          "id": "addendum-research.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-research.014",
+          "baselinePercent": 10
+        },
+        {
+          "id": "addendum-research.015",
+          "baselinePercent": 25
+        }
+      ]
+    },
+    {
+      "id": "addendum-chatgpt-bridge",
+      "baselinePercent": 35,
+      "items": [
+        {
+          "id": "addendum-chatgpt-bridge.001",
+          "baselinePercent": 35
+        }
+      ]
+    },
+    {
+      "id": "addendum-multi-provider",
+      "baselinePercent": 25,
+      "items": [
+        {
+          "id": "addendum-multi-provider.001",
+          "baselinePercent": 65
+        },
+        {
+          "id": "addendum-multi-provider.002",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.003",
+          "baselinePercent": 45
+        },
+        {
+          "id": "addendum-multi-provider.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.005",
+          "baselinePercent": 35
+        },
+        {
+          "id": "addendum-multi-provider.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.007",
+          "baselinePercent": 30
+        },
+        {
+          "id": "addendum-multi-provider.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.009",
+          "baselinePercent": 15
+        },
+        {
+          "id": "addendum-multi-provider.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.011",
+          "baselinePercent": 10
+        },
+        {
+          "id": "addendum-multi-provider.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.013",
+          "baselinePercent": 10
+        },
+        {
+          "id": "addendum-multi-provider.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.015",
+          "baselinePercent": 10
+        },
+        {
+          "id": "addendum-multi-provider.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-multi-provider.017",
+          "baselinePercent": 20
+        },
+        {
+          "id": "addendum-multi-provider.018",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "addendum-dual-mcp",
+      "baselinePercent": 40,
+      "items": [
+        {
+          "id": "addendum-dual-mcp.001",
+          "baselinePercent": 80
+        },
+        {
+          "id": "addendum-dual-mcp.002",
+          "baselinePercent": 75
+        },
+        {
+          "id": "addendum-dual-mcp.003",
+          "baselinePercent": 30
+        },
+        {
+          "id": "addendum-dual-mcp.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-dual-mcp.005",
+          "baselinePercent": 35
+        },
+        {
+          "id": "addendum-dual-mcp.006",
+          "baselinePercent": 15
+        },
+        {
+          "id": "addendum-dual-mcp.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "addendum-dual-mcp.008",
+          "baselinePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "proof-gates",
+      "baselinePercent": null,
+      "items": [
+        {
+          "id": "proof-gates.001",
+          "baselinePercent": 55
+        },
+        {
+          "id": "proof-gates.002",
+          "baselinePercent": 30
+        },
+        {
+          "id": "proof-gates.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "proof-gates.004",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "mvp-checklist",
+      "baselinePercent": null,
+      "items": [
+        {
+          "id": "mvp-checklist.001",
+          "baselinePercent": 5
+        },
+        {
+          "id": "mvp-checklist.002",
+          "baselinePercent": 0
+        },
+        {
+          "id": "mvp-checklist.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "mvp-checklist.004",
+          "baselinePercent": 80
+        },
+        {
+          "id": "mvp-checklist.005",
+          "baselinePercent": 10
+        },
+        {
+          "id": "mvp-checklist.006",
+          "baselinePercent": 5
+        },
+        {
+          "id": "mvp-checklist.007",
+          "baselinePercent": 15
+        },
+        {
+          "id": "mvp-checklist.008",
+          "baselinePercent": 10
+        },
+        {
+          "id": "mvp-checklist.009",
+          "baselinePercent": 15
+        },
+        {
+          "id": "mvp-checklist.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "mvp-checklist.011",
+          "baselinePercent": 15
+        },
+        {
+          "id": "mvp-checklist.012",
+          "baselinePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "strategic",
+      "baselinePercent": null,
+      "items": [
+        {
+          "id": "strategic.001",
+          "baselinePercent": 80
+        },
+        {
+          "id": "strategic.002",
+          "baselinePercent": 60
+        },
+        {
+          "id": "strategic.003",
+          "baselinePercent": 60
+        },
+        {
+          "id": "strategic.004",
+          "baselinePercent": 70
+        },
+        {
+          "id": "strategic.005",
+          "baselinePercent": 50
+        },
+        {
+          "id": "strategic.006",
+          "baselinePercent": 50
+        },
+        {
+          "id": "strategic.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.014",
+          "baselinePercent": 35
+        },
+        {
+          "id": "strategic.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "strategic.017",
+          "baselinePercent": 20
+        },
+        {
+          "id": "strategic.018",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "requirements",
+      "baselinePercent": null,
+      "items": [
+        {
+          "id": "requirements.001",
+          "baselinePercent": 10
+        },
+        {
+          "id": "requirements.002",
+          "baselinePercent": 20
+        },
+        {
+          "id": "requirements.003",
+          "baselinePercent": 65
+        },
+        {
+          "id": "requirements.004",
+          "baselinePercent": 20
+        },
+        {
+          "id": "requirements.005",
+          "baselinePercent": 10
+        },
+        {
+          "id": "requirements.006",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.007",
+          "baselinePercent": 10
+        },
+        {
+          "id": "requirements.008",
+          "baselinePercent": 20
+        },
+        {
+          "id": "requirements.009",
+          "baselinePercent": 65
+        },
+        {
+          "id": "requirements.010",
+          "baselinePercent": 55
+        },
+        {
+          "id": "requirements.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.012",
+          "baselinePercent": 10
+        },
+        {
+          "id": "requirements.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.014",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.016",
+          "baselinePercent": 15
+        },
+        {
+          "id": "requirements.017",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.019",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.020",
+          "baselinePercent": 10
+        },
+        {
+          "id": "requirements.021",
+          "baselinePercent": 15
+        },
+        {
+          "id": "requirements.022",
+          "baselinePercent": 30
+        },
+        {
+          "id": "requirements.023",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.024",
+          "baselinePercent": 75
+        },
+        {
+          "id": "requirements.025",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.026",
+          "baselinePercent": 10
+        },
+        {
+          "id": "requirements.027",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.028",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.029",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.030",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.031",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.032",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.033",
+          "baselinePercent": 15
+        },
+        {
+          "id": "requirements.034",
+          "baselinePercent": 55
+        },
+        {
+          "id": "requirements.035",
+          "baselinePercent": 5
+        },
+        {
+          "id": "requirements.036",
+          "baselinePercent": 0
+        },
+        {
+          "id": "requirements.037",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "marvel-patterns",
+      "baselinePercent": null,
+      "items": [
+        {
+          "id": "marvel-patterns.001",
+          "baselinePercent": 25
+        },
+        {
+          "id": "marvel-patterns.002",
+          "baselinePercent": 35
+        },
+        {
+          "id": "marvel-patterns.003",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.004",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.005",
+          "baselinePercent": 5
+        },
+        {
+          "id": "marvel-patterns.006",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.007",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.008",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.009",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.010",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.011",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "marvel-patterns.013",
+          "baselinePercent": 15
+        },
+        {
+          "id": "marvel-patterns.014",
+          "baselinePercent": 15
+        },
+        {
+          "id": "marvel-patterns.015",
+          "baselinePercent": 5
+        },
+        {
+          "id": "marvel-patterns.016",
+          "baselinePercent": 0
+        }
+      ]
+    },
+    {
+      "id": "technology-catalog",
+      "baselinePercent": null,
+      "items": [
+        {
+          "id": "technology-catalog.001",
+          "baselinePercent": 90
+        },
+        {
+          "id": "technology-catalog.002",
+          "baselinePercent": 80
+        },
+        {
+          "id": "technology-catalog.003",
+          "baselinePercent": 75
+        },
+        {
+          "id": "technology-catalog.004",
+          "baselinePercent": 75
+        },
+        {
+          "id": "technology-catalog.005",
+          "baselinePercent": 80
+        },
+        {
+          "id": "technology-catalog.006",
+          "baselinePercent": 65
+        },
+        {
+          "id": "technology-catalog.007",
+          "baselinePercent": 65
+        },
+        {
+          "id": "technology-catalog.008",
+          "baselinePercent": 60
+        },
+        {
+          "id": "technology-catalog.009",
+          "baselinePercent": 75
+        },
+        {
+          "id": "technology-catalog.010",
+          "baselinePercent": 75
+        },
+        {
+          "id": "technology-catalog.011",
+          "baselinePercent": 95
+        },
+        {
+          "id": "technology-catalog.012",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.013",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.014",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.015",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.016",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.017",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.018",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.019",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.020",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.021",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.022",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.023",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.024",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.025",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.026",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.027",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.028",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.029",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.030",
+          "baselinePercent": 30
+        },
+        {
+          "id": "technology-catalog.031",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.032",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.033",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.034",
+          "baselinePercent": 5
+        },
+        {
+          "id": "technology-catalog.035",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.036",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.037",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.038",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.039",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.040",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.041",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.042",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.043",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.044",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.045",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.046",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.047",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.048",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.049",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.050",
+          "baselinePercent": 10
+        },
+        {
+          "id": "technology-catalog.051",
+          "baselinePercent": 0
+        },
+        {
+          "id": "technology-catalog.052",
+          "baselinePercent": 0
+        }
+      ]
+    }
+  ]
+}
