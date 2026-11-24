@@ -460,6 +460,7 @@ internal fun KnowledgeWorkspace(busy: Boolean, onBusyChange: (Boolean) -> Unit, 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(4.dp))
+        MemoryFactsPanel()
     }
 
     pendingDelete?.let { source ->
