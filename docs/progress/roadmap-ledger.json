@@ -336,7 +336,7 @@
           "name": "Canonical SQLite memory database",
           "baselinePercent": 0,
           "status": "not-implemented",
-          "verification": "android-source-compiled;device-not-validated",
+          "verification": "android-ci-compile-and-unit-tests-passed;device-not-validated",
           "evidence": [
             {
               "type": "source",
@@ -354,6 +354,11 @@
               "type": "ci",
               "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
               "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45378031531",
+              "result": "Android assembleDebug, testDebugUnitTest and APK artifact upload succeeded"
             }
           ],
           "blockers": [
@@ -378,7 +383,7 @@
           "name": "Memory inspection and correction",
           "baselinePercent": 10,
           "status": "partial",
-          "verification": "android-source-compiled;device-not-validated",
+          "verification": "android-ci-compile-and-unit-tests-passed;device-not-validated",
           "evidence": [
             {
               "type": "source",
@@ -396,6 +401,11 @@
               "type": "ci",
               "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
               "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45378031531",
+              "result": "Android assembleDebug, testDebugUnitTest and APK artifact upload succeeded"
             }
           ],
           "blockers": [
@@ -420,7 +430,7 @@
           "name": "Hard deletion across all memory layers",
           "baselinePercent": 10,
           "status": "partial",
-          "verification": "android-source-compiled;device-not-validated",
+          "verification": "android-ci-compile-and-unit-tests-passed;device-not-validated",
           "evidence": [
             {
               "type": "source",
@@ -438,6 +448,11 @@
               "type": "ci",
               "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
               "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45378031531",
+              "result": "Android assembleDebug, testDebugUnitTest and APK artifact upload succeeded"
             }
           ],
           "blockers": [
@@ -806,7 +821,7 @@
           "name": "Knowledge interface",
           "baselinePercent": 65,
           "status": "partial",
-          "verification": "android-source-compiled;device-not-validated",
+          "verification": "android-ci-compile-and-unit-tests-passed;device-not-validated",
           "evidence": [
             {
               "type": "source",
@@ -824,6 +839,11 @@
               "type": "ci",
               "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
               "result": "Android APK assembly succeeded; unit test gate subsequently added and remains unverified"
+            },
+            {
+              "type": "ci",
+              "url": "https://github.com/andreipath26/zalmoxis/actions/runs/45378031531",
+              "result": "Android assembleDebug, testDebugUnitTest and APK artifact upload succeeded"
             }
           ],
           "blockers": [
@@ -4830,6 +4850,15 @@
       ],
       "ci": "https://github.com/andreipath26/zalmoxis/actions/runs/45377816901",
       "status": "source-and-apk-assembly-passed;unit-tests-pending;device-not-tested"
+    },
+    {
+      "date": "2026-11-24",
+      "description": "First new gated Android workflow passed both APK build and unit tests; physical device validation outstanding",
+      "commits": [
+        "4396761343ed39616e9d4c51e6d17db16c79ba05"
+      ],
+      "ci": "https://github.com/andreipath26/zalmoxis/actions/runs/45378031531",
+      "status": "android-unit-tests-passed"
     }
   ]
 }
