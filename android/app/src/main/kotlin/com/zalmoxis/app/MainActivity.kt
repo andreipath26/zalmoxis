@@ -59,6 +59,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.zalmoxis.app.voice.DuplexVoiceSession
+import com.zalmoxis.app.voice.VoiceTurnGate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
@@ -141,6 +143,8 @@ private fun ZalmoxisHome(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var session by remember { mutableStateOf<OnDeviceInferenceRuntime?>(null) }
+    val duplexVoice = remember(context) { DuplexVoiceSession(context) { session } }
+    var selectedVoiceMode by remember { mutableStateOf(DuplexVoiceSession.Voice.COMPACT) }
     var models by remember { mutableStateOf(emptyList<LocalModel>()) }
     var modelName by remember { mutableStateOf<String?>(null) }
     var modelSha256 by remember { mutableStateOf<String?>(null) }
@@ -211,12 +215,14 @@ private fun ZalmoxisHome(
     val currentSession by rememberUpdatedState(session)
     val currentSpeechInput by rememberUpdatedState(speechInput)
     val currentSpeechOutput by rememberUpdatedState(speechOutput)
+    val currentDuplexVoice by rememberUpdatedState(duplexVoice)
     val currentImageFile by rememberUpdatedState(imageFile)
     DisposableEffect(Unit) {
         onDispose {
             currentSession?.close()
             currentSpeechInput?.close()
             currentSpeechOutput?.close()
+            currentDuplexVoice.close()
             currentImageFile?.delete()
         }
     }
@@ -256,6 +262,17 @@ private fun ZalmoxisHome(
     ) { granted ->
         if (granted) startOnDeviceSpeech()
         else status = "Microphone permission was declined. You can still type."
+    }
+
+    val nativeVoicePermission = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) duplexVoice.start(selectedVoiceMode)
+        else duplexVoice.start(selectedVoiceMode) // reports missing permission, never opens mic
+    }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab != HomeTab.VOICE) duplexVoice.stop()
     }
 
     fun loadModel(file: File) {
@@ -537,59 +554,35 @@ private fun ZalmoxisHome(
         }
                 }
                 HomeTab.VOICE -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    ) {
-                        Text("Dictation language:", style = MaterialTheme.typography.bodySmall)
-                        androidx.compose.foundation.layout.Box {
-                            TextButton(
-                                enabled = !speechActive,
-                                onClick = { dictationMenuExpanded = true },
-                            ) { Text(dictationLanguageLabel) }
-                            DropdownMenu(
-                                expanded = dictationMenuExpanded,
-                                onDismissRequest = { dictationMenuExpanded = false },
-                            ) {
-                                dictationOptions.forEach { (tag, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            dictationLanguage = tag
-                                            speechPreferences.edit().putString("dictation_language", tag).apply()
-                                            dictationMenuExpanded = false
-                                            status = "Dictation language set to $label. Offline support depends on the installed Android recognizer."
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    V2VoicePanel(
-                        isListening = speechActive,
-                        feedback = status,
+                    V2DuplexVoicePanel(
+                        phase = duplexVoice.phase,
+                        feedback = duplexVoice.status,
+                        transcript = duplexVoice.transcript,
+                        answer = duplexVoice.reply,
+                        turns = duplexVoice.numberOfTurns,
+                        echoCancellation = duplexVoice.echoCancellationAvailable,
+                        mode = selectedVoiceMode,
+                        onMode = { selectedVoiceMode = it },
                         onToggle = {
-                            if (speechActive) {
-                                speechInput?.cancel()
-                                speechInput = null
-                                speechActive = false
-                                status = "Dictation stopped."
+                            if (duplexVoice.phase != VoiceTurnGate.Phase.OFF &&
+                                duplexVoice.phase != VoiceTurnGate.Phase.ERROR
+                            ) {
+                                duplexVoice.stop()
                             } else if (ContextCompat.checkSelfPermission(
                                     context, Manifest.permission.RECORD_AUDIO,
                                 ) == PackageManager.PERMISSION_GRANTED
                             ) {
-                                startOnDeviceSpeech()
+                                duplexVoice.start(selectedVoiceMode)
                             } else {
-                                microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                                nativeVoicePermission.launch(Manifest.permission.RECORD_AUDIO)
                             }
                         },
-                        onBack = { selectedTab = HomeTab.CHAT },
+                        onInterrupt = { duplexVoice.interrupt() },
+                        onBack = {
+                            duplexVoice.stop()
+                            selectedTab = HomeTab.CHAT
+                        },
                     )
-                    if (prompt.isNotBlank()) {
-                        Text("Transcript", style = MaterialTheme.typography.titleMedium)
-                        Text(prompt, style = MaterialTheme.typography.bodyLarge)
-                        Button(onClick = { selectedTab = HomeTab.CHAT }) { Text("Use in chat") }
-                    }
                 }
                 HomeTab.KNOWLEDGE -> {
                     KnowledgeWorkspace(

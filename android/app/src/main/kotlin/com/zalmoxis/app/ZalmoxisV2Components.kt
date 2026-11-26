@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zalmoxis.app.voice.DuplexVoiceSession
+import com.zalmoxis.app.voice.VoiceTurnGate
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -195,46 +197,109 @@ internal fun V2Welcome(onKnowledge: () -> Unit, onModels: () -> Unit, onVoice: (
 }
 
 @Composable
-internal fun V2VoicePanel(isListening: Boolean, feedback: String, onToggle: () -> Unit, onBack: () -> Unit) {
+internal fun V2DuplexVoicePanel(
+    phase: VoiceTurnGate.Phase,
+    feedback: String,
+    transcript: String,
+    answer: String,
+    turns: Int,
+    echoCancellation: Boolean,
+    mode: DuplexVoiceSession.Voice,
+    onMode: (DuplexVoiceSession.Voice) -> Unit,
+    onToggle: () -> Unit,
+    onInterrupt: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val active = phase != VoiceTurnGate.Phase.OFF && phase != VoiceTurnGate.Phase.ERROR
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Voice", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(18.dp))
-        Box(Modifier.size(235.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.size(235.dp)) {
+        Text("Live Voice", style = MaterialTheme.typography.titleLarge)
+        Text("Private · On-device · Hands-free", color = ZalmoxisV2.muted)
+        Box(Modifier.size(210.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(210.dp)) {
                 drawCircle(
-                    brush = Brush.radialGradient(listOf(ZalmoxisV2.accent.copy(alpha = .22f), Color.Transparent)),
+                    brush = Brush.radialGradient(listOf(ZalmoxisV2.accent.copy(alpha = .20f), Color.Transparent)),
                     radius = size.minDimension * .50f,
                 )
                 drawCircle(
-                    color = ZalmoxisV2.accent.copy(alpha = if (isListening) .95f else .42f),
+                    color = ZalmoxisV2.accent.copy(alpha = if (active) .95f else .42f),
                     radius = size.minDimension * .35f,
                     style = Stroke(width = 3.dp.toPx()),
                 )
             }
-            ZalmoxisMark(Modifier.size(95.dp))
+            ZalmoxisMark(Modifier.size(85.dp))
         }
         Text(
-            if (isListening) "Listening…" else "Ready to listen",
+            when (phase) {
+                VoiceTurnGate.Phase.OFF -> "Ready to talk"
+                VoiceTurnGate.Phase.LISTENING -> "Listening…"
+                VoiceTurnGate.Phase.ENDPOINTING -> "Understanding…"
+                VoiceTurnGate.Phase.THINKING -> "Thinking…"
+                VoiceTurnGate.Phase.SPEAKING -> "Speaking…"
+                VoiceTurnGate.Phase.INTERRUPTED -> "Interrupted"
+                VoiceTurnGate.Phase.ERROR -> "Voice needs attention"
+            },
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
         )
+        Text(feedback, style = MaterialTheme.typography.bodyMedium,
+            color = ZalmoxisV2.muted, textAlign = TextAlign.Center)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                enabled = !active,
+                onClick = { onMode(DuplexVoiceSession.Voice.COMPACT) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (mode == DuplexVoiceSession.Voice.COMPACT) ZalmoxisV2.accent else ZalmoxisV2.panel,
+                    contentColor = if (mode == DuplexVoiceSession.Voice.COMPACT) ZalmoxisV2.background else Color.White,
+                ),
+            ) { Text("Compact") }
+            Button(
+                enabled = !active,
+                onClick = { onMode(DuplexVoiceSession.Voice.QWEN) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (mode == DuplexVoiceSession.Voice.QWEN) ZalmoxisV2.accent else ZalmoxisV2.panel,
+                    contentColor = if (mode == DuplexVoiceSession.Voice.QWEN) ZalmoxisV2.background else Color.White,
+                ),
+            ) { Text("Qwen3") }
+        }
         Text(
-            feedback,
-            color = ZalmoxisV2.muted,
-            style = MaterialTheme.typography.bodyMedium,
+            if (mode == DuplexVoiceSession.Voice.COMPACT)
+                "Small English voice included in the APK. No separate model download."
+            else "Qwen3-TTS is optional and requires a complete verified local model pack.",
+            style = MaterialTheme.typography.bodySmall, color = ZalmoxisV2.muted,
             textAlign = TextAlign.Center,
         )
         Button(
             onClick = onToggle,
-            colors = ButtonDefaults.buttonColors(containerColor = ZalmoxisV2.accent, contentColor = ZalmoxisV2.background),
-        ) { Text(if (isListening) "■  Stop listening" else "●  Start voice input") }
-        TextButton(onClick = onBack) {
-            Text("Return to chat")
+            colors = ButtonDefaults.buttonColors(
+                containerColor = ZalmoxisV2.accent,
+                contentColor = ZalmoxisV2.background,
+            ),
+        ) { Text(if (active) "■ End conversation" else "● Start live conversation") }
+        if (active) {
+            TextButton(onClick = onInterrupt) { Text("Interrupt now") }
+            Text(
+                if (echoCancellation) "Echo control active · hands-free interruptions available"
+                else "Hardware echo control unavailable · use Interrupt to change subject",
+                style = MaterialTheme.typography.bodySmall,
+                color = ZalmoxisV2.muted,
+                textAlign = TextAlign.Center,
+            )
         }
+        if (transcript.isNotBlank()) {
+            Text("You", style = MaterialTheme.typography.titleSmall)
+            Text(transcript, style = MaterialTheme.typography.bodyLarge)
+        }
+        if (answer.isNotBlank()) {
+            Text("Zalmoxis", style = MaterialTheme.typography.titleSmall)
+            Text(answer, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text("Completed turns: $turns", color = ZalmoxisV2.muted,
+            style = MaterialTheme.typography.bodySmall)
+        TextButton(onClick = onBack) { Text("Return to chat") }
     }
 }
 
