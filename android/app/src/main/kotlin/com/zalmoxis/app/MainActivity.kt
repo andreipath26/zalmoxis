@@ -154,6 +154,7 @@ private fun ZalmoxisHome(
     var liveTranscript by remember { mutableStateOf("") }
     var liveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var liveEpoch by remember { mutableStateOf(0L) }
+    var liveInterrupted by remember { mutableStateOf(false) }
     val speechPreferences = remember(context) {
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
@@ -300,7 +301,10 @@ private fun ZalmoxisHome(
                     val heard = kotlinx.coroutines.suspendCancellableCoroutine<String> { continuation ->
                         val input = OnDeviceSpeechInput(context,
                             onResult = { if (continuation.isActive) continuation.resumeWith(Result.success(it)) },
-                            onError = { if (continuation.isActive) continuation.resumeWith(Result.failure(IllegalStateException(it))) },
+                            onError = { if (continuation.isActive) {
+                                if (it.startsWith("No speech")) continuation.resumeWith(Result.success(""))
+                                else continuation.resumeWith(Result.failure(IllegalStateException(it)))
+                            } },
                             languageTag = dictationLanguage.takeUnless { it == "system" })
                         speechInput = input
                         try { input.start() } catch (error: Exception) {
@@ -310,20 +314,41 @@ private fun ZalmoxisHome(
                     speechInput?.close()
                     speechInput = null
                     speechActive = false
-                    if (heard.isBlank()) continue
+                    if (heard.isBlank()) { kotlinx.coroutines.delay(350); continue }
                     liveTranscript = heard
                     if (activePrompt.isNotBlank()) priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
                     activePrompt = heard
                     response = ""
                     busy = true
                     livePhase = "Thinking"
+                    liveInterrupted = false
                     try {
-                        checkNotNull(session).stream(heard).flowOn(Dispatchers.Default).collect { piece -> response += piece }
+                        kotlinx.coroutines.coroutineScope {
+                            val phrases = kotlinx.coroutines.channels.Channel<String>(8)
+                            val segmenter = VoicePhraseBuffer()
+                            val speaker = launch {
+                                for (phrase in phrases) {
+                                    if (liveInterrupted) continue
+                                    livePhase = "Speaking"
+                                    output.speakAndAwait(phrase)
+                                }
+                            }
+                            try {
+                                checkNotNull(session).stream(heard).flowOn(Dispatchers.Default).collect { piece ->
+                                    response += piece
+                                    if (!liveInterrupted) {
+                                        for (phrase in segmenter.append(piece)) phrases.send(phrase)
+                                    }
+                                }
+                                if (!liveInterrupted) segmenter.finish()?.let { phrases.send(it) }
+                                phrases.close()
+                                speaker.join()
+                            } finally {
+                                phrases.cancel()
+                                speaker.cancel()
+                            }
+                        }
                     } finally { busy = false }
-                    if (response.isNotBlank()) {
-                        livePhase = "Speaking"
-                        output.speakAndAwait(response)
-                    }
                     kotlinx.coroutines.delay(250)
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
@@ -685,7 +710,7 @@ private fun ZalmoxisHome(
                         Text("Voice session · $livePhase", style = MaterialTheme.typography.titleMedium)
                         Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
                         if (livePhase == "Speaking") {
-                            Button(onClick = { speechOutput?.stop() }) { Text("Interrupt and listen") }
+                            Button(onClick = { liveInterrupted = true; speechOutput?.stop(); livePhase = "Finishing interrupted response" }) { Text("Interrupt speech") }
                         }
                     }
                     if (liveTranscript.isNotBlank()) {
