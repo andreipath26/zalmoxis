@@ -154,6 +154,25 @@ internal class OfflineSpeechOutput(
         })
     }
 
+    suspend fun speakTurn(input: kotlinx.coroutines.channels.ReceiveChannel<String>) {
+        val local = kokoro
+        if (local == null) {
+            val segmenter = VoicePhraseBuffer()
+            for (delta in input) for (phrase in segmenter.append(delta)) speakAndAwait(VoiceInteractionPolicy.cleanForSpeech(phrase))
+            segmenter.finish()?.let { speakAndAwait(VoiceInteractionPolicy.cleanForSpeech(it)) }
+            return
+        }
+        try { local.speakIncrementally(input) }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) {
+            local.close(); kokoro = null
+            onState(true, "Voice stream failed; recovering with another engine.")
+            val segmenter = VoicePhraseBuffer()
+            for (delta in input) for (phrase in segmenter.append(delta)) speakAndAwait(VoiceInteractionPolicy.cleanForSpeech(phrase))
+            segmenter.finish()?.let { speakAndAwait(VoiceInteractionPolicy.cleanForSpeech(it)) }
+        }
+    }
+
     suspend fun speakAndAwait(text: String) {
         if (text.isBlank()) return
         speak(text)

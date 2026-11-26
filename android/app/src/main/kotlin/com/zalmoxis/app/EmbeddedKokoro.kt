@@ -7,6 +7,8 @@ import android.media.AudioTrack
 import com.google.mediapipe.tasks.audio.texttospeech.TextToSpeech
 import com.google.mediapipe.tasks.audio.texttospeech.TextToSpeechOptions
 import com.google.mediapipe.tasks.audio.texttospeech.SynthesisOptions
+import com.google.mediapipe.tasks.audio.texttospeech.TtsStream
+import kotlinx.coroutines.channels.ReceiveChannel
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import java.util.Locale
@@ -30,7 +32,14 @@ internal class EmbeddedKokoro(private val context: Context, locale: Locale, sele
     private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var closed = false
     @Volatile private var track: AudioTrack? = null
-    suspend fun speak(text: String) = withContext(Dispatchers.IO) {
+    @Volatile private var activeStream: TtsStream? = null
+    suspend fun speak(text: String) = kotlinx.coroutines.coroutineScope {
+        val input = kotlinx.coroutines.channels.Channel<String>(1)
+        input.trySend(text)
+        input.close()
+        speakIncrementally(input)
+    }
+    suspend fun speakIncrementally(input: ReceiveChannel<String>) = withContext(Dispatchers.IO) {
         lock.withLock {
             check(!closed)
             val turn = epoch.incrementAndGet()
@@ -45,7 +54,18 @@ internal class EmbeddedKokoro(private val context: Context, locale: Locale, sele
             try {
                 audio.play()
                 var written = 0L
-                tts.synthesizeStream(text, SynthesisOptions(voiceId = voice, speakingRate = VoiceInteractionPolicy.speechRate(text))).collect { chunk ->
+                val stream = tts.openStream(SynthesisOptions(voiceId = voice))
+                activeStream = stream
+                try {
+                    coroutineScope {
+                        val writer = launch(Dispatchers.IO) {
+                            try { for (delta in input) { ensureActive(); if (delta.isNotEmpty()) stream.pushText(delta) }; stream.finishInput() }
+                            catch (e: Throwable) { stream.cancel(); throw e }
+                        }
+                        try {
+                            while (true) {
+                                ensureActive()
+                                val chunk = stream.readNext() ?: break
                     if (epoch.get() != turn) throw CancellationException("Speech interrupted")
                     check(chunk.sampleRateHz == rate && chunk.samples.all { it.isFinite() }) { "Invalid speech samples." }
                     var offset = 0
@@ -55,7 +75,11 @@ internal class EmbeddedKokoro(private val context: Context, locale: Locale, sele
                         check(n >= 0) { "Audio output failed." }
                         if (n == 0) delay(10) else { offset += n; written += n }
                     }
-                }
+                            }
+                            writer.join()
+                        } finally { if (!writer.isCompleted) { stream.cancel(); writer.cancel() } }
+                    }
+                } finally { activeStream = null; stream.close() }
                 if (epoch.get() == turn) {
                     check(written > 0) { "No speech audio generated." }
                     withTimeout(120000) {
@@ -72,6 +96,7 @@ internal class EmbeddedKokoro(private val context: Context, locale: Locale, sele
     fun stop() {
         epoch.incrementAndGet()
         runCatching { track?.pause(); track?.flush() }
+        runCatching { activeStream?.cancel() }
         runCatching { tts.cancel() }
     }
     override fun close() {

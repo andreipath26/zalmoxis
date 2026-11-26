@@ -351,12 +351,10 @@ private fun ZalmoxisHome(
                     try {
                         kotlinx.coroutines.coroutineScope {
                             val phrases = kotlinx.coroutines.channels.Channel<String>(8)
-                            val segmenter = VoicePhraseBuffer(VoiceDevicePolicy.phraseSize(context))
                             val interruption = kotlinx.coroutines.CompletableDeferred<String>()
                             var bargeStarted = false
                             val speaker = launch {
-                                for (phrase in phrases) {
-                                    if (liveInterrupted) continue
+                                if (!liveInterrupted) {
                                     livePhase = "Speaking"
                                     if (firstSpeech == null) firstSpeech = android.os.SystemClock.elapsedRealtime() - turnStarted
                                     if (!liveMuted && liveBargeEnabled && !bargeStarted) {
@@ -368,6 +366,8 @@ private fun ZalmoxisHome(
                                                 if (VoiceInteractionPolicy.isInterruption(partial, response) && !liveInterrupted && !liveMuted) {
                                                     liveInterrupted = true
                                                     output.stop()
+                                                    phrases.cancel()
+                                                    liveTurnJob?.cancel()
                                                     livePhase = "Listening to interruption"
                                                 }
                                             },
@@ -383,8 +383,7 @@ private fun ZalmoxisHome(
                                         liveBargeInput = listener
                                         listener.start()
                                     }
-                                    val spoken = VoiceInteractionPolicy.cleanForSpeech(phrase)
-                                    if (spoken.isNotBlank()) output.speakAndAwait(spoken)
+                                    output.speakTurn(phrases)
                                 }
                             }
                             val generation = launch {
@@ -395,15 +394,15 @@ private fun ZalmoxisHome(
                                     if (firstText == null && piece.isNotBlank()) firstText = android.os.SystemClock.elapsedRealtime() - turnStarted
                                     response += piece
                                     if (!liveInterrupted) {
-                                        for (phrase in segmenter.append(piece)) phrases.send(phrase)
+                                        phrases.send(piece)
                                     }
                                 }
-                                if (!liveInterrupted) segmenter.finish()?.let { phrases.send(it) }
                             }
                             liveTurnJob = generation
                             try {
                                 generation.join()
                                 phrases.close()
+                                if (liveInterrupted) speaker.cancel()
                                 speaker.join()
                                 if (liveInterrupted && bargeStarted && !interruption.isCompleted) {
                                     kotlinx.coroutines.withTimeoutOrNull(2500) { interruption.await() }?.let { nextTurn = it }
