@@ -14,7 +14,7 @@ import android.media.AudioAttributes
 
 /** User-initiated speech with installed, non-network voices only. */
 class OfflineSpeechOutput(
-    context: Context,
+    private val context: Context,
     private val onState: (ready: Boolean, message: String) -> Unit,
 ) : AutoCloseable {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -30,9 +30,7 @@ class OfflineSpeechOutput(
     init {
         scope.launch {
             val ready = try {
-                val client = SpeechSynthesis.getClient(speechSynthesizerOptions(Locale.getDefault()) {
-                    setVoiceFallbackEnabled(false)
-                })
+                val client = SpeechSynthesis.getClient(speechSynthesizerOptions(Locale.getDefault()))
                 neural = client
                 val voices = client.getSupportedVoices()
                 val voice = voices.firstOrNull { client.checkStatus(it) == FeatureStatus.AVAILABLE }
@@ -110,6 +108,7 @@ class OfflineSpeechOutput(
     }
 
     fun speak(text: String) {
+        if (closed || text.isBlank()) return
         val client = neural
         val voice = neuralVoice
         if (client != null && voice != null && !closed) {
