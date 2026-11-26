@@ -165,6 +165,8 @@ private fun ZalmoxisHome(
     val speechPreferences = remember(context) {
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
+    var voiceMode by remember { mutableStateOf(VoiceMode.read(speechPreferences.getString("voice_mode",null))) }
+    var preferredPack by remember { mutableStateOf(speechPreferences.getString("voice_pack",null)) }
     var preferKokoro by remember { mutableStateOf(speechPreferences.getBoolean("prefer_kokoro", false)) }
     var kokoroVoiceId by remember { mutableStateOf(speechPreferences.getString("kokoro_voice_id", null)) }
     var dictationLanguage by rememberSaveable {
@@ -303,7 +305,7 @@ private fun ZalmoxisHome(
         liveJob = scope.launch {
             try {
                 livePhase = "Preparing voice"
-                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro, kokoroVoiceId) { ready, message ->
+                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro, kokoroVoiceId, voiceMode, preferredPack) { ready, message ->
                     if (liveEpoch == epoch) {
                         speechOutputReady = ready
                         status = message
@@ -697,7 +699,7 @@ private fun ZalmoxisHome(
                             output?.close()
                             speechOutputReady = false
                             speechOutputInitializing = true
-                            speechOutput = OfflineSpeechOutput(context, locale = dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro = preferKokoro, kokoroVoiceId = kokoroVoiceId) { ready, message ->
+                            speechOutput = OfflineSpeechOutput(context, locale = dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro = preferKokoro, kokoroVoiceId = kokoroVoiceId, mode = voiceMode, preferredPack = preferredPack) { ready, message ->
                                 val shouldStartPlayback = ready && speechOutputInitializing
                                 speechOutputReady = ready
                                 speechOutputInitializing = false
@@ -779,8 +781,16 @@ private fun ZalmoxisHome(
                     )
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         androidx.compose.material3.Switch(checked = liveBargeEnabled, onCheckedChange = { liveBargeEnabled = it }, enabled = !liveVoice)
-                        Text("Automatic voice interruption (experimental)")
+                        Text("Automatic voice interruption")
                     }
+                    VoiceExperienceSettings(
+                        enabled = !liveVoice && !busy,
+                        mode = voiceMode,
+                        onMode = { voiceMode=it; speechPreferences.edit().putString("voice_mode",it.name).apply() },
+                        locale = dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(),
+                        preferred = preferredPack,
+                        onPreferred = { preferredPack=it; speechPreferences.edit().putString("voice_pack",it).apply() },
+                    )
                     KokoroSettings(
                         enabled = !liveVoice && !busy,
                         preferred = preferKokoro,

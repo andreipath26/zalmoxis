@@ -15,16 +15,16 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal class EmbeddedKokoro(private val context: Context, locale: Locale, selectedVoice: String?) : AutoCloseable {
-    private val voice = KokoroVoices.resolve(locale, selectedVoice)
+internal class EmbeddedKokoro(private val context: Context, locale: Locale, selectedVoice: String?, private val pack: VoicePack? = null) : AutoCloseable {
+    private val voice = if(pack==null) KokoroVoices.resolve(locale,selectedVoice) else selectedVoice?.takeIf { it in pack.voices } ?: pack.voices.first()
     private val cache = KokoroPack.cache(context).apply { mkdirs() }
     private fun create(delegate: Delegate) = TextToSpeech.create(TextToSpeechOptions(
-        baseOptions = BaseOptions.builder().setModelAssetPath(KokoroPack.model(context).absolutePath)
+        baseOptions = BaseOptions.builder().setModelAssetPath((pack?.let { ExtraVoicePacks.model(context,it) } ?: KokoroPack.model(context)).absolutePath)
             .setDelegate(delegate).build(),
         defaultVoiceId = voice,
         cacheDirectory = cache.absolutePath,
     ))
-    private var tts = if (VoiceDevicePolicy.preferCpu(context)) create(Delegate.CPU) else try { create(Delegate.GPU) } catch (_: Exception) { create(Delegate.CPU) }
+    private var tts = if (pack != null || VoiceDevicePolicy.preferCpu(context)) create(Delegate.CPU) else try { create(Delegate.GPU) } catch (_: Exception) { create(Delegate.CPU) }
     private val epoch = AtomicLong()
     private val lock = Mutex()
     private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -45,7 +45,7 @@ internal class EmbeddedKokoro(private val context: Context, locale: Locale, sele
             try {
                 audio.play()
                 var written = 0L
-                tts.synthesizeStream(text, SynthesisOptions(voiceId = voice)).collect { chunk ->
+                tts.synthesizeStream(text, SynthesisOptions(voiceId = voice, speakingRate = VoiceInteractionPolicy.speechRate(text))).collect { chunk ->
                     if (epoch.get() != turn) throw CancellationException("Speech interrupted")
                     check(chunk.sampleRateHz == rate && chunk.samples.all { it.isFinite() }) { "Invalid speech samples." }
                     var offset = 0

@@ -13,11 +13,13 @@ import com.google.mlkit.genai.texttospeech.*
 import android.media.AudioAttributes
 
 /** User-initiated speech with installed, non-network voices only. */
-class OfflineSpeechOutput(
+internal class OfflineSpeechOutput(
     private val context: Context,
     private val locale: Locale = Locale.getDefault(),
     private val preferKokoro: Boolean = false,
     private val kokoroVoiceId: String? = null,
+    private val mode: VoiceMode = VoiceMode.AUTO,
+    private val preferredPack: String? = null,
     private val onState: (ready: Boolean, message: String) -> Unit,
 ) : AutoCloseable {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -30,18 +32,20 @@ class OfflineSpeechOutput(
     private var neuralVoice: VoiceInfo? = null
     private var playback: Job? = null
     private var kokoro: EmbeddedKokoro? = null
+    private var localLabel = "Local neural voice"
+    private val failedPacks = mutableSetOf<String>()
     private var completion: CompletableDeferred<Unit>? = null
     private var lastUtterance: String? = null
     private var platformReady = CompletableDeferred<Boolean>()
 
     init {
         scope.launch {
-            val ready = if (preferKokoro && prepareKokoro()) true else try {
+            val ready = if ((preferKokoro || preferredPack != null || mode == VoiceMode.QUALITY || mode == VoiceMode.FAST) && prepareKokoro()) true else try {
                 val client = SpeechSynthesis.getClient(speechSynthesizerOptions(locale))
                 neural = client
                 val voices = client.getSupportedVoices()
                 val voice = voices.firstOrNull { client.checkStatus(it) == FeatureStatus.AVAILABLE }
-                    ?: voices.firstOrNull { client.checkStatus(it) == FeatureStatus.DOWNLOADABLE }
+                    ?: if (mode == VoiceMode.QUALITY) voices.firstOrNull { client.checkStatus(it) == FeatureStatus.DOWNLOADABLE } else null
                 if (voice != null && client.checkStatus(voice) == FeatureStatus.DOWNLOADABLE) {
                     onState(false, "Preparing Google on-device neural voice…")
                     client.download(voice).collect { }
@@ -52,23 +56,38 @@ class OfflineSpeechOutput(
                 } else false
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { false }
-            if (!closed && ready) onState(true, if (kokoro != null) "Kokoro local voice ready." else "Google on-device neural voice ready.")
+            if (!closed && ready) onState(true, if (kokoro != null) "$localLabel ready." else "Google on-device neural voice ready.")
             else if (!closed) {
                 neural?.close()
                 neural = null
-                if (prepareKokoro()) onState(true, "Kokoro local voice ready.") else initPlatform()
+                if (prepareKokoro()) onState(true, "$localLabel ready.") else initPlatform()
             }
         }
     }
 
     private suspend fun prepareKokoro(): Boolean {
-        if (!KokoroPack.installed(context) || KokoroVoices.forLocale(locale).isEmpty() || VoiceDevicePolicy.lowMemory(context)) return false
-        return try {
-            val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale, kokoroVoiceId) }
-            if (closed) { local.close(); false } else { kokoro = local; true }
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { false }
-        catch (_: LinkageError) { false }
+        if (VoiceDevicePolicy.lowMemory(context)) return false
+        val extra = ExtraVoicePacks.ordered(mode,preferredPack,ExtraVoicePacks.available(locale).filter { ExtraVoicePacks.installed(context,it) })
+        val candidates = mutableListOf<VoicePack?>()
+        val hasKokoro = KokoroPack.installed(context) && KokoroVoices.forLocale(locale).isNotEmpty()
+        if(hasKokoro && (preferKokoro || mode==VoiceMode.QUALITY) && preferredPack==null) candidates.add(null)
+        candidates.addAll(extra)
+        if(hasKokoro && !candidates.contains(null)) candidates.add(null)
+        for(pack in candidates) {
+            val id=pack?.id ?: "kokoro"
+            if(id in failedPacks) continue
+            try {
+                val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale, kokoroVoiceId, pack) }
+                if(closed) { local.close(); return false }
+                kokoro=local
+                localLabel=pack?.title ?: "Kokoro"
+                failedPacks.add(id)
+                return true
+            } catch(e:CancellationException) { throw e }
+            catch(_:Exception) { failedPacks.add(id) }
+            catch(_:LinkageError) { failedPacks.add(id) }
+        }
+        return false
     }
 
     private fun initPlatform() {
@@ -173,9 +192,9 @@ class OfflineSpeechOutput(
                     }
                 }
                 ensureActive()
-                if (kokoro == null) prepareKokoro()
-                val local = kokoro
-                if (local != null) {
+                while (kokoro != null || prepareKokoro()) {
+                val local = checkNotNull(kokoro)
+                if (!closed) {
                     try {
                         local.speak(text)
                         pending?.complete(Unit)
@@ -184,8 +203,9 @@ class OfflineSpeechOutput(
                     catch (_: Exception) {
                         local.close()
                         kokoro = null
-                        onState(true, "Kokoro failed; switching to Android offline voice.")
+                        onState(true, "Local neural voice failed; trying another voice.")
                     }
+                }
                 }
                 ensureActive()
                 if (offlineVoice == null) {
