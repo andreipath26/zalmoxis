@@ -15,7 +15,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal class EmbeddedKokoro(context: Context, locale: Locale, selectedVoice: String?) : AutoCloseable {
+internal class EmbeddedKokoro(private val context: Context, locale: Locale, selectedVoice: String?) : AutoCloseable {
     private val voice = KokoroVoices.resolve(locale, selectedVoice)
     private val cache = KokoroPack.cache(context).apply { mkdirs() }
     private fun create(delegate: Delegate) = TextToSpeech.create(TextToSpeechOptions(
@@ -24,7 +24,7 @@ internal class EmbeddedKokoro(context: Context, locale: Locale, selectedVoice: S
         defaultVoiceId = voice,
         cacheDirectory = cache.absolutePath,
     ))
-    private var tts = try { create(Delegate.GPU) } catch (_: Exception) { create(Delegate.CPU) }
+    private var tts = if (VoiceDevicePolicy.preferCpu(context)) create(Delegate.CPU) else try { create(Delegate.GPU) } catch (_: Exception) { create(Delegate.CPU) }
     private val epoch = AtomicLong()
     private val lock = Mutex()
     private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO)

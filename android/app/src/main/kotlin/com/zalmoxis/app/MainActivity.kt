@@ -155,6 +155,10 @@ private fun ZalmoxisHome(
     var liveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var liveEpoch by remember { mutableStateOf(0L) }
     var liveInterrupted by remember { mutableStateOf(false) }
+    var liveMuted by remember { mutableStateOf(false) }
+    var liveCaptions by rememberSaveable { mutableStateOf(true) }
+    var liveMetrics by remember { mutableStateOf("") }
+    var liveToolsAllowed by rememberSaveable { mutableStateOf(false) }
     var liveTurnJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var liveBargeInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
     var liveBargeEnabled by rememberSaveable { mutableStateOf(true) }
@@ -292,6 +296,8 @@ private fun ZalmoxisHome(
         speechOutput = null
         speechOutputReady = false
         speechOutputInitializing = false
+        liveMuted = false
+        liveMetrics = ""
         liveVoice = true
         val epoch = ++liveEpoch
         liveJob = scope.launch {
@@ -309,6 +315,7 @@ private fun ZalmoxisHome(
                 }
                 var nextTurn: String? = null
                 while (liveVoice && liveEpoch == epoch) {
+                    while (liveMuted) kotlinx.coroutines.delay(100)
                     livePhase = "Listening"
                     speechActive = true
                     val heard = nextTurn?.also { nextTurn = null } ?: kotlinx.coroutines.suspendCancellableCoroutine<String> { continuation ->
@@ -318,6 +325,7 @@ private fun ZalmoxisHome(
                                 if (it.startsWith("No speech")) continuation.resumeWith(Result.success(""))
                                 else continuation.resumeWith(Result.failure(IllegalStateException(it)))
                             } },
+                            onPartial = { if (!liveMuted) liveTranscript = it },
                             languageTag = dictationLanguage.takeUnless { it == "system" })
                         speechInput = input
                         try { input.start() } catch (error: Exception) {
@@ -327,7 +335,10 @@ private fun ZalmoxisHome(
                     speechInput?.close()
                     speechInput = null
                     speechActive = false
-                    if (heard.isBlank()) { kotlinx.coroutines.delay(350); continue }
+                    if (heard.isBlank() || liveMuted) { kotlinx.coroutines.delay(350); continue }
+                    val turnStarted = android.os.SystemClock.elapsedRealtime()
+                    var firstText: Long? = null
+                    var firstSpeech: Long? = null
                     liveTranscript = heard
                     if (activePrompt.isNotBlank()) priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
                     activePrompt = heard
@@ -338,27 +349,28 @@ private fun ZalmoxisHome(
                     try {
                         kotlinx.coroutines.coroutineScope {
                             val phrases = kotlinx.coroutines.channels.Channel<String>(8)
-                            val segmenter = VoicePhraseBuffer()
+                            val segmenter = VoicePhraseBuffer(VoiceDevicePolicy.phraseSize(context))
                             val interruption = kotlinx.coroutines.CompletableDeferred<String>()
                             var bargeStarted = false
                             val speaker = launch {
                                 for (phrase in phrases) {
                                     if (liveInterrupted) continue
                                     livePhase = "Speaking"
-                                    if (liveBargeEnabled && !bargeStarted) {
+                                    if (firstSpeech == null) firstSpeech = android.os.SystemClock.elapsedRealtime() - turnStarted
+                                    if (!liveMuted && liveBargeEnabled && !bargeStarted) {
                                         bargeStarted = true
                                         val listener = OnDeviceSpeechInput(context,
                                             languageTag = dictationLanguage.takeUnless { it == "system" },
                                             duplex = true,
                                             onPartial = { partial ->
-                                                if (partial.trim().length >= 3 && !liveInterrupted) {
+                                                if (VoiceInteractionPolicy.isInterruption(partial, response) && !liveInterrupted && !liveMuted) {
                                                     liveInterrupted = true
                                                     output.stop()
                                                     livePhase = "Listening to interruption"
                                                 }
                                             },
                                             onResult = { text ->
-                                                if (text.isNotBlank()) {
+                                                if (VoiceInteractionPolicy.isInterruption(text, response) && !liveMuted) {
                                                     liveInterrupted = true
                                                     output.stop()
                                                     interruption.complete(text)
@@ -369,11 +381,16 @@ private fun ZalmoxisHome(
                                         liveBargeInput = listener
                                         listener.start()
                                     }
-                                    output.speakAndAwait(phrase)
+                                    val spoken = VoiceInteractionPolicy.cleanForSpeech(phrase)
+                                    if (spoken.isNotBlank()) output.speakAndAwait(spoken)
                                 }
                             }
                             val generation = launch {
-                                checkNotNull(session).stream(heard).flowOn(Dispatchers.Default).collect { piece ->
+                                val spokenPrompt = VoiceInteractionPolicy.prompt(heard, dictationLanguage)
+                                val toolAnswer = if (liveToolsAllowed) VoiceTools.execute(context, heard) else null
+                                val stream = if (toolAnswer != null) kotlinx.coroutines.flow.flowOf(toolAnswer) else checkNotNull(session).stream(spokenPrompt).flowOn(Dispatchers.Default)
+                                stream.collect { piece ->
+                                    if (firstText == null && piece.isNotBlank()) firstText = android.os.SystemClock.elapsedRealtime() - turnStarted
                                     response += piece
                                     if (!liveInterrupted) {
                                         for (phrase in segmenter.append(piece)) phrases.send(phrase)
@@ -398,7 +415,8 @@ private fun ZalmoxisHome(
                             }
                         }
                     } finally { busy = false }
-                    kotlinx.coroutines.delay(250)
+                    liveMetrics = "First text: ${firstText ?: 0} ms · Speech queued: ${firstSpeech ?: 0} ms · Turn: ${android.os.SystemClock.elapsedRealtime() - turnStarted} ms"
+                    kotlinx.coroutines.delay(150)
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
             catch (error: Exception) { status = error.message ?: "Voice conversation failed." }
@@ -771,14 +789,28 @@ private fun ZalmoxisHome(
                         onVoice = { kokoroVoiceId = it; speechPreferences.edit().putString("kokoro_voice_id", it).apply() },
                         onPreferred = { preferKokoro = it; speechPreferences.edit().putBoolean("prefer_kokoro", it).apply() },
                     )
+                    if (!liveVoice) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            androidx.compose.material3.Switch(checked = liveToolsAllowed, onCheckedChange = { liveToolsAllowed = it })
+                            Text("Allow explicit spoken research and memory commands")
+                        }
+                    }
                     if (liveVoice) {
                         Text("Voice session · $livePhase", style = MaterialTheme.typography.titleMedium)
-                        Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
+                            TextButton(onClick = {
+                                liveMuted = !liveMuted
+                                if (liveMuted) { speechInput?.close(); liveBargeInput?.close(); livePhase = "Microphone muted"; stopLiveVoice() }
+                            }) { Text("Mute / end mic session") }
+                            TextButton(onClick = { liveCaptions = !liveCaptions }) { Text(if (liveCaptions) "Hide text" else "Show text") }
+                        }
                         if (livePhase == "Speaking") {
                             Button(onClick = { liveInterrupted = true; speechOutput?.stop(); liveTurnJob?.cancel(); livePhase = "Listening to interruption" }) { Text("Interrupt speech") }
                         }
                     }
-                    if (liveTranscript.isNotBlank()) {
+                    if (liveMetrics.isNotBlank()) Text(liveMetrics, style = MaterialTheme.typography.bodySmall)
+                    if (liveCaptions && liveTranscript.isNotBlank()) {
                         Text("You: $liveTranscript")
                         Text(response)
                     }

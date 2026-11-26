@@ -62,7 +62,7 @@ class OfflineSpeechOutput(
     }
 
     private suspend fun prepareKokoro(): Boolean {
-        if (!KokoroPack.installed(context) || KokoroVoices.forLocale(locale).isEmpty()) return false
+        if (!KokoroPack.installed(context) || KokoroVoices.forLocale(locale).isEmpty() || VoiceDevicePolicy.lowMemory(context)) return false
         return try {
             val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale, kokoroVoiceId) }
             if (closed) { local.close(); false } else { kokoro = local; true }
@@ -211,6 +211,7 @@ class OfflineSpeechOutput(
             onState(false, "Offline speech is not ready. Configure an installed offline voice.")
             return
         }
+        tts.setSpeechRate(VoiceInteractionPolicy.speechRate(text))
         val spokenText = text.trim()
         if (spokenText.isEmpty()) return
         val maxLength = TextToSpeech.getMaxSpeechInputLength()

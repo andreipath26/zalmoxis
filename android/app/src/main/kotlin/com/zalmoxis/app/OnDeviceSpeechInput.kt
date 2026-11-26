@@ -117,7 +117,7 @@ class OnDeviceSpeechInput(
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale)
             .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 850L)
+            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, VoiceInteractionPolicy.pauseMillis(requestedLanguage))
         service.startListening(intent)
     }
 
