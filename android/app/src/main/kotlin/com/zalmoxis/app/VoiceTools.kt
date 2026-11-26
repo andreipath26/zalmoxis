@@ -26,6 +26,18 @@ internal object VoiceTools {
                 if(connection==null) "No agent bridge is paired." else {
                     AgentBridgeClient.send(connection,text.substring(24).trim()); "I sent your request to the paired agent bridge."
                 }
+            } else if (text.equals("read my agent inbox",true)) {
+                val connection=AgentBridgeClient.load(context)
+                if(connection==null) "No agent bridge is paired." else {
+                    val messages=AgentBridgeClient.inbox(connection).take(3)
+                    if(messages.isEmpty()) "Your agent inbox is empty." else messages.joinToString(". ") { it.body.take(500) }
+                }
+            } else if(text.equals("read my agent replies",true)) {
+                val connection=AgentBridgeClient.load(context)
+                if(connection==null) "No agent bridge is paired." else {
+                    val replies=AgentBridgeClient.outbox(connection).take(3)
+                    if(replies.isEmpty()) "There are no replies." else replies.joinToString(". ") { it.reply?.take(500) ?: it.status }
+                }
             } else null
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { "I couldn't complete that request." }

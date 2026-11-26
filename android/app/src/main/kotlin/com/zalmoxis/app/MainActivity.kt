@@ -165,6 +165,7 @@ private fun ZalmoxisHome(
     var liveTurnJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var liveBargeInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
     var liveBargeEnabled by rememberSaveable { mutableStateOf(true) }
+    var liveBackgroundEnabled by rememberSaveable { mutableStateOf(false) }
     val speechPreferences = remember(context) {
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
@@ -281,6 +282,7 @@ private fun ZalmoxisHome(
         liveEpoch++
         liveVoice = false
         liveJob?.cancel()
+        LiveVoiceService.stop(context)
         liveListenResult?.cancel()
         liveAudioRoute?.close()
         liveAudioRoute = null
@@ -304,6 +306,9 @@ private fun ZalmoxisHome(
         speechOutput = null
         speechOutputReady = false
         speechOutputInitializing = false
+        if(liveBackgroundEnabled) {
+            try { LiveVoiceService.start(context) } catch(e:Exception) { status = "Cannot start background microphone: "+e.message; return }
+        }
         liveMuted = false
         liveDetectedLanguage = null
         liveAudioRoute = VoiceAudioRoute(context)
@@ -362,7 +367,12 @@ private fun ZalmoxisHome(
                             val phrases = kotlinx.coroutines.channels.Channel<String>(8)
                             val interruption = kotlinx.coroutines.CompletableDeferred<String>()
                             var bargeStarted = false
+                            var acousticActivity = false
+                            var partialCandidate = ""
+                            var partialCount = 0
+                            val firstDelta = kotlinx.coroutines.CompletableDeferred<Boolean>()
                             val speaker = launch {
+                                if (!firstDelta.await()) return@launch
                                 if (!liveInterrupted) {
                                     livePhase = "Speaking"
                                     if (firstSpeech == null) firstSpeech = android.os.SystemClock.elapsedRealtime() - turnStarted
@@ -371,8 +381,13 @@ private fun ZalmoxisHome(
                                         val listener = OnDeviceSpeechInput(context,
                                             languageTag = dictationLanguage.takeUnless { it == "system" },
                                             duplex = true,
+                                            onActivity = { acousticActivity = it },
                                             onPartial = { partial ->
-                                                if (VoiceInteractionPolicy.isInterruption(partial, response) && !liveInterrupted && !liveMuted) {
+                                                if (VoiceInteractionPolicy.isInterruption(partial, response)) {
+                                                    partialCount = if(partial.startsWith(partialCandidate) && partialCandidate.isNotBlank()) partialCount+1 else 1
+                                                    partialCandidate=partial
+                                                } else { partialCount=0; partialCandidate="" }
+                                                if (acousticActivity && partialCount >= 2 && !liveInterrupted && !liveMuted) {
                                                     liveInterrupted = true
                                                     output.stop()
                                                     phrases.cancel()
@@ -400,9 +415,12 @@ private fun ZalmoxisHome(
                                 val toolAnswer = if (liveToolsAllowed) VoiceTools.execute(context, heard) else null
                                 val stream = if (toolAnswer != null) kotlinx.coroutines.flow.flowOf(toolAnswer) else checkNotNull(session).stream(spokenPrompt).flowOn(Dispatchers.Default)
                                 stream.collect { piece ->
-                                    if (firstText == null && piece.isNotBlank()) firstText = android.os.SystemClock.elapsedRealtime() - turnStarted
+                                    if (firstText == null && piece.isNotBlank()) {
+                                        firstText = android.os.SystemClock.elapsedRealtime() - turnStarted
+                                        firstDelta.complete(true)
+                                    }
                                     response += piece
-                                    if (!liveInterrupted) {
+                                    if (!liveInterrupted && (firstText != null || piece.isNotBlank())) {
                                         phrases.send(piece)
                                     }
                                 }
@@ -410,6 +428,7 @@ private fun ZalmoxisHome(
                             liveTurnJob = generation
                             try {
                                 generation.join()
+                                firstDelta.complete(false)
                                 phrases.close()
                                 if (liveInterrupted) speaker.cancel()
                                 speaker.join()
@@ -443,6 +462,7 @@ private fun ZalmoxisHome(
                     liveAudioRoute?.close()
                     liveAudioRoute = null
                     liveVoice = false
+                    LiveVoiceService.stop(context)
                     livePhase = "Idle"
                 }
             }
@@ -450,10 +470,18 @@ private fun ZalmoxisHome(
     }
 
     LaunchedEffect(selectedTab) { if (selectedTab != HomeTab.VOICE && liveVoice) stopLiveVoice() }
-    DisposableEffect(context) {
+    LaunchedEffect(Unit) {
+        var observed=LiveVoiceService.stopSignal.value
+        LiveVoiceService.stopSignal.collect { signal ->
+            if(signal!=observed && liveVoice && liveBackgroundEnabled) stopLiveVoice()
+            observed=signal
+        }
+    }
+    DisposableEffect(context, liveBackgroundEnabled) {
         val owner = context as? LifecycleOwner
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) stopLiveVoice()
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && (!liveBackgroundEnabled || !LiveVoiceService.running.value)) stopLiveVoice()
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_DESTROY) stopLiveVoice()
         }
         owner?.lifecycle?.addObserver(observer)
         onDispose { owner?.lifecycle?.removeObserver(observer) }
@@ -791,6 +819,8 @@ private fun ZalmoxisHome(
                     )
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         androidx.compose.material3.Switch(checked = liveBargeEnabled, onCheckedChange = { liveBargeEnabled = it }, enabled = !liveVoice)
+                        Text("Continue with screen locked (visible microphone notification)")
+                        androidx.compose.material3.Switch(checked = liveBackgroundEnabled, onCheckedChange = { liveBackgroundEnabled = it }, enabled = !liveVoice)
                         Text("Automatic voice interruption")
                     }
                     VoiceExperienceSettings(
