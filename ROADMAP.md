@@ -2270,3 +2270,39 @@ The ledger is a **measurement baseline, not an automation that can determine sof
 | `technology-catalog.052` | Agentgateway MCP Context Forge | 0% | 0% |
 
 **Ongoing updates:** The frozen ledger baseline remains unchanged, and each changed `currentPercent` must link to source, CI, tests or device proof. Future register refreshes must preserve all original baseline values and IDs.
+
+
+---
+
+# Research addendum (2026-11-26): Kyutai Pocket TTS as embedded offline voice-output candidate
+
+**Evidence: [RESEARCHED / NOT INTEGRATED].** This is additive to the frozen 2026-11-24 baseline and does not change earlier percentages. Pocket TTS is a **text-to-speech (TTS)** synthesizer; it does **not** solve the separate speech-to-text/voice-dictation error 12, which is an Android on-device ASR locale-support problem.
+
+## Sources inspected
+- Official source and licensing: https://github.com/kyutai-labs/pocket-tts
+- Project overview and technical details: https://kyutai-labs.github.io/pocket-tts/
+- GitHub releases and small models: https://github.com/kyutai-labs/pocket-tts/releases
+- Android-native community route: https://github.com/The-unknown-Shadowman/PocketTTS-Android-Engine
+- LiteRT Android conversion cited by upstream: https://huggingface.co/john-rocky/Pocket-TTS-LiteRT
+
+## Findings and engineering decision
+
+1. The primary Kyutai model is approximately **100M parameters**, runs efficiently on CPU with streaming synthesis and advertised low first-chunk latency. Later releases include much smaller English model variants; model quality, size, and Android latency must be benchmarked per variant.
+2. Upstream Python/PyTorch and desktop binaries **do not constitute a ready Android app library**. The upstream repository points to an Android LiteRT GPU conversion and community ONNX/JNI implementations. These are promising reference paths, **not yet validated Zalmoxis dependencies**.
+3. Prefer evaluation of the **LiteRT-converted Android path**, since the app already depends on Google AI Edge LiteRT-LM; keep a fallback Android `TextToSpeech` implementation for unsupported devices, installed language voices, or initialization failure. Note that the TTS LiteRT `.tflite` runtime path is separate from the current LLM `.litertlm` runtime.
+4. Compare against the community `PocketTTS-Android-Engine` path that exposes an Android `TextToSpeechService` backed by ONNX and JNI. Evaluate ABI size, CPU time, model download, background playback, lifecycle/interrupt, and LGPL/third-party dependency notices before embedding code.
+5. **Licenses must be checked per component.** Upstream code may be MIT, while model weights, bundled voices, gated access, and converted artifacts have separate conditions. Do not embed voice cloning samples or distribute a cloned voice without authorization.
+6. Voice-quality scope: English-first is the most straightforward path; verify French, Romanian and other languages individually, since community voices/models and official releases differ in availability, latency, and licensing. Do not auto-substitute a different language.
+7. Privacy: package a tested licensed speech model **inside the application** or offer an explicit verified download if APK size requires it; audio generation, prompts and voice data remain local. No silent remote synthesis.
+
+## Implementation work package TTS-P (new, additive)
+
+- **TTS-P1 [RESEARCHED, 20%]**: select compatible architecture and exact source/model revision; record licensing and size evidence, evaluate LiteRT vs ONNX/JNI.
+- **TTS-P2 [NOT BUILT, 0%]**: introduce a `SpeechSynthesisBackend` interface separating Android system TTS from Pocket TTS and selecting backend by installed support, memory budget and explicit user choice.
+- **TTS-P3 [NOT BUILT, 0%]**: integrate local model and voice assets with checksum/license receipts, clean cancellation, chunked playback, audio focus and no hidden network calls.
+- **TTS-P4 [NOT VALIDATED, 0%]**: run CI APK build plus physical-device English/French/other supported language tests: first-chunk latency, real-time factor, RAM, battery, APK size, offline behavior, quality and fallback.
+- **TTS-P5 [NOT BUILT, 0%]**: publish user-facing voice/model selection, accessibility and source/license attributions.
+
+**Separate ASR work:** retain the `OnDeviceSpeechInput` language selector and Android error 12/13 handling; investigate a bundled ASR engine only after evaluating model licensing, languages, Android CPU/memory and microphone privacy. Pocket TTS is not an ASR engine.
+
+**Acceptance:** the app can speak with a licensed, fully local Pocket TTS voice on a real Android handset, with measured latency, and cleanly fall back to Android's installed offline voice. Zero claims of TTS-P2 through P5 completion before device tests.
