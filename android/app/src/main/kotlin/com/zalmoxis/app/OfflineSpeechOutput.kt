@@ -12,11 +12,13 @@ import java.util.Locale
 class OfflineSpeechOutput(
     context: Context,
     private val onState: (ready: Boolean, message: String) -> Unit,
+    private val onUtteranceFinished: (() -> Unit)? = null,
 ) : AutoCloseable {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var engine: TextToSpeech? = null
     private var offlineVoice: Voice? = null
     private var closed = false
+    private var lastUtterance: String? = null
 
     init {
         val created = TextToSpeech(context.applicationContext) { result ->
@@ -61,11 +63,11 @@ class OfflineSpeechOutput(
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
             override fun onDone(utteranceId: String?) {
-                mainHandler.post { if (!closed) onState(true, "Speech finished.") }
+                mainHandler.post { if (!closed && utteranceId == lastUtterance) { lastUtterance = null; onState(true, "Speech finished."); onUtteranceFinished?.invoke() } }
             }
             @Deprecated("Deprecated by Android")
             override fun onError(utteranceId: String?) {
-                mainHandler.post { if (!closed) onState(true, "Android speech playback failed. Check device audio output.") }
+                mainHandler.post { if (!closed && utteranceId == lastUtterance) { lastUtterance = null; onState(false, "Android speech playback failed. Check device audio output."); onUtteranceFinished?.invoke() } }
             }
         })
         onState(true, "Offline voice ready (${selected.locale.toLanguageTag()}).")
@@ -81,12 +83,14 @@ class OfflineSpeechOutput(
         if (spokenText.isEmpty()) return
         val maxLength = TextToSpeech.getMaxSpeechInputLength()
         val chunks = spokenText.chunked(maxLength.coerceAtLeast(1))
+        val batch = System.nanoTime()
+        lastUtterance = "zalmoxis-$batch-${chunks.lastIndex}"
         chunks.forEachIndexed { index, chunk ->
             val result = tts.speak(
                 chunk,
                 if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
                 null,
-                "zalmoxis-${System.nanoTime()}-$index",
+                "zalmoxis-$batch-$index",
             )
             if (result != TextToSpeech.SUCCESS) {
                 onState(true, "Android could not queue offline speech output.")
@@ -96,6 +100,7 @@ class OfflineSpeechOutput(
     }
 
     fun stop() {
+        lastUtterance = null
         engine?.stop()
     }
 
