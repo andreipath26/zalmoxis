@@ -9,3 +9,6 @@ Device acceptance (not yet measured):
 - Test unsupported AEC and unavailable neural voice; verify manual interruption and installed offline speech fallback; no network fallback for ASR.
 - Check model conversation continuity after cancellation, memory usage, thermal behavior, and repeated start/stop.
 - CI assembles APK and runs unit tests; a passing build does not certify acoustic behavior.
+
+## Optional Kokoro fallback
+When Google neural initialization is unavailable, discover installed Android TTS engines and select an offline voice explicitly advertising Kokoro in its name for the requested language. If none is installed, use normal Android offline TTS. The optional engine and model are installed separately by the user; Zamolxis does not bundle or download model weights. Verify discovery with an engine that exposes Kokoro voice identifiers, and verify fallback when the engine is missing or advertises an uninstalled voice. This is an Android TTS integration, not an embedded ONNX runtime; engines that do not advertise Kokoro cannot be identified automatically. See https://k2-fsa.github.io/sherpa/onnx/tts/apk-engine.html.

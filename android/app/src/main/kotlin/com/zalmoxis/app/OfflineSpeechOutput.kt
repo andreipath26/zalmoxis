@@ -52,9 +52,53 @@ class OfflineSpeechOutput(
             else if (!closed) {
                 neural?.close()
                 neural = null
-                initPlatform()
+                initKokoroOrPlatform()
             }
         }
+    }
+
+    /** Prefer an explicitly advertised installed Kokoro voice over ordinary system TTS.
+     * The model stays in its optional Android engine; no duplicate weights are bundled.
+     */
+    private suspend fun initKokoroOrPlatform() {
+        val probe = TextToSpeech(context.applicationContext) { }
+        val packages = try {
+            probe.engines.map { it.name }.distinct()
+        } catch (_: Exception) { emptyList() }
+        finally { probe.shutdown() }
+        for (packageName in packages) {
+            if (closed) return
+            val candidate = initializeEngine(packageName) ?: continue
+            var retained = false
+            try {
+                val voice = candidate.voices.orEmpty()
+                    .filter { KokoroVoicePolicy.isCandidate(it.name, it.locale.language, locale.language,
+                        it.isNetworkConnectionRequired, it.features.orEmpty()) }
+                    .sortedWith(compareByDescending<Voice> { it.locale == locale }.thenByDescending { it.quality })
+                    .firstOrNull()
+                if (voice != null && candidate.setVoice(voice) == TextToSpeech.SUCCESS) {
+                    engine = candidate
+                    offlineVoice = voice
+                    retained = true
+                    attachListener(candidate)
+                    onState(true, "Kokoro offline neural voice ready (${voice.locale.toLanguageTag()}).")
+                    return
+                }
+            } catch (_: Exception) {
+                // An optional external engine must never prevent ordinary offline fallback.
+            } finally { if (!retained) candidate.shutdown() }
+        }
+        if (!closed) initPlatform()
+    }
+
+    private suspend fun initializeEngine(packageName: String): TextToSpeech? {
+        val result = CompletableDeferred<Int>()
+        val candidate = TextToSpeech(context.applicationContext, { result.complete(it) }, packageName)
+        var keep = false
+        try {
+            keep = withTimeoutOrNull(2000) { result.await() } == TextToSpeech.SUCCESS && !closed
+            return if (keep) candidate else null
+        } finally { if (!keep) candidate.shutdown() }
     }
 
     private fun initPlatform() {
@@ -96,6 +140,13 @@ class OfflineSpeechOutput(
             return
         }
         offlineVoice = selected
+        attachListener(tts)
+        onState(true, "Offline voice ready (${selected.locale.toLanguageTag()}).")
+    }
+
+    private fun attachListener(tts: TextToSpeech) {
+        tts.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
             override fun onDone(utteranceId: String?) {
@@ -106,7 +157,6 @@ class OfflineSpeechOutput(
                 mainHandler.post { if (!closed && utteranceId == lastUtterance) { completion?.completeExceptionally(IllegalStateException("Speech playback failed.")); onState(true, "Android speech playback failed. Check device audio output.") } }
             }
         })
-        onState(true, "Offline voice ready (${selected.locale.toLanguageTag()}).")
     }
 
     suspend fun speakAndAwait(text: String) {

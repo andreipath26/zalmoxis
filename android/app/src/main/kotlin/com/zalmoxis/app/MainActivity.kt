@@ -756,6 +756,11 @@ private fun ZalmoxisHome(
                         androidx.compose.material3.Switch(checked = liveBargeEnabled, onCheckedChange = { liveBargeEnabled = it }, enabled = !liveVoice)
                         Text("Automatic voice interruption (experimental)")
                     }
+                    Text("Voice priority: Google neural · installed Kokoro · Android offline.", style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = {
+                        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://k2-fsa.github.io/sherpa/onnx/tts/apk-engine.html"))) }
+                    }, enabled = !liveVoice) { Text("Optional Kokoro voice engines") }
                     if (liveVoice) {
                         Text("Voice session · $livePhase", style = MaterialTheme.typography.titleMedium)
                         Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
