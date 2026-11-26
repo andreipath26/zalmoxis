@@ -54,6 +54,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.18.1")
+    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha2")
+    implementation("com.google.mlkit:genai-text-to-speech:1.0.0-alpha1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("io.modelcontextprotocol:kotlin-sdk-server:0.16.0")
     implementation("io.ktor:ktor-server-cio:3.5.2")

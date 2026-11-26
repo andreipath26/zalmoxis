@@ -10,6 +10,15 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import java.util.Locale
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.firstOrNull
+import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mlkit.genai.common.audio.AudioSource
+import com.google.mlkit.genai.speechrecognition.SpeechRecognition
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
+import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
+import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
 
 /** Explicit on-device recognition only; no network-recognition fallback. */
 class OnDeviceSpeechInput(
@@ -23,7 +32,52 @@ class OnDeviceSpeechInput(
     private var finished = false
     private var requestedLanguage = Locale.getDefault().toLanguageTag()
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var googleJob: Job? = null
+
+    @OptIn(kotlin.concurrent.atomics.ExperimentalAtomicApi::class)
     fun start() {
+        finished = false
+        requestedLanguage = languageTag ?: Locale.getDefault().toLanguageTag()
+        googleJob = scope.launch {
+            for (mode in listOf(SpeechRecognizerOptions.Mode.MODE_ADVANCED, SpeechRecognizerOptions.Mode.MODE_BASIC)) {
+                val result = try {
+                    val client = SpeechRecognition.getClient(speechRecognizerOptions {
+                        locale = Locale.forLanguageTag(requestedLanguage)
+                        preferredMode = mode
+                    })
+                    client.use {
+                        if (client.checkStatus() != FeatureStatus.AVAILABLE) null
+                        else {
+                            val source = AudioSource.fromMic()
+                            try {
+                                val response = client.startRecognition(speechRecognizerRequest { audioSource = source })
+                                    .firstOrNull { it is SpeechRecognizerResponse.FinalTextResponse }
+                                (response as? SpeechRecognizerResponse.FinalTextResponse)?.text
+                            } finally {
+                                source.close()
+                                withContext(NonCancellable) { client.stopRecognition() }
+                            }
+                        }
+                    }
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { null }
+                if (!result.isNullOrBlank()) {
+                    finished = true
+                    onResult(result.trim())
+                    return@launch
+                }
+            }
+            if (!finished) {
+                try { startPlatform() } catch (e: Exception) {
+                    finished = true
+                    onError(e.message ?: "Offline recognition unavailable.")
+                }
+            }
+        }
+    }
+
+    private fun startPlatform() {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "Speech recognition must start on the main thread."
         }
@@ -33,7 +87,8 @@ class OnDeviceSpeechInput(
         check(SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
             "No on-device speech recognizer is installed. Install an offline recognition language in Android speech settings."
         }
-        close()
+        recognizer?.destroy()
+        recognizer = null
         finished = false
         val service = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         recognizer = service
@@ -56,6 +111,9 @@ class OnDeviceSpeechInput(
     }
 
     override fun close() {
+        finished = true
+        googleJob?.cancel()
+        googleJob = null
         recognizer?.destroy()
         recognizer = null
     }
