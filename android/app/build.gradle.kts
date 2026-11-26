@@ -23,6 +23,14 @@ android {
         targetSdk = 36
         versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 100_000 + it } ?: 1
         versionName = "0.1.0"
+        // Native Qwen3 speech model currently supports ARM64; the app remains minSdk 26.
+        ndk { abiFilters += listOf("arm64-v8a") }
+        externalNativeBuild {
+            cmake {
+                targets += listOf("qwen3_tts_jni")
+                arguments += listOf("-DANDROID_STL=c++_shared", "-DQWEN3_ANDROID_OPENMP=OFF", "-DQWEN3_ANDROID_VULKAN=OFF", "-DQWEN3_ANDROID_OPENCL=OFF")
+            }
+        }
     }
     if (canSignUpdates) {
         signingConfigs {
@@ -40,6 +48,7 @@ android {
             if (canSignUpdates) signingConfig = signingConfigs.getByName("updates")
         }
     }
+    externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt") } }
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
