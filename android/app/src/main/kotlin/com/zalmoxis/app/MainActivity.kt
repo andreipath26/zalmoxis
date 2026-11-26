@@ -155,6 +155,9 @@ private fun ZalmoxisHome(
     var liveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var liveEpoch by remember { mutableStateOf(0L) }
     var liveInterrupted by remember { mutableStateOf(false) }
+    var liveTurnJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var liveBargeInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
+    var liveBargeEnabled by rememberSaveable { mutableStateOf(true) }
     val speechPreferences = remember(context) {
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
@@ -262,6 +265,8 @@ private fun ZalmoxisHome(
         liveEpoch++
         liveVoice = false
         liveJob?.cancel()
+        liveBargeInput?.close()
+        liveBargeInput = null
         speechInput?.close()
         speechInput = null
         speechActive = false
@@ -285,7 +290,7 @@ private fun ZalmoxisHome(
         liveJob = scope.launch {
             try {
                 livePhase = "Preparing voice"
-                val output = OfflineSpeechOutput(context) { ready, message ->
+                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault()) { ready, message ->
                     if (liveEpoch == epoch) {
                         speechOutputReady = ready
                         status = message
@@ -295,10 +300,11 @@ private fun ZalmoxisHome(
                 kotlinx.coroutines.withTimeout(120_000) {
                     while (!speechOutputReady) kotlinx.coroutines.delay(100)
                 }
+                var nextTurn: String? = null
                 while (liveVoice && liveEpoch == epoch) {
                     livePhase = "Listening"
                     speechActive = true
-                    val heard = kotlinx.coroutines.suspendCancellableCoroutine<String> { continuation ->
+                    val heard = nextTurn?.also { nextTurn = null } ?: kotlinx.coroutines.suspendCancellableCoroutine<String> { continuation ->
                         val input = OnDeviceSpeechInput(context,
                             onResult = { if (continuation.isActive) continuation.resumeWith(Result.success(it)) },
                             onError = { if (continuation.isActive) {
@@ -326,14 +332,40 @@ private fun ZalmoxisHome(
                         kotlinx.coroutines.coroutineScope {
                             val phrases = kotlinx.coroutines.channels.Channel<String>(8)
                             val segmenter = VoicePhraseBuffer()
+                            val interruption = kotlinx.coroutines.CompletableDeferred<String>()
+                            var bargeStarted = false
                             val speaker = launch {
                                 for (phrase in phrases) {
                                     if (liveInterrupted) continue
                                     livePhase = "Speaking"
+                                    if (liveBargeEnabled && !bargeStarted) {
+                                        bargeStarted = true
+                                        val listener = OnDeviceSpeechInput(context,
+                                            languageTag = dictationLanguage.takeUnless { it == "system" },
+                                            duplex = true,
+                                            onPartial = { partial ->
+                                                if (partial.trim().length >= 3 && !liveInterrupted) {
+                                                    liveInterrupted = true
+                                                    output.stop()
+                                                    livePhase = "Listening to interruption"
+                                                }
+                                            },
+                                            onResult = { text ->
+                                                if (text.isNotBlank()) {
+                                                    liveInterrupted = true
+                                                    output.stop()
+                                                    interruption.complete(text)
+                                                    liveTurnJob?.cancel()
+                                                }
+                                            },
+                                            onError = { status = "Automatic interruption unavailable; use the interrupt button." })
+                                        liveBargeInput = listener
+                                        listener.start()
+                                    }
                                     output.speakAndAwait(phrase)
                                 }
                             }
-                            try {
+                            val generation = launch {
                                 checkNotNull(session).stream(heard).flowOn(Dispatchers.Default).collect { piece ->
                                     response += piece
                                     if (!liveInterrupted) {
@@ -341,9 +373,19 @@ private fun ZalmoxisHome(
                                     }
                                 }
                                 if (!liveInterrupted) segmenter.finish()?.let { phrases.send(it) }
+                            }
+                            liveTurnJob = generation
+                            try {
+                                generation.join()
                                 phrases.close()
                                 speaker.join()
+                                if (liveInterrupted && bargeStarted && !interruption.isCompleted) {
+                                    kotlinx.coroutines.withTimeoutOrNull(2500) { interruption.await() }?.let { nextTurn = it }
+                                } else if (interruption.isCompleted) nextTurn = interruption.await()
                             } finally {
+                                liveTurnJob = null
+                                liveBargeInput?.close()
+                                liveBargeInput = null
                                 phrases.cancel()
                                 speaker.cancel()
                             }
@@ -358,7 +400,11 @@ private fun ZalmoxisHome(
                     speechInput?.close()
                     speechInput = null
                     speechActive = false
-                    speechOutput?.stop()
+                    liveBargeInput?.close()
+                    liveBargeInput = null
+                    speechOutput?.close()
+                    speechOutput = null
+                    speechOutputReady = false
                     liveVoice = false
                     livePhase = "Idle"
                 }
@@ -706,11 +752,15 @@ private fun ZalmoxisHome(
                         },
                         onBack = { stopLiveVoice(); selectedTab = HomeTab.CHAT },
                     )
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        androidx.compose.material3.Switch(checked = liveBargeEnabled, onCheckedChange = { liveBargeEnabled = it }, enabled = !liveVoice)
+                        Text("Automatic voice interruption (experimental)")
+                    }
                     if (liveVoice) {
                         Text("Voice session · $livePhase", style = MaterialTheme.typography.titleMedium)
                         Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
                         if (livePhase == "Speaking") {
-                            Button(onClick = { liveInterrupted = true; speechOutput?.stop(); livePhase = "Finishing interrupted response" }) { Text("Interrupt speech") }
+                            Button(onClick = { liveInterrupted = true; speechOutput?.stop(); liveTurnJob?.cancel(); livePhase = "Listening to interruption" }) { Text("Interrupt speech") }
                         }
                     }
                     if (liveTranscript.isNotBlank()) {

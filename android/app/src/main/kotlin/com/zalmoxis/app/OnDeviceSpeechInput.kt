@@ -26,6 +26,8 @@ class OnDeviceSpeechInput(
     private val onResult: (String) -> Unit,
     private val onError: (String) -> Unit,
     private val languageTag: String? = null,
+    private val onPartial: (String) -> Unit = {},
+    private val duplex: Boolean = false,
 ) : RecognitionListener, AutoCloseable {
     private var recognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -52,12 +54,21 @@ class OnDeviceSpeechInput(
                     client.use {
                         if (client.checkStatus() != FeatureStatus.AVAILABLE) null
                         else {
-                            val source = AudioSource.fromMic()
+                            val capture = if (duplex) DuplexMicrophone.open(context) else null
+                            val source = try {
+                                if (capture != null) AudioSource.fromPfd(capture.readEnd, AudioSource.Mode.STREAMING)
+                                else AudioSource.fromMic()
+                            } catch (error: Throwable) { capture?.close(); throw error }
                             try {
                                 val response = client.startRecognition(speechRecognizerRequest { audioSource = source })
-                                    .firstOrNull { it is SpeechRecognizerResponse.FinalTextResponse }
+                                    .firstOrNull {
+                                        if (it is SpeechRecognizerResponse.PartialTextResponse && !finished) onPartial(it.text)
+                                        if (it is SpeechRecognizerResponse.ErrorResponse) throw IllegalStateException(it.e.message ?: "Recognition failed.")
+                                        it is SpeechRecognizerResponse.FinalTextResponse
+                                    }
                                 (response as? SpeechRecognizerResponse.FinalTextResponse)?.text
                             } finally {
+                                capture?.close()
                                 source.close()
                                 withContext(NonCancellable) { client.stopRecognition() }
                             }
@@ -66,12 +77,14 @@ class OnDeviceSpeechInput(
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) { null }
                 if (!result.isNullOrBlank()) {
+                    if (finished) return@launch
                     finished = true
                     onResult(result.trim())
                     return@launch
                 }
             }
             if (!finished) {
+                if (duplex) { finished = true; onError("Echo-cancelled interruption recognition unavailable."); return@launch }
                 try { startPlatform() } catch (e: Exception) {
                     finished = true
                     onError(e.message ?: "Offline recognition unavailable.")
@@ -104,6 +117,7 @@ class OnDeviceSpeechInput(
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale)
             .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 850L)
         service.startListening(intent)
     }
 
@@ -159,6 +173,8 @@ class OnDeviceSpeechInput(
     override fun onRmsChanged(rmsdB: Float) {}
     override fun onBufferReceived(buffer: ByteArray?) {}
     override fun onEndOfSpeech() {}
-    override fun onPartialResults(partialResults: Bundle?) {}
+    override fun onPartialResults(partialResults: Bundle?) {
+        if (!finished) partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let(onPartial)
+    }
     override fun onEvent(eventType: Int, params: Bundle?) {}
 }

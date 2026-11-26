@@ -15,6 +15,7 @@ import android.media.AudioAttributes
 /** User-initiated speech with installed, non-network voices only. */
 class OfflineSpeechOutput(
     private val context: Context,
+    private val locale: Locale = Locale.getDefault(),
     private val onState: (ready: Boolean, message: String) -> Unit,
 ) : AutoCloseable {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -32,7 +33,7 @@ class OfflineSpeechOutput(
     init {
         scope.launch {
             val ready = try {
-                val client = SpeechSynthesis.getClient(speechSynthesizerOptions(Locale.getDefault()))
+                val client = SpeechSynthesis.getClient(speechSynthesizerOptions(locale))
                 neural = client
                 val voices = client.getSupportedVoices()
                 val voice = voices.firstOrNull { client.checkStatus(it) == FeatureStatus.AVAILABLE }
@@ -73,10 +74,9 @@ class OfflineSpeechOutput(
             onState(false, "Android speech synthesis failed to initialize. Check the installed text-to-speech engine in Settings.")
             return
         }
-        val locale = Locale.getDefault()
         val installed = try {
             tts.voices.orEmpty().filter { voice ->
-                !voice.isNetworkConnectionRequired &&
+                !voice.isNetworkConnectionRequired && voice.locale.language == locale.language &&
                     tts.isLanguageAvailable(voice.locale) >= TextToSpeech.LANG_AVAILABLE
             }
         } catch (error: Exception) {
@@ -85,7 +85,7 @@ class OfflineSpeechOutput(
         }
         val selected = installed.sortedWith(
             compareByDescending<Voice> { it.locale == locale }
-                .thenByDescending { it.locale.language == locale.language }
+                .thenByDescending { it.quality }
         ).firstOrNull()
         if (selected == null) {
             onState(false, "No offline voice is installed. Download an offline voice in Android Text-to-speech settings.")
@@ -129,7 +129,7 @@ class OfflineSpeechOutput(
                     client.synthesize(SpeechSynthesizerRequest(
                         input = SpeechSynthesizerRequest.Input.Text(text, voice),
                         audioAttributes = AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
                     )).collect { event ->
                         if (event is SpeechSynthesizerResponse.Error) error("Neural synthesis failed.")
