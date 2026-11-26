@@ -161,6 +161,7 @@ private fun ZalmoxisHome(
     val speechPreferences = remember(context) {
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
+    var preferKokoro by remember { mutableStateOf(speechPreferences.getBoolean("prefer_kokoro", false)) }
     var dictationLanguage by rememberSaveable {
         mutableStateOf(speechPreferences.getString("dictation_language", "system") ?: "system")
     }
@@ -290,7 +291,7 @@ private fun ZalmoxisHome(
         liveJob = scope.launch {
             try {
                 livePhase = "Preparing voice"
-                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault()) { ready, message ->
+                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro) { ready, message ->
                     if (liveEpoch == epoch) {
                         speechOutputReady = ready
                         status = message
@@ -672,7 +673,7 @@ private fun ZalmoxisHome(
                             output?.close()
                             speechOutputReady = false
                             speechOutputInitializing = true
-                            speechOutput = OfflineSpeechOutput(context) { ready, message ->
+                            speechOutput = OfflineSpeechOutput(context, preferKokoro = preferKokoro) { ready, message ->
                                 val shouldStartPlayback = ready && speechOutputInitializing
                                 speechOutputReady = ready
                                 speechOutputInitializing = false
@@ -756,11 +757,11 @@ private fun ZalmoxisHome(
                         androidx.compose.material3.Switch(checked = liveBargeEnabled, onCheckedChange = { liveBargeEnabled = it }, enabled = !liveVoice)
                         Text("Automatic voice interruption (experimental)")
                     }
-                    Text("Voice priority: Google neural · installed Kokoro · Android offline.", style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = {
-                        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("https://k2-fsa.github.io/sherpa/onnx/tts/apk-engine.html"))) }
-                    }, enabled = !liveVoice) { Text("Optional Kokoro voice engines") }
+                    KokoroSettings(
+                        enabled = !liveVoice && !busy,
+                        preferred = preferKokoro,
+                        onPreferred = { preferKokoro = it; speechPreferences.edit().putBoolean("prefer_kokoro", it).apply() },
+                    )
                     if (liveVoice) {
                         Text("Voice session · $livePhase", style = MaterialTheme.typography.titleMedium)
                         Button(onClick = { stopLiveVoice() }) { Text("End conversation") }

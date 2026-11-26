@@ -16,6 +16,7 @@ import android.media.AudioAttributes
 class OfflineSpeechOutput(
     private val context: Context,
     private val locale: Locale = Locale.getDefault(),
+    private val preferKokoro: Boolean = false,
     private val onState: (ready: Boolean, message: String) -> Unit,
 ) : AutoCloseable {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -27,12 +28,13 @@ class OfflineSpeechOutput(
     private var neural: SpeechSynthesizer? = null
     private var neuralVoice: VoiceInfo? = null
     private var playback: Job? = null
+    private var kokoro: EmbeddedKokoro? = null
     private var completion: CompletableDeferred<Unit>? = null
     private var lastUtterance: String? = null
 
     init {
         scope.launch {
-            val ready = try {
+            val ready = if (preferKokoro && prepareKokoro()) true else try {
                 val client = SpeechSynthesis.getClient(speechSynthesizerOptions(locale))
                 neural = client
                 val voices = client.getSupportedVoices()
@@ -48,57 +50,23 @@ class OfflineSpeechOutput(
                 } else false
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { false }
-            if (!closed && ready) onState(true, "Google on-device neural voice ready.")
+            if (!closed && ready) onState(true, if (kokoro != null) "Kokoro local voice ready." else "Google on-device neural voice ready.")
             else if (!closed) {
                 neural?.close()
                 neural = null
-                initKokoroOrPlatform()
+                if (prepareKokoro()) onState(true, "Kokoro local voice ready.") else initPlatform()
             }
         }
     }
 
-    /** Prefer an explicitly advertised installed Kokoro voice over ordinary system TTS.
-     * The model stays in its optional Android engine; no duplicate weights are bundled.
-     */
-    private suspend fun initKokoroOrPlatform() {
-        val probe = TextToSpeech(context.applicationContext) { }
-        val packages = try {
-            probe.engines.map { it.name }.distinct()
-        } catch (_: Exception) { emptyList() }
-        finally { probe.shutdown() }
-        for (packageName in packages) {
-            if (closed) return
-            val candidate = initializeEngine(packageName) ?: continue
-            var retained = false
-            try {
-                val voice = candidate.voices.orEmpty()
-                    .filter { KokoroVoicePolicy.isCandidate(it.name, it.locale.language, locale.language,
-                        it.isNetworkConnectionRequired, it.features.orEmpty()) }
-                    .sortedWith(compareByDescending<Voice> { it.locale == locale }.thenByDescending { it.quality })
-                    .firstOrNull()
-                if (voice != null && candidate.setVoice(voice) == TextToSpeech.SUCCESS) {
-                    engine = candidate
-                    offlineVoice = voice
-                    retained = true
-                    attachListener(candidate)
-                    onState(true, "Kokoro offline neural voice ready (${voice.locale.toLanguageTag()}).")
-                    return
-                }
-            } catch (_: Exception) {
-                // An optional external engine must never prevent ordinary offline fallback.
-            } finally { if (!retained) candidate.shutdown() }
-        }
-        if (!closed) initPlatform()
-    }
-
-    private suspend fun initializeEngine(packageName: String): TextToSpeech? {
-        val result = CompletableDeferred<Int>()
-        val candidate = TextToSpeech(context.applicationContext, { result.complete(it) }, packageName)
-        var keep = false
-        try {
-            keep = withTimeoutOrNull(2000) { result.await() } == TextToSpeech.SUCCESS && !closed
-            return if (keep) candidate else null
-        } finally { if (!keep) candidate.shutdown() }
+    private suspend fun prepareKokoro(): Boolean {
+        if (!KokoroPack.installed(context) || locale.language != "en") return false
+        return try {
+            val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale) }
+            if (closed) { local.close(); false } else { kokoro = local; true }
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { false }
+        catch (_: LinkageError) { false }
     }
 
     private fun initPlatform() {
@@ -171,6 +139,17 @@ class OfflineSpeechOutput(
         stop()
         completion = CompletableDeferred()
         val pending = completion
+        val local = kokoro
+        if (local != null) {
+            playback = scope.launch {
+                try {
+                    local.speak(text)
+                    pending?.complete(Unit)
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) { pending?.completeExceptionally(e); onState(false, e.message ?: "Kokoro playback failed.") }
+            }
+            return
+        }
         val client = neural
         val voice = neuralVoice
         if (client != null && voice != null && !closed) {
@@ -228,6 +207,7 @@ class OfflineSpeechOutput(
         playback?.cancel()
         playback = null
         neural?.stop()
+        kokoro?.stop()
         engine?.stop()
     }
 
@@ -236,6 +216,8 @@ class OfflineSpeechOutput(
         closed = true
         stop()
         scope.cancel()
+        kokoro?.close()
+        kokoro = null
         neural?.stop()
         neural?.close()
         neural = null
