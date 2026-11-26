@@ -62,6 +62,17 @@ internal class SherpaStreamingRecognizer : AutoCloseable {
         return Update(partial = result)
     }
 
+    fun finishCurrent(): String {
+        val instance = checkNotNull(recognizer)
+        val current = checkNotNull(stream)
+        current.inputFinished()
+        while (instance.isReady(current)) instance.decode(current)
+        val text = instance.getResult(current).text.trim()
+        // The stream is reset after each utterance; no conversation recording is saved.
+        instance.reset(current)
+        return text
+    }
+
     fun discardPartial() {
         val instance = recognizer ?: return
         stream?.let { instance.reset(it) }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 
 /**
@@ -86,6 +87,13 @@ internal class DuplexAudioInput(private val context: Context) : AutoCloseable {
         recording = null
         echo = null
         suppression = null
+    }
+
+    suspend fun stopAndJoin() {
+        stopped = true
+        val job = reader
+        reader = null
+        job?.cancelAndJoin()
     }
 
     override fun close() {
