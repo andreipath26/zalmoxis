@@ -162,6 +162,7 @@ private fun ZalmoxisHome(
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
     var preferKokoro by remember { mutableStateOf(speechPreferences.getBoolean("prefer_kokoro", false)) }
+    var kokoroVoiceId by remember { mutableStateOf(speechPreferences.getString("kokoro_voice_id", null)) }
     var dictationLanguage by rememberSaveable {
         mutableStateOf(speechPreferences.getString("dictation_language", "system") ?: "system")
     }
@@ -174,6 +175,11 @@ private fun ZalmoxisHome(
         "ro-RO" to "Română",
         "es-ES" to "Español",
         "de-DE" to "Deutsch",
+        "it-IT" to "Italiano",
+        "pt-BR" to "Português (Brasil)",
+        "hi-IN" to "हिन्दी",
+        "zh-CN" to "中文",
+        "ja-JP" to "日本語",
     )
     val dictationLanguageLabel = dictationOptions.firstOrNull { it.first == dictationLanguage }?.second
         ?: dictationLanguage
@@ -291,7 +297,7 @@ private fun ZalmoxisHome(
         liveJob = scope.launch {
             try {
                 livePhase = "Preparing voice"
-                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro) { ready, message ->
+                val output = OfflineSpeechOutput(context, dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro, kokoroVoiceId) { ready, message ->
                     if (liveEpoch == epoch) {
                         speechOutputReady = ready
                         status = message
@@ -673,7 +679,7 @@ private fun ZalmoxisHome(
                             output?.close()
                             speechOutputReady = false
                             speechOutputInitializing = true
-                            speechOutput = OfflineSpeechOutput(context, preferKokoro = preferKokoro) { ready, message ->
+                            speechOutput = OfflineSpeechOutput(context, locale = dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(), preferKokoro = preferKokoro, kokoroVoiceId = kokoroVoiceId) { ready, message ->
                                 val shouldStartPlayback = ready && speechOutputInitializing
                                 speechOutputReady = ready
                                 speechOutputInitializing = false
@@ -760,6 +766,9 @@ private fun ZalmoxisHome(
                     KokoroSettings(
                         enabled = !liveVoice && !busy,
                         preferred = preferKokoro,
+                        locale = dictationLanguage.takeUnless { it == "system" }?.let(Locale::forLanguageTag) ?: Locale.getDefault(),
+                        voiceId = kokoroVoiceId,
+                        onVoice = { kokoroVoiceId = it; speechPreferences.edit().putString("kokoro_voice_id", it).apply() },
                         onPreferred = { preferKokoro = it; speechPreferences.edit().putBoolean("prefer_kokoro", it).apply() },
                     )
                     if (liveVoice) {

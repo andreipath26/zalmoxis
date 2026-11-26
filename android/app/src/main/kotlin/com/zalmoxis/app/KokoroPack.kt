@@ -7,62 +7,55 @@ import java.security.MessageDigest
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 
 internal object KokoroPack {
-    private val installLock = Mutex()
-    const val BYTES = 147052523L
-    private const val SHA = "259c9c8bc906d6078e4e0570421885dabb68b539c2f970fcbb890a58eeaf3e9c"
-    private const val URL_STRING = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-int8-multi-lang-v1_1.tar.bz2"
-    fun root(context: Context) = File(context.filesDir, "kokoro-v1_1")
-    fun installed(context: Context) = valid(root(context)) && File(root(context), ".verified").readTextOrNull() == SHA
-    private fun File.readTextOrNull() = runCatching { readText() }.getOrNull()
-    private fun valid(dir: File) = listOf("model.int8.onnx", "voices.bin", "tokens.txt").all { File(dir,it).isFile && File(dir,it).length()>0 } && File(dir,"espeak-ng-data").isDirectory
-    suspend fun install(context: Context, progress: (Long) -> Unit) = installLock.withLock { withContext(Dispatchers.IO) {
-        if (installed(context)) return@withContext
-        val base = context.filesDir
-        val stage = File(base,"kokoro-stage")
-        val archive = File(base,"kokoro-download.part")
-        check(base.usableSpace > 500_000_000L) { "At least 500 MB free space is needed during installation." }
-        stage.deleteRecursively(); stage.mkdirs()
-        try {
-            val connection = URL(URL_STRING).openConnection().apply { connectTimeout=20000; readTimeout=30000 }
-            val digest=MessageDigest.getInstance("SHA-256")
-            var count=0L
-            connection.getInputStream().use { input -> archive.outputStream().use { output ->
-                val buffer=ByteArray(65536)
-                while(true) {
-                    ensureActive()
-                    val n=input.read(buffer); if(n<0) break
-                    count+=n; check(count<=BYTES) { "Unexpected model size." }
-                    digest.update(buffer,0,n); output.write(buffer,0,n); progress(count)
-                }
-            } }
-            check(count==BYTES && digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }==SHA) { "Model checksum mismatch." }
-            var expanded=0L
-            TarArchiveInputStream(BZip2CompressorInputStream(archive.inputStream().buffered())).use { tar ->
-                while(true) {
-                    ensureActive()
-                    val entry=tar.nextTarEntry ?: break
-                    val relative=entry.name.removePrefix("./").substringAfter('/',"")
-                    if(relative.isEmpty()) continue
-                    val target=File(stage,relative).canonicalFile
-                    check(target.path.startsWith(stage.canonicalPath + File.separator))
-                    check(entry.isDirectory || entry.isFile && !entry.isSymbolicLink && !entry.isLink)
-                    if(entry.isDirectory) target.mkdirs() else {
-                        expanded+=entry.size; check(expanded<=400_000_000L)
-                        target.parentFile?.mkdirs()
-                        target.outputStream().use { output -> tar.copyTo(output) }
+    const val BYTES = 295_000_000L // rounded estimate for display
+    private const val MAX_BYTES = 320_000_000L
+    private const val SHA = "e7b931ee5d4b7104012a838c9eee240d19ea69cb3ca269041a3274f83dbb7fa1"
+    private const val URL_STRING = "https://huggingface.co/litert-community/Kokoro-82M/resolve/main/kokoro_int8_fp16.litertlm"
+    private val lock = Mutex()
+    fun root(context: Context) = File(context.filesDir, "kokoro-litert")
+    fun model(context: Context) = File(root(context), "kokoro_int8_fp16.litertlm")
+    fun cache(context: Context) = File(context.cacheDir, "kokoro-litert")
+    fun installed(context: Context) = model(context).isFile && model(context).length() in 200_000_000L..MAX_BYTES &&
+        runCatching { File(root(context), ".verified").readText() == SHA }.getOrDefault(false)
+    suspend fun install(context: Context, progress: (Long) -> Unit) = lock.withLock {
+        withContext(Dispatchers.IO) {
+            if (installed(context)) return@withContext
+            check(context.filesDir.usableSpace > 400_000_000L) { "Allow at least 400 MB free space for setup." }
+            val dir = root(context).apply { mkdirs() }
+            val temp = File(dir, "model.part")
+            try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                val connection = URL(URL_STRING).openConnection().apply { connectTimeout = 20000; readTimeout = 30000 }
+                var count = 0L
+                connection.getInputStream().use { input ->
+                    temp.outputStream().use { output ->
+                        val buffer = ByteArray(65536)
+                        while (true) {
+                            ensureActive()
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            count += n
+                            check(count <= MAX_BYTES) { "Unexpected model size." }
+                            digest.update(buffer, 0, n)
+                            output.write(buffer, 0, n)
+                            progress(count)
+                        }
                     }
                 }
-            }
-            check(valid(stage)) { "Incomplete Kokoro model." }
-            File(stage,".verified").writeText(SHA)
-            check(!root(context).exists() || root(context).deleteRecursively())
-            check(stage.renameTo(root(context))) { "Unable to install model." }
-        } finally { archive.delete(); stage.deleteRecursively() }
+                check(digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) } == SHA) { "Model checksum mismatch." }
+                check(temp.renameTo(model(context))) { "Unable to activate model." }
+                File(dir, ".verified").writeText(SHA)
+                // Reclaim the obsolete Sherpa model only after the replacement is verified.
+                File(context.filesDir, "kokoro-v1_1").deleteRecursively()
+            } finally { temp.delete() }
+        }
     }
+    fun remove(context: Context): Boolean {
+        val removed = root(context).deleteRecursively()
+        cache(context).deleteRecursively()
+        File(context.filesDir, "kokoro-v1_1").deleteRecursively()
+        return removed
     }
-    fun remove(context: Context) = root(context).deleteRecursively()
 }

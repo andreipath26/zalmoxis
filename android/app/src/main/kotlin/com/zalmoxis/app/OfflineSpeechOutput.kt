@@ -17,6 +17,7 @@ class OfflineSpeechOutput(
     private val context: Context,
     private val locale: Locale = Locale.getDefault(),
     private val preferKokoro: Boolean = false,
+    private val kokoroVoiceId: String? = null,
     private val onState: (ready: Boolean, message: String) -> Unit,
 ) : AutoCloseable {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -61,9 +62,9 @@ class OfflineSpeechOutput(
     }
 
     private suspend fun prepareKokoro(): Boolean {
-        if (!KokoroPack.installed(context) || locale.language !in setOf("en", "zh")) return false
+        if (!KokoroPack.installed(context) || KokoroVoices.forLocale(locale).isEmpty()) return false
         return try {
-            val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale) }
+            val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale, kokoroVoiceId) }
             if (closed) { local.close(); false } else { kokoro = local; true }
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { false }

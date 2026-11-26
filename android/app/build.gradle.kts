@@ -47,8 +47,7 @@ android {
     }
 }
 dependencies {
-    implementation(files("libs/sherpa-onnx.aar"))
-    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("com.google.mediapipe:tasks-audio:1.2.2")
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.ui:ui")

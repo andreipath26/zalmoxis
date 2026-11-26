@@ -10,5 +10,5 @@ Device acceptance (not yet measured):
 - Check model conversation continuity after cancellation, memory usage, thermal behavior, and repeated start/stop.
 - CI assembles APK and runs unit tests; a passing build does not certify acoustic behavior.
 
-## Embedded Kokoro
-The Voice screen installs the optional 147 MB checksum-pinned INT8 model, selects Kokoro explicitly or as initialization fallback, and removes its files. Sherpa ONNX is embedded in the APK; no external app. English is enabled initially. Validate on real hardware; INT8 audio corruption is a known upstream risk. The runtime is pinned and fetched by Android CI.
+## Embedded Kokoro (LiteRT)
+Uses Google's MediaPipe Tasks Audio 1.2.2 and the upstream checksum-pinned CPU/GPU Kokoro bundle (approximately 295 MB). GPU initialization is preferred, CPU initialization is the compatibility fallback. The Voice screen exposes all 54 voice presets across eight languages, with two English dialects. No Sherpa or ONNX dependency. Unsupported Kokoro languages use Google or Android offline speech. Validate native library coexistence with LiteRT-LM, every language, GPU/CPU, playback cancellation and installation/removal on physical hardware.
