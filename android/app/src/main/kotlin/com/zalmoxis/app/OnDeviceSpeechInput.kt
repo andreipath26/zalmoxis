@@ -28,6 +28,8 @@ class OnDeviceSpeechInput(
     private val languageTag: String? = null,
     private val onPartial: (String) -> Unit = {},
     private val duplex: Boolean = false,
+    private val onLanguage: (String) -> Unit = {},
+    private val onActivity: (Boolean) -> Unit = {},
 ) : RecognitionListener, AutoCloseable {
     private var recognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -54,7 +56,7 @@ class OnDeviceSpeechInput(
                     client.use {
                         if (client.checkStatus() != FeatureStatus.AVAILABLE) null
                         else {
-                            val capture = if (duplex) DuplexMicrophone.open(context) else null
+                            val capture = if (duplex) DuplexMicrophone.open(context) { active -> mainHandler.post { if(!finished) onActivity(active) } } else null
                             val source = try {
                                 if (capture != null) AudioSource.fromPfd(capture.readEnd, AudioSource.Mode.STREAMING)
                                 else AudioSource.fromMic()
@@ -118,6 +120,7 @@ class OnDeviceSpeechInput(
             .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, VoiceInteractionPolicy.pauseMillis(requestedLanguage))
+        if(Build.VERSION.SDK_INT >= 34 && languageTag == null) intent.putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_DETECTION, true)
         service.startListening(intent)
     }
 
@@ -169,10 +172,13 @@ class OnDeviceSpeechInput(
     }
 
     override fun onReadyForSpeech(params: Bundle?) {}
-    override fun onBeginningOfSpeech() {}
+    override fun onBeginningOfSpeech() { onActivity(true) }
     override fun onRmsChanged(rmsdB: Float) {}
     override fun onBufferReceived(buffer: ByteArray?) {}
-    override fun onEndOfSpeech() {}
+    override fun onEndOfSpeech() { onActivity(false) }
+    override fun onLanguageDetection(results: Bundle) {
+        if(Build.VERSION.SDK_INT >= 34 && !finished) results.getString(SpeechRecognizer.DETECTED_LANGUAGE)?.let(onLanguage)
+    }
     override fun onPartialResults(partialResults: Bundle?) {
         if (!finished) partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let(onPartial)
     }

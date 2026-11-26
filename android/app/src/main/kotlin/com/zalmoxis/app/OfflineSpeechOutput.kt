@@ -15,7 +15,7 @@ import android.media.AudioAttributes
 /** User-initiated speech with installed, non-network voices only. */
 internal class OfflineSpeechOutput(
     private val context: Context,
-    private val locale: Locale = Locale.getDefault(),
+    private var locale: Locale = Locale.getDefault(),
     private val preferKokoro: Boolean = false,
     private val kokoroVoiceId: String? = null,
     private val mode: VoiceMode = VoiceMode.AUTO,
@@ -38,7 +38,9 @@ internal class OfflineSpeechOutput(
     private var lastUtterance: String? = null
     private var platformReady = CompletableDeferred<Boolean>()
 
-    init {
+    private var initialized = CompletableDeferred<Unit>()
+    init { initialize() }
+    private fun initialize() {
         scope.launch {
             val ready = if ((preferKokoro || preferredPack != null || mode == VoiceMode.QUALITY || mode == VoiceMode.FAST) && prepareKokoro()) true else try {
                 val client = SpeechSynthesis.getClient(speechSynthesizerOptions(locale))
@@ -60,9 +62,23 @@ internal class OfflineSpeechOutput(
             else if (!closed) {
                 neural?.close()
                 neural = null
-                if (prepareKokoro()) onState(true, "$localLabel ready.") else initPlatform()
+                if (prepareKokoro()) onState(true, "$localLabel ready.") else { initPlatform(); withTimeoutOrNull(15000) { platformReady.await() } }
             }
+            initialized.complete(Unit)
         }
+    }
+
+    suspend fun changeLanguage(next: Locale) {
+        if(next.language==locale.language && next.country==locale.country) return
+        stop()
+        kokoro?.close(); kokoro=null
+        neural?.close(); neural=null; neuralVoice=null
+        engine?.shutdown(); engine=null; offlineVoice=null
+        failedPacks.clear()
+        locale=next
+        initialized=CompletableDeferred()
+        initialize()
+        withTimeout(120000){ initialized.await() }
     }
 
     private suspend fun prepareKokoro(): Boolean {

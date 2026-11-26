@@ -17,15 +17,20 @@ internal class DuplexMicrophone private constructor(
     private val noise: NoiseSuppressor?,
     val readEnd: ParcelFileDescriptor,
     private val writer: ParcelFileDescriptor,
+    private val onActivity: (Boolean) -> Unit,
 ) : AutoCloseable {
     private val running = AtomicBoolean(true)
     private val worker = Thread({
         try {
             ParcelFileDescriptor.AutoCloseOutputStream(writer).use { stream ->
                 val bytes = ByteArray(640)
+                val gate = AdaptiveVoiceGate()
+                var previous = false
                 while (running.get()) {
                     val count = recorder.read(bytes, 0, bytes.size)
                     if (count <= 0) break
+                    val current = gate.accept(bytes, count)
+                    if(current != previous) { previous = current; onActivity(current) }
                     stream.write(bytes, 0, count)
                 }
             }
@@ -45,7 +50,7 @@ internal class DuplexMicrophone private constructor(
 
     companion object {
         @SuppressLint("MissingPermission")
-        fun open(context: Context): DuplexMicrophone {
+        fun open(context: Context, onActivity: (Boolean) -> Unit = {}): DuplexMicrophone {
             check(androidx.core.content.ContextCompat.checkSelfPermission(context,
                 android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED)
             check(AcousticEchoCanceler.isAvailable()) { "Hardware echo cancellation unavailable." }
@@ -70,7 +75,7 @@ internal class DuplexMicrophone private constructor(
                 pipe = descriptors
                 recorder.startRecording()
                 check(recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING)
-                return DuplexMicrophone(recorder, aec, noise, descriptors[0], descriptors[1]).also { it.worker.start() }
+                return DuplexMicrophone(recorder, aec, noise, descriptors[0], descriptors[1], onActivity).also { it.worker.start() }
             } catch (error: Throwable) {
                 pipe?.forEach { runCatching { it.close() } }
                 runCatching { noise?.release() }

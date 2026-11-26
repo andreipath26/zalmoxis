@@ -156,6 +156,9 @@ private fun ZalmoxisHome(
     var liveEpoch by remember { mutableStateOf(0L) }
     var liveInterrupted by remember { mutableStateOf(false) }
     var liveMuted by remember { mutableStateOf(false) }
+    var liveDetectedLanguage by remember { mutableStateOf<String?>(null) }
+    var liveListenResult by remember { mutableStateOf<kotlinx.coroutines.CompletableDeferred<String>?>(null) }
+    var liveAudioRoute by remember { mutableStateOf<VoiceAudioRoute?>(null) }
     var liveCaptions by rememberSaveable { mutableStateOf(true) }
     var liveMetrics by remember { mutableStateOf("") }
     var liveToolsAllowed by rememberSaveable { mutableStateOf(false) }
@@ -278,6 +281,9 @@ private fun ZalmoxisHome(
         liveEpoch++
         liveVoice = false
         liveJob?.cancel()
+        liveListenResult?.cancel()
+        liveAudioRoute?.close()
+        liveAudioRoute = null
         liveBargeInput?.close()
         liveBargeInput = null
         speechInput?.close()
@@ -299,6 +305,8 @@ private fun ZalmoxisHome(
         speechOutputReady = false
         speechOutputInitializing = false
         liveMuted = false
+        liveDetectedLanguage = null
+        liveAudioRoute = VoiceAudioRoute(context)
         liveMetrics = ""
         liveVoice = true
         val epoch = ++liveEpoch
@@ -320,24 +328,25 @@ private fun ZalmoxisHome(
                     while (liveMuted) kotlinx.coroutines.delay(100)
                     livePhase = "Listening"
                     speechActive = true
-                    val heard = nextTurn?.also { nextTurn = null } ?: kotlinx.coroutines.suspendCancellableCoroutine<String> { continuation ->
+                    val heard = nextTurn?.also { nextTurn = null } ?: run {
+                        val result = kotlinx.coroutines.CompletableDeferred<String>()
+                        liveListenResult = result
                         val input = OnDeviceSpeechInput(context,
-                            onResult = { if (continuation.isActive) continuation.resumeWith(Result.success(it)) },
-                            onError = { if (continuation.isActive) {
-                                if (it.startsWith("No speech")) continuation.resumeWith(Result.success(""))
-                                else continuation.resumeWith(Result.failure(IllegalStateException(it)))
-                            } },
+                            onResult = { result.complete(it) },
+                            onError = { if(it.startsWith("No speech")) result.complete("") else result.completeExceptionally(IllegalStateException(it)) },
                             onPartial = { if (!liveMuted) liveTranscript = it },
+                            onLanguage = { liveDetectedLanguage = it },
+                            onActivity = { active -> if(!liveMuted) livePhase = if(active) "Listening to you" else "Listening" },
                             languageTag = dictationLanguage.takeUnless { it == "system" })
                         speechInput = input
-                        try { input.start() } catch (error: Exception) {
-                            if (continuation.isActive) continuation.resumeWith(Result.failure(error))
-                        }
+                        try { input.start(); result.await() }
+                        finally { input.close(); liveListenResult = null }
                     }
                     speechInput?.close()
                     speechInput = null
                     speechActive = false
                     if (heard.isBlank() || liveMuted) { kotlinx.coroutines.delay(350); continue }
+                    if(dictationLanguage == "system" && liveDetectedLanguage != null) output.changeLanguage(Locale.forLanguageTag(liveDetectedLanguage!!))
                     val turnStarted = android.os.SystemClock.elapsedRealtime()
                     var firstText: Long? = null
                     var firstSpeech: Long? = null
@@ -383,7 +392,7 @@ private fun ZalmoxisHome(
                                         liveBargeInput = listener
                                         listener.start()
                                     }
-                                    output.speakTurn(phrases)
+                                    if(!liveMuted) output.speakTurn(phrases)
                                 }
                             }
                             val generation = launch {
@@ -431,6 +440,8 @@ private fun ZalmoxisHome(
                     speechOutput?.close()
                     speechOutput = null
                     speechOutputReady = false
+                    liveAudioRoute?.close()
+                    liveAudioRoute = null
                     liveVoice = false
                     livePhase = "Idle"
                 }
@@ -810,8 +821,8 @@ private fun ZalmoxisHome(
                             Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
                             TextButton(onClick = {
                                 liveMuted = !liveMuted
-                                if (liveMuted) { speechInput?.close(); liveBargeInput?.close(); livePhase = "Microphone muted"; stopLiveVoice() }
-                            }) { Text("Mute / end mic session") }
+                                if (liveMuted) { speechInput?.close(); liveListenResult?.complete(""); liveBargeInput?.close(); liveInterrupted = true; speechOutput?.stop(); liveTurnJob?.cancel(); livePhase = "Microphone muted" } else livePhase = "Listening"
+                            }) { Text(if(liveMuted) "Unmute" else "Mute") }
                             TextButton(onClick = { liveCaptions = !liveCaptions }) { Text(if (liveCaptions) "Hide text" else "Show text") }
                         }
                         if (livePhase == "Speaking") {
