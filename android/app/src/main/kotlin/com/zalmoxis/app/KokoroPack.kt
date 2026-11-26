@@ -5,10 +5,13 @@ import java.io.File
 import java.net.URL
 import java.security.MessageDigest
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 
 internal object KokoroPack {
+    private val installLock = Mutex()
     const val BYTES = 147052523L
     private const val SHA = "259c9c8bc906d6078e4e0570421885dabb68b539c2f970fcbb890a58eeaf3e9c"
     private const val URL_STRING = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-int8-multi-lang-v1_1.tar.bz2"
@@ -16,7 +19,8 @@ internal object KokoroPack {
     fun installed(context: Context) = valid(root(context)) && File(root(context), ".verified").readTextOrNull() == SHA
     private fun File.readTextOrNull() = runCatching { readText() }.getOrNull()
     private fun valid(dir: File) = listOf("model.int8.onnx", "voices.bin", "tokens.txt").all { File(dir,it).isFile && File(dir,it).length()>0 } && File(dir,"espeak-ng-data").isDirectory
-    suspend fun install(context: Context, progress: (Long) -> Unit) = withContext(Dispatchers.IO) {
+    suspend fun install(context: Context, progress: (Long) -> Unit) = installLock.withLock { withContext(Dispatchers.IO) {
+        if (installed(context)) return@withContext
         val base = context.filesDir
         val stage = File(base,"kokoro-stage")
         val archive = File(base,"kokoro-download.part")
@@ -58,6 +62,7 @@ internal object KokoroPack {
             check(!root(context).exists() || root(context).deleteRecursively())
             check(stage.renameTo(root(context))) { "Unable to install model." }
         } finally { archive.delete(); stage.deleteRecursively() }
+    }
     }
     fun remove(context: Context) = root(context).deleteRecursively()
 }

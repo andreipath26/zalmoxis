@@ -14,11 +14,15 @@ import kotlinx.coroutines.sync.withLock
 
 internal class EmbeddedKokoro(context: Context, locale: Locale) : AutoCloseable {
     private val root=KokoroPack.root(context)
+    private val chinese=locale.language=="zh"
     private val tts=OfflineTts(config=OfflineTtsConfig(model=OfflineTtsModelConfig(
         kokoro=OfflineTtsKokoroModelConfig(model=File(root,"model.int8.onnx").path,
             voices=File(root,"voices.bin").path, tokens=File(root,"tokens.txt").path,
-            dataDir=File(root,"espeak-ng-data").path, lang=if(locale.country=="GB") "en-gb" else "en-us"),
-        numThreads=2),maxNumSentences=1))
+            dataDir=File(root,"espeak-ng-data").path,
+            lexicon=if(chinese) listOf("lexicon-us-en.txt","lexicon-zh.txt").joinToString(",") { File(root,it).path } else "",
+            lang=if(chinese) "zh" else if(locale.country=="GB") "en-gb" else "en-us"),
+        numThreads=2),maxNumSentences=1,
+        ruleFsts=if(chinese) listOf("phone-zh.fst","date-zh.fst","number-zh.fst").joinToString(",") { File(root,it).path } else ""))
     private val epoch=AtomicLong()
     private val lock=Mutex()
     private val cleanup=CoroutineScope(SupervisorJob()+Dispatchers.IO)
@@ -40,20 +44,23 @@ internal class EmbeddedKokoro(context: Context, locale: Locale) : AutoCloseable 
                 audio.play()
                 var written=0L
                 var invalid=false
+                var writeFailed=false
                 tts.generateWithCallback(text, sid=0, speed=1f) { samples ->
                     if(samples.any { !it.isFinite() } || samples.isNotEmpty() && samples.count { kotlin.math.abs(it)>=0.999f } > samples.size/2) { invalid=true; 0 }
                     else {
                         var offset=0
                         while(offset<samples.size && epoch.get()==turn && isActive) {
                             val n=audio.write(samples,offset,samples.size-offset,AudioTrack.WRITE_NON_BLOCKING)
-                            if(n<0) break
+                            if(n<0) { writeFailed=true; break }
                             if(n==0) Thread.sleep(10) else { offset+=n; written+=n }
                         }
                         if(epoch.get()==turn && isActive && offset==samples.size) 1 else 0
                     }
                 }
-                check(!invalid) { "Kokoro produced invalid audio." }
-                withTimeoutOrNull(120000) {
+                if(epoch.get()!=turn) return@withLock
+                ensureActive()
+                check(!invalid && !writeFailed && written>0) { "Kokoro produced invalid or empty audio." }
+                withTimeout(120000) {
                     while(epoch.get()==turn && (audio.playbackHeadPosition.toLong() and 0xffffffffL)<written) delay(20)
                 }
             } finally { track=null; runCatching { audio.stop() }; audio.release() }

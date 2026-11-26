@@ -15,7 +15,7 @@ import kotlinx.coroutines.*
     var bytes by remember { mutableStateOf(0L) }
     var status by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf(false) }
-    Text("Kokoro local neural voice (English)", style=MaterialTheme.typography.titleSmall)
+    Text("Kokoro local neural voice (English / Chinese)", style=MaterialTheme.typography.titleSmall)
     Text(if(installed) "Installed · offline" else "Optional 147 MB download · no external app")
     if(job!=null) {
         LinearProgressIndicator(progress={bytes.toFloat()/KokoroPack.BYTES})

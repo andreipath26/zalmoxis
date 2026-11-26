@@ -31,6 +31,7 @@ class OfflineSpeechOutput(
     private var kokoro: EmbeddedKokoro? = null
     private var completion: CompletableDeferred<Unit>? = null
     private var lastUtterance: String? = null
+    private var platformReady = CompletableDeferred<Boolean>()
 
     init {
         scope.launch {
@@ -60,7 +61,7 @@ class OfflineSpeechOutput(
     }
 
     private suspend fun prepareKokoro(): Boolean {
-        if (!KokoroPack.installed(context) || locale.language != "en") return false
+        if (!KokoroPack.installed(context) || locale.language !in setOf("en", "zh")) return false
         return try {
             val local = withContext(Dispatchers.IO) { EmbeddedKokoro(context, locale) }
             if (closed) { local.close(); false } else { kokoro = local; true }
@@ -70,6 +71,7 @@ class OfflineSpeechOutput(
     }
 
     private fun initPlatform() {
+        platformReady = CompletableDeferred()
         val created = TextToSpeech(context.applicationContext) { result ->
             // Some TTS implementations deliver initialization synchronously.
             // Post until the constructor-assigned engine is available.
@@ -83,6 +85,7 @@ class OfflineSpeechOutput(
     private fun finishInitialization(result: Int) {
         val tts = engine ?: return
         if (result != TextToSpeech.SUCCESS) {
+            platformReady.complete(false)
             onState(false, "Android speech synthesis failed to initialize. Check the installed text-to-speech engine in Settings.")
             return
         }
@@ -92,6 +95,7 @@ class OfflineSpeechOutput(
                     tts.isLanguageAvailable(voice.locale) >= TextToSpeech.LANG_AVAILABLE
             }
         } catch (error: Exception) {
+            platformReady.complete(false)
             onState(false, "Cannot inspect installed offline voices: ${error.message}")
             return
         }
@@ -100,15 +104,18 @@ class OfflineSpeechOutput(
                 .thenByDescending { it.quality }
         ).firstOrNull()
         if (selected == null) {
+            platformReady.complete(false)
             onState(false, "No offline voice is installed. Download an offline voice in Android Text-to-speech settings.")
             return
         }
         if (tts.setVoice(selected) != TextToSpeech.SUCCESS) {
+            platformReady.complete(false)
             onState(false, "Android could not activate its installed offline voice.")
             return
         }
         offlineVoice = selected
         attachListener(tts)
+        platformReady.complete(true)
         onState(true, "Offline voice ready (${selected.locale.toLanguageTag()}).")
     }
 
@@ -139,38 +146,61 @@ class OfflineSpeechOutput(
         stop()
         completion = CompletableDeferred()
         val pending = completion
-        val local = kokoro
-        if (local != null) {
-            playback = scope.launch {
-                try {
-                    local.speak(text)
-                    pending?.complete(Unit)
-                } catch (e: CancellationException) { throw e }
-                catch (e: Exception) { pending?.completeExceptionally(e); onState(false, e.message ?: "Kokoro playback failed.") }
-            }
-            return
-        }
-        val client = neural
-        val voice = neuralVoice
-        if (client != null && voice != null && !closed) {
-            playback = scope.launch {
-                try {
-                    client.synthesize(SpeechSynthesizerRequest(
-                        input = SpeechSynthesizerRequest.Input.Text(text, voice),
-                        audioAttributes = AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
-                    )).collect { event ->
-                        if (event is SpeechSynthesizerResponse.Error) error("Neural synthesis failed.")
+        playback = scope.launch {
+            try {
+                val client = neural
+                val voice = neuralVoice
+                if (client != null && voice != null) {
+                    try {
+                        client.synthesize(SpeechSynthesizerRequest(
+                            input = SpeechSynthesizerRequest.Input.Text(text, voice),
+                            audioAttributes = AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
+                        )).collect { event ->
+                            if (event is SpeechSynthesizerResponse.Error) error("Neural synthesis failed.")
+                        }
+                        pending?.complete(Unit)
+                        return@launch
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) {
+                        client.stop()
+                        client.close()
+                        neural = null
+                        neuralVoice = null
+                        onState(true, "Google voice failed; switching to local fallback.")
                     }
-                    pending?.complete(Unit)
-                    if (!closed) onState(true, "Speech finished.")
-                } catch (e: CancellationException) { throw e }
-                catch (e: Exception) { pending?.completeExceptionally(e); if (!closed) onState(true, e.message ?: "Speech failed.") }
+                }
+                ensureActive()
+                if (kokoro == null) prepareKokoro()
+                val local = kokoro
+                if (local != null) {
+                    try {
+                        local.speak(text)
+                        pending?.complete(Unit)
+                        return@launch
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) {
+                        local.close()
+                        kokoro = null
+                        onState(true, "Kokoro failed; switching to Android offline voice.")
+                    }
+                }
+                ensureActive()
+                if (offlineVoice == null) {
+                    engine?.shutdown()
+                    engine = null
+                    initPlatform()
+                    check(withTimeout(15000) { platformReady.await() }) { "No compatible offline voice is installed." }
+                }
+                ensureActive()
+                speakPlatform(text)
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                pending?.completeExceptionally(e)
+                if (!closed) onState(false, e.message ?: "Speech failed.")
             }
-            return
         }
-        speakPlatform(text)
     }
 
     private fun speakPlatform(text: String) {
