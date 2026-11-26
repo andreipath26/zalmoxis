@@ -149,6 +149,11 @@ private fun ZalmoxisHome(
     var imageFile by remember { mutableStateOf<File?>(null) }
     var speechInput by remember { mutableStateOf<OnDeviceSpeechInput?>(null) }
     var speechActive by remember { mutableStateOf(false) }
+    var liveVoice by remember { mutableStateOf(false) }
+    var livePhase by remember { mutableStateOf("Idle") }
+    var liveTranscript by remember { mutableStateOf("") }
+    var liveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var liveEpoch by remember { mutableStateOf(0L) }
     val speechPreferences = remember(context) {
         context.getSharedPreferences("zalmoxis_speech", Context.MODE_PRIVATE)
     }
@@ -249,6 +254,106 @@ private fun ZalmoxisHome(
             speechActive = false
             status = error.message ?: "Could not start on-device speech recognition."
         }
+    }
+
+    fun stopLiveVoice() {
+        if (!liveVoice) return
+        liveEpoch++
+        liveVoice = false
+        liveJob?.cancel()
+        speechInput?.close()
+        speechInput = null
+        speechActive = false
+        speechOutput?.close()
+        speechOutput = null
+        speechOutputReady = false
+        livePhase = "Idle"
+    }
+
+    fun beginLiveVoice() {
+        if (busy || session == null || liveVoice || liveJob?.isCompleted == false) return
+        speechInput?.close()
+        speechInput = null
+        speechActive = false
+        speechOutput?.close()
+        speechOutput = null
+        speechOutputReady = false
+        speechOutputInitializing = false
+        liveVoice = true
+        val epoch = ++liveEpoch
+        liveJob = scope.launch {
+            try {
+                livePhase = "Preparing voice"
+                val output = OfflineSpeechOutput(context) { ready, message ->
+                    if (liveEpoch == epoch) {
+                        speechOutputReady = ready
+                        status = message
+                    }
+                }
+                speechOutput = output
+                kotlinx.coroutines.withTimeout(120_000) {
+                    while (!speechOutputReady) kotlinx.coroutines.delay(100)
+                }
+                while (liveVoice && liveEpoch == epoch) {
+                    livePhase = "Listening"
+                    speechActive = true
+                    val heard = kotlinx.coroutines.suspendCancellableCoroutine<String> { continuation ->
+                        val input = OnDeviceSpeechInput(context,
+                            onResult = { if (continuation.isActive) continuation.resumeWith(Result.success(it)) },
+                            onError = { if (continuation.isActive) continuation.resumeWith(Result.failure(IllegalStateException(it))) },
+                            languageTag = dictationLanguage.takeUnless { it == "system" })
+                        speechInput = input
+                        try { input.start() } catch (error: Exception) {
+                            if (continuation.isActive) continuation.resumeWith(Result.failure(error))
+                        }
+                    }
+                    speechInput?.close()
+                    speechInput = null
+                    speechActive = false
+                    if (heard.isBlank()) continue
+                    liveTranscript = heard
+                    if (activePrompt.isNotBlank()) priorTurns = (priorTurns + (activePrompt to response)).takeLast(20)
+                    activePrompt = heard
+                    response = ""
+                    busy = true
+                    livePhase = "Thinking"
+                    try {
+                        checkNotNull(session).stream(heard).flowOn(Dispatchers.Default).collect { piece -> response += piece }
+                    } finally { busy = false }
+                    if (response.isNotBlank()) {
+                        livePhase = "Speaking"
+                        output.speakAndAwait(response)
+                    }
+                    kotlinx.coroutines.delay(250)
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (error: Exception) { status = error.message ?: "Voice conversation failed." }
+            finally {
+                if (liveEpoch == epoch) {
+                    speechInput?.close()
+                    speechInput = null
+                    speechActive = false
+                    speechOutput?.stop()
+                    liveVoice = false
+                    livePhase = "Idle"
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(selectedTab) { if (selectedTab != HomeTab.VOICE && liveVoice) stopLiveVoice() }
+    DisposableEffect(context) {
+        val owner = context as? LifecycleOwner
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) stopLiveVoice()
+        }
+        owner?.lifecycle?.addObserver(observer)
+        onDispose { owner?.lifecycle?.removeObserver(observer) }
+    }
+
+    val livePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && selectedTab == HomeTab.VOICE) beginLiveVoice()
+        else status = "Microphone permission is required for live voice."
     }
 
     val microphonePermission = rememberLauncherForActivityResult(
@@ -566,25 +671,27 @@ private fun ZalmoxisHome(
                         }
                     }
                     V2VoicePanel(
-                        isListening = speechActive,
-                        feedback = status,
+                        isListening = liveVoice,
+                        feedback = if (liveVoice) livePhase else status,
                         onToggle = {
-                            if (speechActive) {
-                                speechInput?.cancel()
-                                speechInput = null
-                                speechActive = false
-                                status = "Dictation stopped."
-                            } else if (ContextCompat.checkSelfPermission(
-                                    context, Manifest.permission.RECORD_AUDIO,
-                                ) == PackageManager.PERMISSION_GRANTED
-                            ) {
-                                startOnDeviceSpeech()
-                            } else {
-                                microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-                            }
+                            if (liveVoice) stopLiveVoice()
+                            else if (session == null || busy) status = "Load a local model before starting a conversation."
+                            else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) beginLiveVoice()
+                            else livePermission.launch(Manifest.permission.RECORD_AUDIO)
                         },
-                        onBack = { selectedTab = HomeTab.CHAT },
+                        onBack = { stopLiveVoice(); selectedTab = HomeTab.CHAT },
                     )
+                    if (liveVoice) {
+                        Text("Voice session · $livePhase", style = MaterialTheme.typography.titleMedium)
+                        Button(onClick = { stopLiveVoice() }) { Text("End conversation") }
+                        if (livePhase == "Speaking") {
+                            Button(onClick = { speechOutput?.stop() }) { Text("Interrupt and listen") }
+                        }
+                    }
+                    if (liveTranscript.isNotBlank()) {
+                        Text("You: $liveTranscript")
+                        Text(response)
+                    }
                     if (prompt.isNotBlank()) {
                         Text("Transcript", style = MaterialTheme.typography.titleMedium)
                         Text(prompt, style = MaterialTheme.typography.bodyLarge)

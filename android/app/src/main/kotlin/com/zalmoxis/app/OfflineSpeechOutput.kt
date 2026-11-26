@@ -26,6 +26,8 @@ class OfflineSpeechOutput(
     private var neural: SpeechSynthesizer? = null
     private var neuralVoice: VoiceInfo? = null
     private var playback: Job? = null
+    private var completion: CompletableDeferred<Unit>? = null
+    private var lastUtterance: String? = null
 
     init {
         scope.launch {
@@ -97,22 +99,31 @@ class OfflineSpeechOutput(
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
             override fun onDone(utteranceId: String?) {
-                mainHandler.post { if (!closed) onState(true, "Speech finished.") }
+                mainHandler.post { if (!closed && utteranceId == lastUtterance) { completion?.complete(Unit); onState(true, "Speech finished.") } }
             }
             @Deprecated("Deprecated by Android")
             override fun onError(utteranceId: String?) {
-                mainHandler.post { if (!closed) onState(true, "Android speech playback failed. Check device audio output.") }
+                mainHandler.post { if (!closed && utteranceId == lastUtterance) { completion?.completeExceptionally(IllegalStateException("Speech playback failed.")); onState(true, "Android speech playback failed. Check device audio output.") } }
             }
         })
         onState(true, "Offline voice ready (${selected.locale.toLanguageTag()}).")
     }
 
+    suspend fun speakAndAwait(text: String) {
+        if (text.isBlank()) return
+        speak(text)
+        val pending = completion ?: return
+        withTimeout(180_000) { pending.await() }
+    }
+
     fun speak(text: String) {
         if (closed || text.isBlank()) return
+        stop()
+        completion = CompletableDeferred()
+        val pending = completion
         val client = neural
         val voice = neuralVoice
         if (client != null && voice != null && !closed) {
-            stop()
             playback = scope.launch {
                 try {
                     client.synthesize(SpeechSynthesizerRequest(
@@ -123,9 +134,10 @@ class OfflineSpeechOutput(
                     )).collect { event ->
                         if (event is SpeechSynthesizerResponse.Error) error("Neural synthesis failed.")
                     }
+                    pending?.complete(Unit)
                     if (!closed) onState(true, "Speech finished.")
                 } catch (e: CancellationException) { throw e }
-                catch (e: Exception) { if (!closed) onState(true, e.message ?: "Speech failed.") }
+                catch (e: Exception) { pending?.completeExceptionally(e); if (!closed) onState(true, e.message ?: "Speech failed.") }
             }
             return
         }
@@ -135,6 +147,7 @@ class OfflineSpeechOutput(
     private fun speakPlatform(text: String) {
         val tts = engine
         if (closed || tts == null || offlineVoice == null) {
+            completion?.completeExceptionally(IllegalStateException("Offline speech is not ready."))
             onState(false, "Offline speech is not ready. Configure an installed offline voice.")
             return
         }
@@ -142,14 +155,17 @@ class OfflineSpeechOutput(
         if (spokenText.isEmpty()) return
         val maxLength = TextToSpeech.getMaxSpeechInputLength()
         val chunks = spokenText.chunked(maxLength.coerceAtLeast(1))
+        val prefix = "zalmoxis-${System.nanoTime()}"
+        lastUtterance = "$prefix-${chunks.lastIndex}"
         chunks.forEachIndexed { index, chunk ->
             val result = tts.speak(
                 chunk,
                 if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
                 null,
-                "zalmoxis-${System.nanoTime()}-$index",
+                "$prefix-$index",
             )
             if (result != TextToSpeech.SUCCESS) {
+                completion?.completeExceptionally(IllegalStateException("Could not queue speech."))
                 onState(true, "Android could not queue offline speech output.")
                 return
             }
@@ -157,6 +173,8 @@ class OfflineSpeechOutput(
     }
 
     fun stop() {
+        completion?.complete(Unit)
+        lastUtterance = null
         playback?.cancel()
         playback = null
         neural?.stop()
@@ -166,6 +184,7 @@ class OfflineSpeechOutput(
     override fun close() {
         if (closed) return
         closed = true
+        stop()
         scope.cancel()
         neural?.stop()
         neural?.close()

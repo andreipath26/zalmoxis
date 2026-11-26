@@ -37,6 +37,9 @@ class OnDeviceSpeechInput(
 
     @OptIn(kotlin.concurrent.atomics.ExperimentalAtomicApi::class)
     fun start() {
+        googleJob?.cancel()
+        recognizer?.destroy()
+        recognizer = null
         finished = false
         requestedLanguage = languageTag ?: Locale.getDefault().toLanguageTag()
         googleJob = scope.launch {
