@@ -10,6 +10,15 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import java.util.Locale
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.firstOrNull
+import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mlkit.genai.common.audio.AudioSource
+import com.google.mlkit.genai.speechrecognition.SpeechRecognition
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
+import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
+import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
 
 /** Explicit on-device recognition only; no network-recognition fallback. */
 class OnDeviceSpeechInput(
@@ -17,13 +26,76 @@ class OnDeviceSpeechInput(
     private val onResult: (String) -> Unit,
     private val onError: (String) -> Unit,
     private val languageTag: String? = null,
+    private val onPartial: (String) -> Unit = {},
+    private val duplex: Boolean = false,
+    private val onLanguage: (String) -> Unit = {},
+    private val onActivity: (Boolean) -> Unit = {},
 ) : RecognitionListener, AutoCloseable {
     private var recognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var finished = false
     private var requestedLanguage = Locale.getDefault().toLanguageTag()
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var googleJob: Job? = null
+
+    @OptIn(kotlin.concurrent.atomics.ExperimentalAtomicApi::class)
     fun start() {
+        googleJob?.cancel()
+        recognizer?.destroy()
+        recognizer = null
+        finished = false
+        requestedLanguage = languageTag ?: Locale.getDefault().toLanguageTag()
+        googleJob = scope.launch {
+            for (mode in listOf(SpeechRecognizerOptions.Mode.MODE_ADVANCED, SpeechRecognizerOptions.Mode.MODE_BASIC)) {
+                val result = try {
+                    val client = SpeechRecognition.getClient(speechRecognizerOptions {
+                        locale = Locale.forLanguageTag(requestedLanguage)
+                        preferredMode = mode
+                    })
+                    client.use {
+                        if (client.checkStatus() != FeatureStatus.AVAILABLE) null
+                        else {
+                            val capture = if (duplex) DuplexMicrophone.open(context) { active -> mainHandler.post { if(!finished) onActivity(active) } } else null
+                            val source = try {
+                                if (capture != null) AudioSource.fromPfd(capture.readEnd, AudioSource.Mode.STREAMING)
+                                else AudioSource.fromMic()
+                            } catch (error: Throwable) { capture?.close(); throw error }
+                            try {
+                                val response = client.startRecognition(speechRecognizerRequest { audioSource = source })
+                                    .firstOrNull {
+                                        if (it is SpeechRecognizerResponse.PartialTextResponse && !finished) onPartial(it.text)
+                                        if (it is SpeechRecognizerResponse.ErrorResponse) throw IllegalStateException(it.e.message ?: "Recognition failed.")
+                                        it is SpeechRecognizerResponse.FinalTextResponse
+                                    }
+                                (response as? SpeechRecognizerResponse.FinalTextResponse)?.text
+                            } finally {
+                                capture?.close()
+                                source.close()
+                                withContext(NonCancellable) { client.stopRecognition() }
+                            }
+                        }
+                    }
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { null }
+                if (!result.isNullOrBlank()) {
+                    if (finished) return@launch
+                    finished = true
+                    onResult(result.trim())
+                    return@launch
+                }
+            }
+            if (!finished) {
+                if (duplex) { finished = true; onError("Echo-cancelled interruption recognition unavailable."); return@launch }
+                try { startPlatform() } catch (e: Exception) {
+                    finished = true
+                    onError(e.message ?: "Offline recognition unavailable.")
+                }
+            }
+        }
+    }
+
+    private fun startPlatform() {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "Speech recognition must start on the main thread."
         }
@@ -33,7 +105,8 @@ class OnDeviceSpeechInput(
         check(SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
             "No on-device speech recognizer is installed. Install an offline recognition language in Android speech settings."
         }
-        close()
+        recognizer?.destroy()
+        recognizer = null
         finished = false
         val service = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         recognizer = service
@@ -46,6 +119,8 @@ class OnDeviceSpeechInput(
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale)
             .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, VoiceInteractionPolicy.pauseMillis(requestedLanguage))
+        if(Build.VERSION.SDK_INT >= 34 && languageTag == null) intent.putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_DETECTION, true)
         service.startListening(intent)
     }
 
@@ -56,6 +131,9 @@ class OnDeviceSpeechInput(
     }
 
     override fun close() {
+        finished = true
+        googleJob?.cancel()
+        googleJob = null
         recognizer?.destroy()
         recognizer = null
     }
@@ -94,10 +172,15 @@ class OnDeviceSpeechInput(
     }
 
     override fun onReadyForSpeech(params: Bundle?) {}
-    override fun onBeginningOfSpeech() {}
+    override fun onBeginningOfSpeech() { onActivity(true) }
     override fun onRmsChanged(rmsdB: Float) {}
     override fun onBufferReceived(buffer: ByteArray?) {}
-    override fun onEndOfSpeech() {}
-    override fun onPartialResults(partialResults: Bundle?) {}
+    override fun onEndOfSpeech() { onActivity(false) }
+    override fun onLanguageDetection(results: Bundle) {
+        if(Build.VERSION.SDK_INT >= 34 && !finished) results.getString(SpeechRecognizer.DETECTED_LANGUAGE)?.let(onLanguage)
+    }
+    override fun onPartialResults(partialResults: Bundle?) {
+        if (!finished) partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let(onPartial)
+    }
     override fun onEvent(eventType: Int, params: Bundle?) {}
 }
