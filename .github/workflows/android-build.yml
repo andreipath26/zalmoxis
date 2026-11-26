@@ -61,6 +61,26 @@ jobs:
           curl --fail --location --retry 3 --output app/libs/sherpa-onnx-2.0.3.aar https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-2.0.3.aar
           echo '4c766e2e74c9d33d595338c21fe3b305c73ba45d47e96a235675c33142a2ec50  app/libs/sherpa-onnx-2.0.3.aar' | sha256sum --check
 
+      - name: Bundle verified compact offline voice assets
+        run: |
+          mkdir -p app/src/main/assets
+          curl --fail --location --retry 3 --output /tmp/silero_vad.onnx https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx
+          echo '9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6  /tmp/silero_vad.onnx' | sha256sum --check
+          cp /tmp/silero_vad.onnx app/src/main/assets/silero_vad.onnx
+
+          curl --fail --location --retry 3 --output /tmp/kitten-mini.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kitten-mini-en-v0_8.tar.bz2
+          echo '518f9b130320f690d5b5476df77bde4215fca67773cda16710318e5081234b9d  /tmp/kitten-mini.tar.bz2' | sha256sum --check
+          tar --no-same-owner -xjf /tmp/kitten-mini.tar.bz2 -C app/src/main/assets
+          test -f app/src/main/assets/kitten-mini-en-v0_8/model.onnx
+          test -f app/src/main/assets/kitten-mini-en-v0_8/voices.bin
+          test -f app/src/main/assets/kitten-mini-en-v0_8/tokens.txt
+
+          curl --fail --location --retry 3 --output /tmp/streaming-asr.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-streaming-fast-conformer-ctc-en-80ms-int8.tar.bz2
+          echo '479759fbd5c69c909e7175d7773105a1bfabf82fa533de68c546c89d85f234e8  /tmp/streaming-asr.tar.bz2' | sha256sum --check
+          tar --no-same-owner -xjf /tmp/streaming-asr.tar.bz2 -C app/src/main/assets
+          test -f app/src/main/assets/sherpa-onnx-nemo-streaming-fast-conformer-ctc-en-80ms-int8/model.int8.onnx
+          test -f app/src/main/assets/sherpa-onnx-nemo-streaming-fast-conformer-ctc-en-80ms-int8/tokens.txt
+
       - name: Assemble
         run: ./gradlew :app:assembleDebug --console=plain --build-cache --info
 

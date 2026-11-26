@@ -5,7 +5,8 @@ import com.k2fsa.sherpa.onnx.OnlineModelConfig
 import com.k2fsa.sherpa.onnx.OnlineRecognizer
 import com.k2fsa.sherpa.onnx.OnlineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OnlineStream
-import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig
+import com.k2fsa.sherpa.onnx.OnlineNeMoCtcModelConfig
+import android.content.Context
 import java.io.File
 
 /**
@@ -14,39 +15,29 @@ import java.io.File
  */
 internal class SherpaStreamingRecognizer : AutoCloseable {
     data class ModelFiles(
-        val encoder: File,
-        val decoder: File,
-        val joiner: File,
-        val tokens: File,
-        val modelType: String = "zipformer2",
-        val language: String,
+        val model: String = "sherpa-onnx-nemo-streaming-fast-conformer-ctc-en-80ms-int8/model.int8.onnx",
+        val tokens: String = "sherpa-onnx-nemo-streaming-fast-conformer-ctc-en-80ms-int8/tokens.txt",
+        val language: String = "en",
     )
 
     data class Update(val partial: String, val final: String? = null)
     private var recognizer: OnlineRecognizer? = null
     private var stream: OnlineStream? = null
 
-    fun load(files: ModelFiles) {
-        check(listOf(files.encoder, files.decoder, files.joiner, files.tokens).all { it.isFile }) {
-            "A complete native offline ASR model pack is required."
-        }
+    fun load(context: Context, files: ModelFiles = ModelFiles()) {
+        require(files.language == "en") { "Only the bundled English ASR pack is validated." }
         close()
         val config = OnlineRecognizerConfig(
             featConfig = FeatureConfig(sampleRate = 16000, featureDim = 80),
             modelConfig = OnlineModelConfig(
-                transducer = OnlineTransducerModelConfig(
-                    encoder = files.encoder.absolutePath,
-                    decoder = files.decoder.absolutePath,
-                    joiner = files.joiner.absolutePath,
-                ),
-                tokens = files.tokens.absolutePath,
-                modelType = files.modelType,
+                neMoCtc = OnlineNeMoCtcModelConfig(model = files.model),
+                tokens = files.tokens,
                 numThreads = 2,
                 provider = "cpu",
             ),
             enableEndpoint = true,
         )
-        val instance = OnlineRecognizer(config = config)
+        val instance = OnlineRecognizer(assetManager = context.assets, config = config)
         try {
             recognizer = instance
             stream = instance.createStream()

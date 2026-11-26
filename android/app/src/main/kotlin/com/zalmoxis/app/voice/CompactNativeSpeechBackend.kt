@@ -28,7 +28,7 @@ internal class CompactNativeSpeechBackend(context: Context) : AutoCloseable {
                     model = "kitten-mini-en-v0_8/model.onnx",
                     voices = "kitten-mini-en-v0_8/voices.bin",
                     tokens = "kitten-mini-en-v0_8/tokens.txt",
-                    lexicon = "kitten-mini-en-v0_8/lexicon.txt",
+                    dataDir = "kitten-mini-en-v0_8/espeak-ng-data",
                 ),
                 numThreads = 3,
                 provider = "cpu",
